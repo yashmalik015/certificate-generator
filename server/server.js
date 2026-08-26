@@ -56,12 +56,16 @@ const setupDatabase = async () => {
     const mongoUri = process.env.MONGO_URI;
     const isVercel = Boolean(process.env.VERCEL || process.env.NOW_REGION);
 
-    if (mongoUri && !mongoUri.includes('localhost')) {
-      console.log('Connecting to Cloud MongoDB Atlas...');
-      await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 5000 });
-      console.log('Successfully connected to MongoDB Atlas.');
+    if (mongoUri) {
+      try {
+        console.log('Connecting to MongoDB Atlas...');
+        await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 4000 });
+        console.log('Successfully connected to MongoDB.');
+      } catch (err) {
+        console.warn('MongoDB connection warning:', err.message);
+      }
     } else if (!isVercel) {
-      const localUri = mongoUri || 'mongodb://localhost:27017/wcaeo';
+      const localUri = 'mongodb://localhost:27017/wcaeo';
       try {
         await mongoose.connect(localUri, { serverSelectionTimeoutMS: 2000 });
         console.log('Connected to local MongoDB daemon.');
@@ -74,57 +78,58 @@ const setupDatabase = async () => {
         console.log(`Connected to MongoMemoryServer at ${uri}`);
       }
     } else {
-      throw new Error('Please configure a valid cloud MONGO_URI (e.g., MongoDB Atlas) in your Vercel Project Environment Variables.');
+      console.warn('No MONGO_URI provided on Vercel. App will run in stateless demo mode.');
     }
 
-    // Seed default Admin User if not existing
-    const seedUsername = process.env.ADMIN_SEED_USERNAME || 'wcaeo_admin';
-    const seedPassword = process.env.ADMIN_SEED_PASSWORD || 'Wc@eo#2026$Secure91';
-    const existingAdmin = await AdminUser.findOne({ username: seedUsername });
-    if (!existingAdmin) {
-      const hash = await bcrypt.hash(seedPassword, 10);
-      await AdminUser.create({ username: seedUsername, passwordHash: hash });
-      console.log(`Seeded default Admin account: ${seedUsername}`);
-    }
+    if (mongoose.connection.readyState === 1) {
+      // Seed default Admin User if not existing
+      const seedUsername = process.env.ADMIN_SEED_USERNAME || 'wcaeo_admin';
+      const seedPassword = process.env.ADMIN_SEED_PASSWORD || 'Wc@eo#2026$Secure91';
+      const existingAdmin = await AdminUser.findOne({ username: seedUsername });
+      if (!existingAdmin) {
+        const hash = await bcrypt.hash(seedPassword, 10);
+        await AdminUser.create({ username: seedUsername, passwordHash: hash });
+        console.log(`Seeded default Admin account: ${seedUsername}`);
+      }
 
-    // Seed initial Events if empty
-    const eventCount = await Event.countDocuments();
-    if (eventCount === 0) {
-      await Event.insertMany([
-        { name: 'National Excellence Awards 2026', description: 'Annual honor ceremony for national achievers' },
-        { name: 'Global Education & Leadership Summit', description: 'International academic conference & award ceremony' },
-        { name: 'Sahitya & Cultural Recognition Ceremony', description: 'Honoring literary and cultural icons' }
-      ]);
-      console.log('Seeded initial Events collection.');
-    }
+      // Seed initial Events if empty
+      const eventCount = await Event.countDocuments();
+      if (eventCount === 0) {
+        await Event.insertMany([
+          { name: 'National Excellence Awards 2026', description: 'Annual honor ceremony for national achievers' },
+          { name: 'Global Education & Leadership Summit', description: 'International academic conference & award ceremony' },
+          { name: 'Sahitya & Cultural Recognition Ceremony', description: 'Honoring literary and cultural icons' }
+        ]);
+        console.log('Seeded initial Events collection.');
+      }
 
-    // Seed initial Subjects if empty
-    const subjectCount = await Subject.countDocuments();
-    if (subjectCount === 0) {
-      await Subject.insertMany([
-        { name: 'Social Service & Humanitarian Work' },
-        { name: 'Higher Education & Research' },
-        { name: 'Literature, Poetry & Arts' },
-        { name: 'Business Leadership & Entrepreneurship' },
-        { name: 'Healthcare & Medical Service' }
-      ]);
-      console.log('Seeded initial Subjects collection.');
+      // Seed initial Subjects if empty
+      const subjectCount = await Subject.countDocuments();
+      if (subjectCount === 0) {
+        await Subject.insertMany([
+          { name: 'Social Service & Humanitarian Work' },
+          { name: 'Higher Education & Research' },
+          { name: 'Literature, Poetry & Arts' },
+          { name: 'Business Leadership & Entrepreneurship' },
+          { name: 'Healthcare & Medical Service' }
+        ]);
+        console.log('Seeded initial Subjects collection.');
+      }
     }
   })();
 
   return dbPromise;
 };
 
-// Middleware to ensure DB connection before handling API routes
+// Middleware to attempt DB connection without crashing if DB unavailable
 app.use(async (req, res, next) => {
   if (req.path === '/api/health') return next();
   try {
     await setupDatabase();
-    next();
   } catch (err) {
-    console.error('Database connection middleware error:', err);
-    return res.status(500).json({ error: err.message || 'Database connection error.' });
+    console.warn('Database initialization warning:', err);
   }
+  next();
 });
 
 // Public verification route (no auth middleware required)
@@ -140,7 +145,12 @@ app.use('/api/uploads', uploadRoutes);
 
 // Root health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', app: 'WCAEO Certificate Backend Server', timestamp: new Date() });
+  res.json({
+    status: 'ok',
+    app: 'WCAEO Certificate Backend Server',
+    dbConnected: mongoose.connection.readyState === 1,
+    timestamp: new Date()
+  });
 });
 
 const PORT = process.env.PORT || 5050;
