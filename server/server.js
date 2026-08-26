@@ -37,9 +37,95 @@ if (!fs.existsSync(uploadsDir)) {
 }
 app.use('/uploads', express.static(uploadsDir));
 
-// Also serve certificate templates statically if requested
+// Serve certificate templates statically
 const templatesDir = path.resolve(__dirname, '../src/assets/certificate-templates');
 app.use('/assets/certificate-templates', express.static(templatesDir));
+
+// Database connection helper for serverless environment
+let dbPromise = null;
+
+const setupDatabase = async () => {
+  if (mongoose.connection.readyState === 1) {
+    return;
+  }
+  if (dbPromise) {
+    return dbPromise;
+  }
+
+  dbPromise = (async () => {
+    const mongoUri = process.env.MONGO_URI;
+    const isVercel = Boolean(process.env.VERCEL || process.env.NOW_REGION);
+
+    if (mongoUri && !mongoUri.includes('localhost')) {
+      console.log('Connecting to Cloud MongoDB Atlas...');
+      await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 5000 });
+      console.log('Successfully connected to MongoDB Atlas.');
+    } else if (!isVercel) {
+      const localUri = mongoUri || 'mongodb://localhost:27017/wcaeo';
+      try {
+        await mongoose.connect(localUri, { serverSelectionTimeoutMS: 2000 });
+        console.log('Connected to local MongoDB daemon.');
+      } catch {
+        console.log('Local MongoDB daemon not detected. Initializing embedded MongoMemoryServer fallback...');
+        const { MongoMemoryServer } = await import('mongodb-memory-server');
+        const mongod = await MongoMemoryServer.create();
+        const uri = mongod.getUri();
+        await mongoose.connect(uri);
+        console.log(`Connected to MongoMemoryServer at ${uri}`);
+      }
+    } else {
+      throw new Error('Please configure a valid cloud MONGO_URI (e.g., MongoDB Atlas) in your Vercel Project Environment Variables.');
+    }
+
+    // Seed default Admin User if not existing
+    const seedUsername = process.env.ADMIN_SEED_USERNAME || 'wcaeo_admin';
+    const seedPassword = process.env.ADMIN_SEED_PASSWORD || 'Wc@eo#2026$Secure91';
+    const existingAdmin = await AdminUser.findOne({ username: seedUsername });
+    if (!existingAdmin) {
+      const hash = await bcrypt.hash(seedPassword, 10);
+      await AdminUser.create({ username: seedUsername, passwordHash: hash });
+      console.log(`Seeded default Admin account: ${seedUsername}`);
+    }
+
+    // Seed initial Events if empty
+    const eventCount = await Event.countDocuments();
+    if (eventCount === 0) {
+      await Event.insertMany([
+        { name: 'National Excellence Awards 2026', description: 'Annual honor ceremony for national achievers' },
+        { name: 'Global Education & Leadership Summit', description: 'International academic conference & award ceremony' },
+        { name: 'Sahitya & Cultural Recognition Ceremony', description: 'Honoring literary and cultural icons' }
+      ]);
+      console.log('Seeded initial Events collection.');
+    }
+
+    // Seed initial Subjects if empty
+    const subjectCount = await Subject.countDocuments();
+    if (subjectCount === 0) {
+      await Subject.insertMany([
+        { name: 'Social Service & Humanitarian Work' },
+        { name: 'Higher Education & Research' },
+        { name: 'Literature, Poetry & Arts' },
+        { name: 'Business Leadership & Entrepreneurship' },
+        { name: 'Healthcare & Medical Service' }
+      ]);
+      console.log('Seeded initial Subjects collection.');
+    }
+  })();
+
+  return dbPromise;
+};
+
+// Middleware to ensure DB connection before handling API routes
+app.use(async (req, res, next) => {
+  if (req.path === '/api/health') return next();
+  try {
+    await setupDatabase();
+    next();
+  } catch (err) {
+    console.error('Database connection middleware error:', err);
+    return res.status(500).json({ error: err.message || 'Database connection error.' });
+  }
+});
 
 // Public verification route (no auth middleware required)
 app.use('/api/verify', verifyRoutes);
@@ -57,67 +143,16 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', app: 'WCAEO Certificate Backend Server', timestamp: new Date() });
 });
 
-// Database setup with Memory DB fallback
-const setupDatabase = async () => {
-  const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/wcaeo';
-  try {
-    console.log(`Connecting to MongoDB at ${mongoUri}...`);
-    await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 2000 });
-    console.log('Successfully connected to MongoDB daemon.');
-  } catch (err) {
-    console.log('Local MongoDB daemon not detected. Initializing embedded MongoMemoryServer fallback...');
-    const { MongoMemoryServer } = await import('mongodb-memory-server');
-    const mongod = await MongoMemoryServer.create();
-    const uri = mongod.getUri();
-    await mongoose.connect(uri);
-    console.log(`Successfully connected to MongoMemoryServer at ${uri}`);
-  }
-
-  // Seed default Admin User if not existing
-  const seedUsername = process.env.ADMIN_SEED_USERNAME || 'wcaeo_admin';
-  const seedPassword = process.env.ADMIN_SEED_PASSWORD || 'Wc@eo#2026$Secure91';
-  const existingAdmin = await AdminUser.findOne({ username: seedUsername });
-  if (!existingAdmin) {
-    const hash = await bcrypt.hash(seedPassword, 10);
-    await AdminUser.create({ username: seedUsername, passwordHash: hash });
-    console.log(`Seeded default Admin account: ${seedUsername}`);
-  }
-
-  // Seed initial Events if empty
-  const eventCount = await Event.countDocuments();
-  if (eventCount === 0) {
-    await Event.insertMany([
-      { name: 'National Excellence Awards 2026', description: 'Annual honor ceremony for national achievers' },
-      { name: 'Global Education & Leadership Summit', description: 'International academic conference & award ceremony' },
-      { name: 'Sahitya & Cultural Recognition Ceremony', description: 'Honoring literary and cultural icons' }
-    ]);
-    console.log('Seeded initial Events collection.');
-  }
-
-  // Seed initial Subjects if empty
-  const subjectCount = await Subject.countDocuments();
-  if (subjectCount === 0) {
-    await Subject.insertMany([
-      { name: 'Social Service & Humanitarian Work' },
-      { name: 'Higher Education & Research' },
-      { name: 'Literature, Poetry & Arts' },
-      { name: 'Business Leadership & Entrepreneurship' },
-      { name: 'Healthcare & Medical Service' }
-    ]);
-    console.log('Seeded initial Subjects collection.');
-  }
-};
-
 const PORT = process.env.PORT || 5050;
 
-setupDatabase().then(() => {
-  if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+if (!process.env.VERCEL) {
+  setupDatabase().then(() => {
     app.listen(PORT, () => {
       console.log(`WCAEO Backend Server running on http://localhost:${PORT}`);
     });
-  }
-}).catch((err) => {
-  console.error('Fatal database setup error:', err);
-});
+  }).catch((err) => {
+    console.error('Fatal database setup error:', err);
+  });
+}
 
 export default app;

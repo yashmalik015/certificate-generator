@@ -184,7 +184,9 @@ const StudentForm = () => {
         }
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save student record.');
+      const data = err.response?.data;
+      const msg = typeof data === 'string' ? data : (typeof data?.error === 'string' ? data.error : (typeof data?.message === 'string' ? data.message : 'Failed to save student record.'));
+      setError(msg);
     } finally {
       setLoading(false);
     }

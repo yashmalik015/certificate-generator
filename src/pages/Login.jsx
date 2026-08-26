@@ -3,6 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { Award, Lock, User, AlertCircle } from 'lucide-react';
 import api from '../api/axiosClient';
 
+const extractErrorMessage = (err, defaultMsg) => {
+  const data = err.response?.data;
+  if (typeof data === 'string') return data;
+  if (typeof data?.error === 'string') return data.error;
+  if (typeof data?.message === 'string') return data.message;
+  if (data?.error?.message && typeof data.error.message === 'string') return data.error.message;
+  return defaultMsg;
+};
+
 const Login = () => {
   const [username, setUsername] = useState('wcaeo_admin');
   const [password, setPassword] = useState('Wc@eo#2026$Secure91');
@@ -21,7 +30,8 @@ const Login = () => {
       localStorage.setItem('wcaeo_user', JSON.stringify(res.data.user));
       navigate('/superpanel/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Invalid credentials or server unavailable.');
+      const msg = extractErrorMessage(err, 'Invalid credentials or server unavailable.');
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -40,7 +50,7 @@ const Login = () => {
 
         {error && (
           <div style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.15)', color: 'var(--danger)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px', fontSize: '13px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <AlertCircle size={16} /> {error}
+            <AlertCircle size={16} /> {String(error)}
           </div>
         )}
 
