@@ -23,6 +23,20 @@ try {
   console.warn('Certificates directory setup warning:', mkdirErr.message);
 }
 
+// Format font string into valid Canvas API syntax: "[style] [weight] [size]px [family]"
+const formatCanvasFont = (size, fontStr) => {
+  const str = String(fontStr || '').toLowerCase();
+  const isBold = str.includes('bold');
+  const isItalic = str.includes('italic');
+  let family = 'sans-serif';
+  if (str.includes('serif') && !str.includes('sans')) {
+    family = 'serif';
+  }
+  const weightStr = isBold ? 'bold ' : '';
+  const styleStr = isItalic ? 'italic ' : '';
+  return `${styleStr}${weightStr}${size || 30}px ${family}`;
+};
+
 export const getAvailableTemplates = () => {
   if (!fs.existsSync(templatesDir)) return [];
   try {
@@ -131,14 +145,14 @@ export const generateCertificate = async (studentData, templateId) => {
       fathersHusbandName: studentData.fathersHusbandName ? `S/D/W of: ${studentData.fathersHusbandName}` : ''
     };
 
-    // Draw dynamic overlay fields according to JSON map
+    // Draw dynamic overlay fields with valid Canvas font syntax
     if (config && config.fields) {
       Object.keys(config.fields).forEach((fieldName) => {
         const fieldConfig = config.fields[fieldName];
         const val = values[fieldName];
         if (val !== undefined && val !== null && val !== '') {
           ctx.fillStyle = fieldConfig.color || '#000000';
-          ctx.font = `${fieldConfig.fontSize || 30}px ${fieldConfig.font || 'sans-serif'}`;
+          ctx.font = formatCanvasFont(fieldConfig.fontSize, fieldConfig.font);
           ctx.textAlign = fieldConfig.align || 'left';
           ctx.fillText(String(val), fieldConfig.x, fieldConfig.y);
         }
@@ -151,13 +165,30 @@ export const generateCertificate = async (studentData, templateId) => {
       let photoLoaded = false;
 
       if (studentData.photoUrl) {
-        const relativePhotoPath = studentData.photoUrl.replace(/^\//, '');
-        const absolutePhotoPath = isVercel
-          ? path.join('/tmp', relativePhotoPath)
-          : path.resolve(__dirname, '..', relativePhotoPath);
+        let photoImg = null;
+        if (studentData.photoUrl.startsWith('data:') || studentData.photoUrl.startsWith('http')) {
+          try {
+            photoImg = await loadImage(studentData.photoUrl);
+          } catch (pErr) {
+            console.warn('Failed to load photo URL:', pErr.message);
+          }
+        } else {
+          const relPath = studentData.photoUrl.replace(/^\//, '');
+          const path1 = path.join('/tmp', relPath);
+          const path2 = path.resolve(__dirname, '..', relPath);
+          const targetPath = fs.existsSync(path1) ? path1 : (fs.existsSync(path2) ? path2 : null);
 
-        if (fs.existsSync(absolutePhotoPath)) {
-          const photoImg = await loadImage(absolutePhotoPath);
+          if (targetPath) {
+            try {
+              const buf = fs.readFileSync(targetPath);
+              photoImg = await loadImage(buf);
+            } catch (pErr) {
+              console.warn(`Failed to load photo buffer from ${targetPath}:`, pErr.message);
+            }
+          }
+        }
+
+        if (photoImg) {
           const pad = 6;
           ctx.drawImage(
             photoImg,
@@ -306,7 +337,7 @@ export const generateCertificate = async (studentData, templateId) => {
 
       const pdfBytes = await pdfDoc.save();
       fs.writeFileSync(outPdfPath, pdfBytes);
-      fs.writeFileSync(outPngPath, Buffer.from([])); // Empty placeholder for PNG
+      fs.writeFileSync(outPngPath, Buffer.from([]));
     } catch (pdfErr) {
       console.error('Fatal PDF fallback error:', pdfErr);
     }

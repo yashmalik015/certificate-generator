@@ -172,16 +172,18 @@ router.post('/', authMiddleware, async (req, res) => {
       });
       await newStudent.save();
 
-      // Trigger certificate generation
-      const generatedUrls = [];
-      for (const tid of templatesToRun) {
-        try {
-          const certRes = await generateCertificate(newStudent, tid);
-          generatedUrls.push(certRes);
-        } catch (genErr) {
-          console.error(`Certificate generation error for template ${tid}:`, genErr);
-        }
-      }
+      // Trigger certificate generation in parallel
+      const generatedResults = await Promise.all(
+        templatesToRun.map(async (tid) => {
+          try {
+            return await generateCertificate(newStudent, tid);
+          } catch (genErr) {
+            console.error(`Certificate generation error for template ${tid}:`, genErr);
+            return null;
+          }
+        })
+      );
+      const generatedUrls = generatedResults.filter(Boolean);
 
       newStudent.generatedCertificateUrls = generatedUrls;
       await newStudent.save();
@@ -201,16 +203,17 @@ router.post('/', authMiddleware, async (req, res) => {
         createdAt: new Date()
       };
 
-      const generatedUrls = [];
-      for (const tid of templatesToRun) {
-        try {
-          const certRes = await generateCertificate(mockStudent, tid);
-          generatedUrls.push(certRes);
-        } catch (genErr) {
-          console.error(`Certificate generation error for template ${tid}:`, genErr);
-        }
-      }
-      mockStudent.generatedCertificateUrls = generatedUrls;
+      const generatedResults = await Promise.all(
+        templatesToRun.map(async (tid) => {
+          try {
+            return await generateCertificate(mockStudent, tid);
+          } catch (genErr) {
+            console.error(`Certificate generation error for template ${tid}:`, genErr);
+            return null;
+          }
+        })
+      );
+      mockStudent.generatedCertificateUrls = generatedResults.filter(Boolean);
 
       global._mockStudentsStore.unshift(mockStudent);
       return res.status(201).json(mockStudent);
