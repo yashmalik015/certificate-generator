@@ -13,6 +13,9 @@ const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
+// Global fallback store for serverless environments when DB is not connected
+global._mockStudentsStore = global._mockStudentsStore || [];
+
 // Helper to auto-generate Next Refno and Certificate Number
 const generateAutoNumbers = async () => {
   const year = new Date().getFullYear();
@@ -21,8 +24,10 @@ const generateAutoNumbers = async () => {
     try {
       count = await Student.countDocuments();
     } catch {
-      count = 0;
+      count = global._mockStudentsStore.length;
     }
+  } else {
+    count = global._mockStudentsStore.length;
   }
   const nextSeq = count + 1;
   const refno = `WCAEO/${year}/${String(nextSeq).padStart(3, '0')}`;
@@ -45,14 +50,32 @@ router.get('/', authMiddleware, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const perPage = parseInt(req.query.perPage) || 10;
-    const search = (req.query.search || '').trim();
+    const search = (req.query.search || '').trim().toLowerCase();
     const status = req.query.status;
     const category = req.query.category;
 
     if (mongoose.connection.readyState !== 1) {
+      let filtered = [...global._mockStudentsStore];
+      if (search) {
+        filtered = filtered.filter((s) =>
+          (s.fullName || '').toLowerCase().includes(search) ||
+          (s.refno || '').toLowerCase().includes(search) ||
+          (s.certificateNumber || '').toLowerCase().includes(search) ||
+          (s.category || '').toLowerCase().includes(search) ||
+          (s.email || '').toLowerCase().includes(search)
+        );
+      }
+      if (status) filtered = filtered.filter((s) => s.status === status);
+      if (category) filtered = filtered.filter((s) => s.category === category);
+
+      const total = filtered.length;
+      const totalPages = Math.ceil(total / perPage) || 1;
+      const startIdx = (page - 1) * perPage;
+      const paginated = filtered.slice(startIdx, startIdx + perPage);
+
       return res.json({
-        data: [],
-        pagination: { total: 0, page: 1, perPage, totalPages: 1 }
+        data: paginated,
+        pagination: { total, page, perPage, totalPages }
       });
     }
 
@@ -93,8 +116,8 @@ router.get('/', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error('Fetch students error:', err);
     return res.json({
-      data: [],
-      pagination: { total: 0, page: 1, perPage: 10, totalPages: 1 }
+      data: global._mockStudentsStore,
+      pagination: { total: global._mockStudentsStore.length, page: 1, perPage: 10, totalPages: 1 }
     });
   }
 });
@@ -106,10 +129,11 @@ router.get('/:id', authMiddleware, async (req, res) => {
       const student = await Student.findById(req.params.id)
         .populate('eventId')
         .populate('subjectId');
-      if (!student) return res.status(404).json({ error: 'Student not found.' });
-      return res.json(student);
+      if (student) return res.json(student);
     }
-    return res.status(404).json({ error: 'Student not found in fallback mode.' });
+    const found = global._mockStudentsStore.find((s) => s._id === req.params.id);
+    if (found) return res.json(found);
+    return res.status(404).json({ error: 'Student not found.' });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch student details.' });
   }
@@ -173,7 +197,8 @@ router.post('/', authMiddleware, async (req, res) => {
         _id: `student_${Date.now()}`,
         ...studentData,
         certificateTemplateIds: templatesToRun,
-        generatedCertificateUrls: []
+        generatedCertificateUrls: [],
+        createdAt: new Date()
       };
 
       const generatedUrls = [];
@@ -187,6 +212,7 @@ router.post('/', authMiddleware, async (req, res) => {
       }
       mockStudent.generatedCertificateUrls = generatedUrls;
 
+      global._mockStudentsStore.unshift(mockStudent);
       return res.status(201).json(mockStudent);
     }
   } catch (err) {
@@ -203,33 +229,40 @@ router.put('/:id', authMiddleware, async (req, res) => {
   try {
     if (mongoose.connection.readyState === 1) {
       const student = await Student.findById(req.params.id);
-      if (!student) return res.status(404).json({ error: 'Student record not found.' });
+      if (student) {
+        Object.assign(student, req.body);
 
-      Object.assign(student, req.body);
+        let templatesToRun = req.body.certificateTemplateIds || student.certificateTemplateIds;
+        if (typeof templatesToRun === 'string') templatesToRun = [templatesToRun];
+        student.certificateTemplateIds = templatesToRun;
 
-      let templatesToRun = req.body.certificateTemplateIds || student.certificateTemplateIds;
-      if (typeof templatesToRun === 'string') templatesToRun = [templatesToRun];
-      student.certificateTemplateIds = templatesToRun;
-
-      const generatedUrls = [];
-      for (const tid of templatesToRun) {
-        try {
-          const certRes = await generateCertificate(student, tid);
-          generatedUrls.push(certRes);
-        } catch (genErr) {
-          console.error(`Certificate regeneration error for template ${tid}:`, genErr);
+        const generatedUrls = [];
+        for (const tid of templatesToRun) {
+          try {
+            const certRes = await generateCertificate(student, tid);
+            generatedUrls.push(certRes);
+          } catch (genErr) {
+            console.error(`Certificate regeneration error for template ${tid}:`, genErr);
+          }
         }
+
+        student.generatedCertificateUrls = generatedUrls;
+        await student.save();
+
+        const updated = await Student.findById(student._id)
+          .populate('eventId', 'name')
+          .populate('subjectId', 'name');
+
+        return res.json(updated);
       }
-
-      student.generatedCertificateUrls = generatedUrls;
-      await student.save();
-
-      const updated = await Student.findById(student._id)
-        .populate('eventId', 'name')
-        .populate('subjectId', 'name');
-
-      return res.json(updated);
     }
+
+    const idx = global._mockStudentsStore.findIndex((s) => s._id === req.params.id);
+    if (idx !== -1) {
+      Object.assign(global._mockStudentsStore[idx], req.body);
+      return res.json(global._mockStudentsStore[idx]);
+    }
+
     return res.json({ _id: req.params.id, ...req.body });
   } catch (err) {
     console.error('Update student error:', err);
@@ -243,6 +276,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     if (mongoose.connection.readyState === 1) {
       await Student.findByIdAndDelete(req.params.id);
     }
+    global._mockStudentsStore = global._mockStudentsStore.filter((s) => s._id !== req.params.id);
     return res.json({ message: 'Student deleted successfully.' });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to delete student.' });
@@ -254,17 +288,17 @@ router.post('/:id/send-mail', authMiddleware, async (req, res) => {
   try {
     if (mongoose.connection.readyState === 1) {
       const student = await Student.findById(req.params.id);
-      if (!student) return res.status(404).json({ error: 'Student not found.' });
+      if (student) {
+        if (!student.generatedCertificateUrls || student.generatedCertificateUrls.length === 0) {
+          return res.status(400).json({ error: 'No certificates generated for this student yet.' });
+        }
 
-      if (!student.generatedCertificateUrls || student.generatedCertificateUrls.length === 0) {
-        return res.status(400).json({ error: 'No certificates generated for this student yet.' });
+        await sendCertificateEmail(student, student.generatedCertificateUrls);
+        student.mailSent = true;
+        await student.save();
+
+        return res.json({ message: `Certificate email successfully sent to ${student.email}`, mailSent: true });
       }
-
-      await sendCertificateEmail(student, student.generatedCertificateUrls);
-      student.mailSent = true;
-      await student.save();
-
-      return res.json({ message: `Certificate email successfully sent to ${student.email}`, mailSent: true });
     }
     return res.json({ message: 'Email queued successfully in fallback mode.', mailSent: true });
   } catch (err) {
@@ -282,6 +316,10 @@ router.get('/:id/certificate/:templateId/download', authMiddleware, async (req, 
 
     if (mongoose.connection.readyState === 1) {
       student = await Student.findById(id);
+    }
+
+    if (!student) {
+      student = global._mockStudentsStore.find((s) => s._id === id);
     }
 
     if (!student) {
