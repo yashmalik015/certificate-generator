@@ -111,9 +111,13 @@ const setupDatabase = async () => {
 const PORT = process.env.PORT || 5050;
 
 setupDatabase().then(() => {
-  app.listen(PORT, () => {
-    console.log(`WCAEO Backend Server running on http://localhost:${PORT}`);
-  });
+  if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    app.listen(PORT, () => {
+      console.log(`WCAEO Backend Server running on http://localhost:${PORT}`);
+    });
+  }
 }).catch((err) => {
   console.error('Fatal database setup error:', err);
 });
+
+export default app;
