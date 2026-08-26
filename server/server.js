@@ -60,32 +60,27 @@ const setupDatabase = async () => {
   }
 
   dbPromise = (async () => {
-    const mongoUri = process.env.MONGO_URI;
+    const mongoUri = process.env.MONGO_URI || 'mongodb+srv://yashumalik015_db_user:Y%40sh8584@cluster0.i4btk5f.mongodb.net/wcaeo?retryWrites=true&w=majority';
     const isVercel = Boolean(process.env.VERCEL || process.env.NOW_REGION);
 
-    if (mongoUri) {
-      try {
-        console.log('Connecting to MongoDB Atlas...');
-        await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 4000 });
-        console.log('Successfully connected to MongoDB.');
-      } catch (err) {
-        console.warn('MongoDB connection warning:', err.message);
+    try {
+      console.log('Connecting to MongoDB Atlas...');
+      await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 5000 });
+      console.log('Successfully connected to MongoDB Atlas.');
+    } catch (err) {
+      console.warn('MongoDB connection warning:', err.message);
+      if (!isVercel) {
+        try {
+          console.log('Initializing embedded MongoMemoryServer fallback...');
+          const { MongoMemoryServer } = await import('mongodb-memory-server');
+          const mongod = await MongoMemoryServer.create();
+          const uri = mongod.getUri();
+          await mongoose.connect(uri);
+          console.log(`Connected to MongoMemoryServer at ${uri}`);
+        } catch (memErr) {
+          console.warn('MongoMemoryServer fallback warning:', memErr.message);
+        }
       }
-    } else if (!isVercel) {
-      const localUri = 'mongodb://localhost:27017/wcaeo';
-      try {
-        await mongoose.connect(localUri, { serverSelectionTimeoutMS: 2000 });
-        console.log('Connected to local MongoDB daemon.');
-      } catch {
-        console.log('Local MongoDB daemon not detected. Initializing embedded MongoMemoryServer fallback...');
-        const { MongoMemoryServer } = await import('mongodb-memory-server');
-        const mongod = await MongoMemoryServer.create();
-        const uri = mongod.getUri();
-        await mongoose.connect(uri);
-        console.log(`Connected to MongoMemoryServer at ${uri}`);
-      }
-    } else {
-      console.warn('No MONGO_URI provided on Vercel. App will run in stateless demo mode.');
     }
 
     if (mongoose.connection.readyState === 1) {
