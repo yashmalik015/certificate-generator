@@ -8,13 +8,26 @@ import { authMiddleware } from '../middleware/auth.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const photosDir = path.resolve(__dirname, '../uploads/photos');
-if (!fs.existsSync(photosDir)) {
-  fs.mkdirSync(photosDir, { recursive: true });
+const isVercel = Boolean(process.env.VERCEL || process.env.NOW_REGION);
+const photosDir = isVercel
+  ? path.join('/tmp', 'uploads', 'photos')
+  : path.resolve(__dirname, '../uploads/photos');
+
+try {
+  if (!fs.existsSync(photosDir)) {
+    fs.mkdirSync(photosDir, { recursive: true });
+  }
+} catch (mkdirErr) {
+  console.warn('Photos directory setup warning:', mkdirErr.message);
 }
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
+    try {
+      if (!fs.existsSync(photosDir)) {
+        fs.mkdirSync(photosDir, { recursive: true });
+      }
+    } catch {}
     cb(null, photosDir);
   },
   filename: (req, file, cb) => {

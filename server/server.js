@@ -31,10 +31,17 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Static uploads serving
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
+const isVercelEnv = Boolean(process.env.VERCEL || process.env.NOW_REGION);
+const uploadsDir = isVercelEnv
+  ? path.join('/tmp', 'uploads')
+  : path.join(__dirname, 'uploads');
+
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch {}
+
 app.use('/uploads', express.static(uploadsDir));
 
 // Serve certificate templates statically

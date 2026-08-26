@@ -8,12 +8,19 @@ import QRCode from 'qrcode';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const isVercel = Boolean(process.env.VERCEL || process.env.NOW_REGION);
 const templatesDir = path.resolve(__dirname, '../../src/assets/certificate-templates');
 const configDir = path.join(templatesDir, 'config');
-const uploadsDir = path.resolve(__dirname, '../uploads/certificates');
+const uploadsDir = isVercel
+  ? path.join('/tmp', 'uploads', 'certificates')
+  : path.resolve(__dirname, '../uploads/certificates');
 
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch (mkdirErr) {
+  console.warn('Certificates directory setup warning:', mkdirErr.message);
 }
 
 export const getAvailableTemplates = () => {
