@@ -15,7 +15,7 @@ export const authMiddleware = (req, res, next) => {
       return res.status(401).json({ error: 'Authentication required. No token provided.' });
     }
 
-    const secret = process.env.JWT_SECRET || 'wcaeo_secret_jwt_key_2026_default';
+    const secret = process.env.JWT_SECRET || 'wcaeo_super_secret_jwt_key_2026_production_grade';
     const decoded = jwt.verify(token, secret);
     req.user = decoded;
     next();
