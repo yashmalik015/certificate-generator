@@ -359,7 +359,15 @@ router.get('/:id/certificate/:templateId/download', authMiddleware, async (req, 
       };
     }
 
-    const certRes = await generateCertificate(student, templateId);
+    let certRes;
+    if (templateId === 'universal-id-card') {
+      certRes = await generateIdCard(student);
+    } else if (templateId === 'universal-membership-certificate') {
+      certRes = await generateMembershipCert(student);
+    } else {
+      certRes = await generateCertificate(student, templateId);
+    }
+
     const relativeUrl = format === 'png' ? certRes.pngUrl : certRes.pdfUrl;
 
     const isVercel = Boolean(process.env.VERCEL || process.env.NOW_REGION);
