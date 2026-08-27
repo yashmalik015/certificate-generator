@@ -14,10 +14,12 @@ import subjectRoutes from './routes/subjectRoutes.js';
 import studentRoutes from './routes/studentRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import verifyRoutes from './routes/verifyRoutes.js';
+import designationRoutes from './routes/designationRoutes.js';
 
 import AdminUser from './models/AdminUser.js';
 import Event from './models/Event.js';
 import Subject from './models/Subject.js';
+import Designation from './models/Designation.js';
 
 dotenv.config();
 
@@ -118,6 +120,39 @@ const setupDatabase = async () => {
         ]);
         console.log('Seeded initial Subjects collection.');
       }
+
+      // Seed initial Designations if empty
+      const designationCount = await Designation.countDocuments();
+      if (designationCount === 0) {
+        await Designation.insertMany([
+          { name: 'National Member' },
+          { name: 'Ambassador' },
+          { name: 'State Head' },
+          { name: 'International Member' },
+          { name: 'Honorary Member' }
+        ]);
+        console.log('Seeded initial Designations collection.');
+      }
+
+      // ── Feature 5: Startup config validation ──
+      // Warn for any template PNG that is missing a JSON config file
+      const templatesDirectory = path.resolve(__dirname, '../src/assets/certificate-templates');
+      const configDirectory = path.join(templatesDirectory, 'config');
+      if (fs.existsSync(templatesDirectory)) {
+        const allFiles = fs.readdirSync(templatesDirectory);
+        const templatePngs = allFiles.filter((f) => f.endsWith('.png') || f.endsWith('.jpg'));
+        const missingConfigs = templatePngs.filter((f) => {
+          const id = path.basename(f, path.extname(f));
+          return !fs.existsSync(path.join(configDirectory, `${id}.json`));
+        });
+        if (missingConfigs.length > 0) {
+          console.warn('⚠️  TEMPLATE CONFIG WARNING — The following templates are missing JSON coordinate configs:');
+          missingConfigs.forEach((f) => console.warn(`   → ${f}  (needs config/${path.basename(f, path.extname(f))}.json)`));
+          console.warn('   These templates will fall back to default field positions until configs are created via /superpanel/template-calibrator');
+        } else {
+          console.log(`✅ All ${templatePngs.length} certificate templates have JSON configs.`);
+        }
+      }
     }
   })();
 
@@ -145,6 +180,7 @@ app.use('/api/events', eventRoutes);
 app.use('/api/subjects', subjectRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/uploads', uploadRoutes);
+app.use('/api/designations', designationRoutes);
 
 // Root health check
 app.get('/api/health', (req, res) => {

@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import Student from '../models/Student.js';
-import { generateCertificate } from '../services/certificateGenerator.js';
+import { generateCertificate, generateIdCard, generateMembershipCert } from '../services/certificateGenerator.js';
 import { sendCertificateEmail } from '../services/mailer.js';
 import { authMiddleware } from '../middleware/auth.js';
 
@@ -185,18 +185,25 @@ router.post('/', authMiddleware, async (req, res) => {
       });
       await newStudent.save();
 
-      // Trigger certificate generation in parallel
-      const generatedResults = await Promise.all(
+      // Generate award certificates in parallel
+      const certResults = await Promise.all(
         templatesToRun.map(async (tid) => {
-          try {
-            return await generateCertificate(newStudent, tid);
-          } catch (genErr) {
-            console.error(`Certificate generation error for template ${tid}:`, genErr);
-            return null;
+          try { return await generateCertificate(newStudent, tid); } catch (e) {
+            console.error(`Cert gen error (${tid}):`, e); return null;
           }
         })
       );
-      const generatedUrls = generatedResults.filter(Boolean);
+
+      // Generate universal ID Card + Membership Certificate
+      let idCardResult = null, membershipResult = null;
+      try { idCardResult = await generateIdCard(newStudent); } catch (e) { console.error('ID card gen error:', e); }
+      try { membershipResult = await generateMembershipCert(newStudent); } catch (e) { console.error('Membership gen error:', e); }
+
+      const generatedUrls = [
+        ...certResults.filter(Boolean),
+        ...(idCardResult ? [idCardResult] : []),
+        ...(membershipResult ? [membershipResult] : [])
+      ];
 
       newStudent.generatedCertificateUrls = generatedUrls;
       await newStudent.save();
@@ -252,15 +259,18 @@ router.put('/:id', authMiddleware, async (req, res) => {
         if (typeof templatesToRun === 'string') templatesToRun = [templatesToRun];
         student.certificateTemplateIds = templatesToRun;
 
+        // Regenerate award certificates
         const generatedUrls = [];
         for (const tid of templatesToRun) {
           try {
             const certRes = await generateCertificate(student, tid);
             generatedUrls.push(certRes);
-          } catch (genErr) {
-            console.error(`Certificate regeneration error for template ${tid}:`, genErr);
-          }
+          } catch (genErr) { console.error(`Cert regen error (${tid}):`, genErr); }
         }
+
+        // Regenerate universal docs
+        try { const r = await generateIdCard(student); if (r) generatedUrls.push(r); } catch (e) { console.error('ID card regen:', e); }
+        try { const r = await generateMembershipCert(student); if (r) generatedUrls.push(r); } catch (e) { console.error('Membership regen:', e); }
 
         student.generatedCertificateUrls = generatedUrls;
         await student.save();

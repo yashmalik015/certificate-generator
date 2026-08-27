@@ -7,6 +7,8 @@ import StudentsList from './pages/StudentsList';
 import StudentForm from './pages/StudentForm';
 import Events from './pages/Events';
 import Subjects from './pages/Subjects';
+import Designations from './pages/Designations';
+import TemplateCalibratorPage from './pages/TemplateCalibratorPage';
 import PublicVerify from './pages/PublicVerify';
 import './App.css';
 
@@ -25,6 +27,8 @@ function App() {
           <Route path="students/:id/edit" element={<StudentForm />} />
           <Route path="events" element={<Events />} />
           <Route path="subjects" element={<Subjects />} />
+          <Route path="designations" element={<Designations />} />
+          <Route path="template-calibrator" element={<TemplateCalibratorPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/superpanel/dashboard" replace />} />

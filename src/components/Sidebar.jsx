@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Calendar, BookOpen, Award } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, BookOpen, Award, UserCog, Crosshair } from 'lucide-react';
 
 const Sidebar = () => {
   return (
@@ -34,6 +34,18 @@ const Sidebar = () => {
           <NavLink to="/superpanel/subjects" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
             <BookOpen size={18} />
             <span>Subjects</span>
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/superpanel/designations" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+            <UserCog size={18} />
+            <span>Designations</span>
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/superpanel/template-calibrator" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+            <Crosshair size={18} />
+            <span>Template Calibrator</span>
           </NavLink>
         </li>
       </ul>

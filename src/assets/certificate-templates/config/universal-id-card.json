@@ -1,0 +1,32 @@
+{
+  "templateFile": "universal-id-card.png",
+  "fields": {
+    "fullName": {
+      "x": 800, "y": 420,
+      "fontSize": 48, "font": "bold", "color": "#1a1a2e",
+      "align": "center", "maxWidth": 1200
+    },
+    "designation": {
+      "x": 800, "y": 510,
+      "fontSize": 32, "font": "bold", "color": "#b45309",
+      "align": "center", "maxWidth": 1000
+    },
+    "nationality": {
+      "x": 800, "y": 580,
+      "fontSize": 26, "font": "bold", "color": "#475569",
+      "align": "center"
+    },
+    "certificateNumber": {
+      "x": 800, "y": 650,
+      "fontSize": 22, "font": "bold", "color": "#475569",
+      "align": "center"
+    },
+    "letterIssuedAt": {
+      "x": 800, "y": 710,
+      "fontSize": 22, "font": "bold", "color": "#475569",
+      "align": "center"
+    }
+  },
+  "photo": { "x": 120, "y": 300, "width": 280, "height": 340 },
+  "qrCode": { "x": 1350, "y": 350, "size": 150 }
+}

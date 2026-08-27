@@ -274,7 +274,7 @@ const StudentsList = () => {
                       </span>
                     </td>
                     <td>
-                      {/* One download button per certificate assigned */}
+                      {/* Award certificate download buttons */}
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                         {student.certificateTemplateIds?.map((tid) => (
                           <button
@@ -286,6 +286,23 @@ const StudentsList = () => {
                             <Download size={12} /> {getShortTemplateLabel(tid)}
                           </button>
                         ))}
+                        {/* Universal documents */}
+                        <button
+                          className="btn-cert-download"
+                          style={{ background: 'rgba(6,182,212,0.15)', borderColor: 'rgba(6,182,212,0.35)', color: '#22d3ee' }}
+                          onClick={() => handleDownloadCert(student._id, 'universal-id-card')}
+                          title="Download ID Card PDF"
+                        >
+                          <Download size={12} /> ID Card
+                        </button>
+                        <button
+                          className="btn-cert-download"
+                          style={{ background: 'rgba(139,92,246,0.15)', borderColor: 'rgba(139,92,246,0.35)', color: '#a78bfa' }}
+                          onClick={() => handleDownloadCert(student._id, 'universal-membership-certificate')}
+                          title="Download Membership Certificate PDF"
+                        >
+                          <Download size={12} /> Member Cert
+                        </button>
                       </div>
                     </td>
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>

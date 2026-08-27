@@ -10,6 +10,8 @@ const getPageTitle = (pathname) => {
   if (pathname.includes('/superpanel/students')) return 'Students & Certificates';
   if (pathname.includes('/superpanel/events')) return 'Events Management';
   if (pathname.includes('/superpanel/subjects')) return 'Subjects Management';
+  if (pathname.includes('/superpanel/designations')) return 'Designations Management';
+  if (pathname.includes('/superpanel/template-calibrator')) return 'Template Calibrator';
   return 'WCAEO Admin Superpanel';
 };
 

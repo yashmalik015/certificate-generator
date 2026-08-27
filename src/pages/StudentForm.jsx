@@ -21,6 +21,7 @@ const StudentForm = () => {
     category: '',
     bloodGroup: 'O+',
     nationality: 'Indian',
+    designation: '',
     eventId: '',
     subjectId: '',
     certificateTemplateIds: [],
@@ -31,6 +32,7 @@ const StudentForm = () => {
   const [events, setEvents] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [templates, setTemplates] = useState([]);
+  const [designations, setDesignations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [error, setError] = useState('');
@@ -50,16 +52,18 @@ const StudentForm = () => {
 
   const loadOptions = async () => {
     try {
-      const [eventsRes, subjectsRes, templatesRes] = await Promise.all([
+      const [eventsRes, subjectsRes, templatesRes, designationsRes] = await Promise.all([
         api.get('/events'),
         api.get('/subjects'),
-        api.get('/certificate-templates')
+        api.get('/certificate-templates'),
+        api.get('/designations')
       ]);
 
       setEvents(eventsRes.data || []);
       setSubjects(subjectsRes.data || []);
       const templateList = templatesRes.data || [];
       setTemplates(templateList);
+      setDesignations(designationsRes.data || []);
 
       // Default select first event, subject, and template if new
       if (!isEdit) {
@@ -384,6 +388,22 @@ const StudentForm = () => {
             >
               {commonCountries.map((c) => (
                 <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Designation */}
+          <div className="form-group">
+            <label className="form-label">Designation</label>
+            <select
+              name="designation"
+              className="form-control"
+              value={formData.designation}
+              onChange={handleChange}
+            >
+              <option value="">-- Select Designation (for ID Card) --</option>
+              {designations.map((d) => (
+                <option key={d._id} value={d.name}>{d.name}</option>
               ))}
             </select>
           </div>

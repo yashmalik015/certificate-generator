@@ -1,0 +1,22 @@
+{
+  "templateFile": "universal-membership-certificate.png",
+  "fields": {
+    "fullName": {
+      "x": 1200, "y": 550,
+      "fontSize": 58, "font": "bold", "color": "#0f172a",
+      "align": "center", "maxWidth": 1800
+    },
+    "certificateNumber": {
+      "x": 600, "y": 1480,
+      "fontSize": 22, "font": "bold", "color": "#475569",
+      "align": "left"
+    },
+    "letterIssuedAt": {
+      "x": 1800, "y": 1480,
+      "fontSize": 22, "font": "bold", "color": "#475569",
+      "align": "right"
+    }
+  },
+  "photo": { "x": 1080, "y": 700, "width": 240, "height": 300 },
+  "qrCode": { "x": 2050, "y": 80, "size": 180 }
+}
