@@ -29,9 +29,22 @@ const generateAutoNumbers = async () => {
   } else {
     count = global._mockStudentsStore.length;
   }
-  const nextSeq = count + 1;
-  const refno = `WCAEO/${year}/${String(nextSeq).padStart(3, '0')}`;
-  const certificateNumber = `WCAEO/CERT/${year}/${String(nextSeq).padStart(4, '0')}`;
+  let nextSeq = count + 1;
+  let refno = `WCAEO/${year}/${String(nextSeq).padStart(3, '0')}`;
+  let certificateNumber = `WCAEO/CERT/${year}/${String(nextSeq).padStart(4, '0')}`;
+
+  if (mongoose.connection.readyState === 1) {
+    try {
+      while (await Student.exists({ $or: [{ refno }, { certificateNumber }] })) {
+        nextSeq += 1;
+        refno = `WCAEO/${year}/${String(nextSeq).padStart(3, '0')}`;
+        certificateNumber = `WCAEO/CERT/${year}/${String(nextSeq).padStart(4, '0')}`;
+      }
+    } catch (existErr) {
+      console.warn('Auto number uniqueness check warning:', existErr.message);
+    }
+  }
+
   return { refno, certificateNumber };
 };
 

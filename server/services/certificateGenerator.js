@@ -1,12 +1,25 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createCanvas, loadImage } from 'canvas';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import QRCode from 'qrcode';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+let canvasLibCache = undefined;
+const getCanvasLib = async () => {
+  if (canvasLibCache !== undefined) return canvasLibCache;
+  try {
+    const mod = await import('canvas');
+    canvasLibCache = { createCanvas: mod.createCanvas, loadImage: mod.loadImage };
+    return canvasLibCache;
+  } catch (err) {
+    console.warn('Native canvas package not available, using pdf-lib fallback:', err.message);
+    canvasLibCache = null;
+    return null;
+  }
+};
 
 const isVercel = Boolean(process.env.VERCEL || process.env.NOW_REGION);
 const templatesDir = path.resolve(__dirname, '../../src/assets/certificate-templates');
@@ -79,6 +92,12 @@ export const generateCertificate = async (studentData, templateId) => {
   const outPdfPath = path.join(uploadsDir, outPdfName);
 
   try {
+    const canvasLib = await getCanvasLib();
+    if (!canvasLib) {
+      throw new Error('Canvas native library not available, using pdf-lib fallback');
+    }
+    const { createCanvas, loadImage } = canvasLib;
+
     const pngTemplatePath = path.join(templatesDir, `${templateId}.png`);
     const jsonConfigPath = path.join(configDir, `${templateId}.json`);
 
@@ -334,6 +353,41 @@ export const generateCertificate = async (studentData, templateId) => {
         font,
         color: rgb(0.28, 0.33, 0.41)
       });
+
+      // Embed QR Code into PDF
+      try {
+        const domain = process.env.APP_BASE_URL || 'https://certificate-generator-two-nu.vercel.app';
+        const verifyUrl = `${domain}/verify/${encodeURIComponent(studentData.certificateNumber || 'INVALID')}`;
+        const qrBuffer = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 180 });
+        const embeddedQr = await pdfDoc.embedPng(qrBuffer);
+        page.drawImage(embeddedQr, { x: 2050, y: 1300, width: 180, height: 180 });
+      } catch (qrPdfErr) {
+        console.warn('PDF-lib QR embed warning:', qrPdfErr.message);
+      }
+
+      // Embed Recipient Photo into PDF if available as Base64 Data URL or file
+      try {
+        if (studentData.photoUrl) {
+          let photoBuffer = null;
+          if (studentData.photoUrl.startsWith('data:image/')) {
+            const base64Data = studentData.photoUrl.split(',')[1];
+            if (base64Data) photoBuffer = Buffer.from(base64Data, 'base64');
+          }
+          if (photoBuffer) {
+            let embeddedPhoto = null;
+            if (studentData.photoUrl.startsWith('data:image/png')) {
+              embeddedPhoto = await pdfDoc.embedPng(photoBuffer);
+            } else {
+              embeddedPhoto = await pdfDoc.embedJpg(photoBuffer);
+            }
+            if (embeddedPhoto) {
+              page.drawImage(embeddedPhoto, { x: 1080, y: 550, width: 240, height: 240 });
+            }
+          }
+        }
+      } catch (photoPdfErr) {
+        console.warn('PDF-lib Photo embed warning:', photoPdfErr.message);
+      }
 
       const pdfBytes = await pdfDoc.save();
       fs.writeFileSync(outPdfPath, pdfBytes);

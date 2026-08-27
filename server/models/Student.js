@@ -24,8 +24,8 @@ const studentSchema = new mongoose.Schema(
       enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
     },
     nationality: { type: String, required: true, default: 'Indian' },
-    eventId: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', required: true },
-    subjectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject', required: true },
+    eventId: { type: mongoose.Schema.Types.Mixed, ref: 'Event', required: true },
+    subjectId: { type: mongoose.Schema.Types.Mixed, ref: 'Subject', required: true },
     certificateTemplateIds: [{ type: String, required: true }],
     photoUrl: { type: String, required: true },
     status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },

@@ -6,9 +6,9 @@ import { authMiddleware } from '../middleware/auth.js';
 const router = express.Router();
 
 const defaultEvents = [
-  { _id: 'event_001', name: 'National Excellence Awards 2026', description: 'Annual honor ceremony for national achievers' },
-  { _id: 'event_002', name: 'Global Education & Leadership Summit', description: 'International academic conference & award ceremony' },
-  { _id: 'event_003', name: 'Sahitya & Cultural Recognition Ceremony', description: 'Honoring literary and cultural icons' }
+  { _id: '65a000000000000000000001', name: 'National Excellence Awards 2026', description: 'Annual honor ceremony for national achievers' },
+  { _id: '65a000000000000000000002', name: 'Global Education & Leadership Summit', description: 'International academic conference & award ceremony' },
+  { _id: '65a000000000000000000003', name: 'Sahitya & Cultural Recognition Ceremony', description: 'Honoring literary and cultural icons' }
 ];
 
 router.get('/', authMiddleware, async (req, res) => {

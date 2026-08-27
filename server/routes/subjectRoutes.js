@@ -6,11 +6,11 @@ import { authMiddleware } from '../middleware/auth.js';
 const router = express.Router();
 
 const defaultSubjects = [
-  { _id: 'subj_001', name: 'Social Service & Humanitarian Work' },
-  { _id: 'subj_002', name: 'Higher Education & Research' },
-  { _id: 'subj_003', name: 'Literature, Poetry & Arts' },
-  { _id: 'subj_004', name: 'Business Leadership & Entrepreneurship' },
-  { _id: 'subj_005', name: 'Healthcare & Medical Service' }
+  { _id: '65b000000000000000000001', name: 'Social Service & Humanitarian Work' },
+  { _id: '65b000000000000000000002', name: 'Higher Education & Research' },
+  { _id: '65b000000000000000000003', name: 'Literature, Poetry & Arts' },
+  { _id: '65b000000000000000000004', name: 'Business Leadership & Entrepreneurship' },
+  { _id: '65b000000000000000000005', name: 'Healthcare & Medical Service' }
 ];
 
 router.get('/', authMiddleware, async (req, res) => {

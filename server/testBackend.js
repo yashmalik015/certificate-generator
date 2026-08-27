@@ -46,9 +46,10 @@ async function runTests() {
   const subjectsRes = await request('/api/subjects', 'GET', null, token);
 
   // 3. Create Student Record & Generate Certificates with Embedded QR Code
-  const certNo = 'WCAEO/CERT/2026/0001';
+  const ts = Date.now();
+  const certNo = `WCAEO/CERT/2026/TEST_${ts}`;
   const newStudent = {
-    refno: 'WCAEO/2026/001',
+    refno: `WCAEO/2026/TEST_${ts}`,
     certificateNumber: certNo,
     fullName: 'Dr. Sunita Williams',
     fathersHusbandName: 'Shri N. Williams',
@@ -61,7 +62,7 @@ async function runTests() {
     eventId: eventsRes.body[0]._id,
     subjectId: subjectsRes.body[0]._id,
     certificateTemplateIds: ['Bhartiya Samaj Seva award', 'Doctorate IHREO'],
-    photoUrl: '/uploads/photos/test_photo.jpg',
+    photoUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
     status: 'Active'
   };
 

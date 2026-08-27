@@ -65,10 +65,11 @@ const setupDatabase = async () => {
 
     try {
       console.log('Connecting to MongoDB Atlas...');
-      await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 5000 });
+      await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 10000 });
       console.log('Successfully connected to MongoDB Atlas.');
     } catch (err) {
       console.warn('MongoDB connection warning:', err.message);
+      dbPromise = null;
       if (!isVercel) {
         try {
           console.log('Initializing embedded MongoMemoryServer fallback...');

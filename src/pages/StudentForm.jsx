@@ -126,20 +126,40 @@ const StudentForm = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const data = new FormData();
-    data.append('photo', file);
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Photo size exceeds 10MB limit.');
+      return;
+    }
 
     setUploadingPhoto(true);
-    try {
-      const res = await api.post('/uploads/photo', data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      setFormData((prev) => ({ ...prev, photoUrl: res.data.photoUrl }));
-    } catch (err) {
-      setError('Failed to upload recipient photo.');
-    } finally {
+    setError('');
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64Url = reader.result;
+      setFormData((prev) => ({ ...prev, photoUrl: base64Url }));
+
+      // Also attempt server upload for file endpoint
+      try {
+        const data = new FormData();
+        data.append('photo', file);
+        const res = await api.post('/uploads/photo', data, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        if (res.data && res.data.photoUrl) {
+          // If server photoUrl is relative, keep base64 or server URL
+        }
+      } catch (uploadErr) {
+        console.warn('Server photo upload backup warning:', uploadErr.message);
+      } finally {
+        setUploadingPhoto(false);
+      }
+    };
+    reader.onerror = () => {
+      setError('Failed to read selected photo file.');
       setUploadingPhoto(false);
-    }
+    };
+    reader.readAsDataURL(file);
   };
 
   const saveStudent = async (createAnother = false) => {
