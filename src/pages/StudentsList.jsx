@@ -57,12 +57,18 @@ const StudentsList = () => {
     if (!window.confirm(`Are you sure you want to delete certificate record for ${name}?`)) {
       return;
     }
+    // Optimistically remove from state immediately
+    setStudents((prev) => prev.filter((s) => s._id !== id));
+    setSelectedIds((prev) => prev.filter((item) => item !== id));
+    setPagination((prev) => ({ ...prev, total: Math.max(0, prev.total - 1) }));
+
     try {
       await api.delete(`/students/${id}`);
       setActionMessage({ type: 'success', text: `Deleted student record for ${name}.` });
       fetchStudents();
     } catch (err) {
       setActionMessage({ type: 'error', text: 'Failed to delete student record.' });
+      fetchStudents();
     }
   };
 

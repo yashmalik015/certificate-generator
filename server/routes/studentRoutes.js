@@ -299,13 +299,24 @@ router.put('/:id', authMiddleware, async (req, res) => {
 // DELETE /api/students/:id
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
+    const id = req.params.id;
+    console.log(`[DELETE /api/students/${id}] processing deletion...`);
+
     if (mongoose.connection.readyState === 1) {
-      await Student.findByIdAndDelete(req.params.id);
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        await Student.findByIdAndDelete(id);
+      } else {
+        await Student.deleteOne({ $or: [{ _id: id }, { refno: id }, { certificateNumber: id }] });
+      }
     }
-    global._mockStudentsStore = global._mockStudentsStore.filter((s) => s._id !== req.params.id);
-    return res.json({ message: 'Student deleted successfully.' });
+    global._mockStudentsStore = global._mockStudentsStore.filter(
+      (s) => String(s._id) !== String(id) && s.refno !== id
+    );
+    console.log(`[DELETE /api/students/${id}] successfully deleted.`);
+    return res.json({ success: true, message: 'Student deleted successfully.' });
   } catch (err) {
-    return res.status(500).json({ error: 'Failed to delete student.' });
+    console.error('Delete student error:', err);
+    return res.status(500).json({ error: 'Failed to delete student: ' + err.message });
   }
 });
 
