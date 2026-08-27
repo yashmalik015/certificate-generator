@@ -8,8 +8,23 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const isVercel = Boolean(process.env.VERCEL || process.env.NOW_REGION);
-const templatesDir = path.resolve(__dirname, '../../src/assets/certificate-templates');
-const configDir = path.join(templatesDir, 'config');
+
+// Resolve templates directory reliably across local dev and Vercel serverless environments
+const possibleTemplatesDirs = [
+  path.resolve(__dirname, '../../src/assets/certificate-templates'),
+  path.join(process.cwd(), 'src/assets/certificate-templates'),
+  path.join(process.cwd(), 'CertificateWeb/src/assets/certificate-templates'),
+  path.resolve(__dirname, '../../src/assets'),
+  path.join(process.cwd(), 'src/assets'),
+  path.join(process.cwd(), 'CertificateWeb/src/assets')
+];
+
+export const getTemplatesDir = () => {
+  const found = possibleTemplatesDirs.find((d) => fs.existsSync(d) && fs.readdirSync(d).length > 0);
+  return found || possibleTemplatesDirs[0];
+};
+
+const templatesDir = getTemplatesDir();
 const uploadsDir = isVercel
   ? path.join('/tmp', 'uploads', 'certificates')
   : path.resolve(__dirname, '../uploads/certificates');
@@ -26,102 +41,49 @@ const hexToRgb = (hex) => {
   return r ? rgb(parseInt(r[1], 16) / 255, parseInt(r[2], 16) / 255, parseInt(r[3], 16) / 255) : rgb(0, 0, 0);
 };
 
+// ── Friendly Award Titles ────────────────────────────────────────────────────
+export const getAwardTitle = (templateId) => {
+  const lower = String(templateId || '').toLowerCase();
+  if (lower.includes('doctorate')) return 'Honorary Doctorate Award';
+  if (lower.includes('samaj') || lower.includes('seva award')) return 'Bhartiya Samaj Seva Award';
+  if (lower.includes('padm') || lower.includes('bhushan')) return 'Bhartiya Padma Bhushan Samman';
+  if (lower.includes('business')) return 'International Business Excellence Award';
+  if (lower.includes('enterpreneur') || lower.includes('entrepreneur')) return 'International Best Entrepreneur Award';
+  if (lower.includes('lifetime') || lower.includes('literary')) return 'Lifetime Literary Achievement Award';
+  if (lower.includes('sahitya')) return 'Sahitya Sewa Ratna Sammaan';
+  if (lower.includes('shiksha') || lower.includes('principal')) return 'Shiksha Ratna Principal Award';
+  if (lower.includes('bibhuti')) return 'Bibhuti Puraskar';
+  if (lower.includes('laureate')) return 'Laureate Award Certificate';
+  if (lower.includes('women') || lower.includes('icon')) return 'Women Icon Award';
+  return templateId.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
 // ── Template list ────────────────────────────────────────────────────────────
 export const getAvailableTemplates = () => {
-  if (!fs.existsSync(templatesDir)) return [];
+  const tDir = getTemplatesDir();
+  if (!fs.existsSync(tDir)) return [];
   try {
-    const files = fs.readdirSync(templatesDir);
+    const files = fs.readdirSync(tDir);
     return files
       .filter((f) => f.endsWith('.png') || f.endsWith('.pdf') || f.endsWith('.jpg'))
-      .filter((f) => !f.startsWith('universal-'))
+      .filter((f) => !f.startsWith('universal-') && !f.includes('SANDHYA') && !f.includes('KAWALJEET') && !f.includes('MEHA'))
       .map((filename) => {
         const id = path.basename(filename, path.extname(filename));
         return {
           id,
           filename,
-          label: id.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim(),
-          hasConfig: fs.existsSync(path.join(configDir, `${id}.json`))
+          label: getAwardTitle(id),
+          hasConfig: true
         };
       })
-      .filter((v, i, a) => a.findIndex((t) => t.id === v.id) === i); // unique by ID
+      .filter((v, i, a) => a.findIndex((t) => t.id === v.id) === i);
   } catch {
     return [
-      { id: 'Doctorate IHREO', filename: 'Doctorate IHREO.pdf', label: 'Doctorate IHREO', hasConfig: true },
-      { id: 'Bhartiya Samaj Seva award', filename: 'Bhartiya Samaj Seva award.png', label: 'Bhartiya Samaj Seva award', hasConfig: true }
+      { id: 'Doctorate IHREO', filename: 'Doctorate IHREO.pdf', label: 'Honorary Doctorate Award', hasConfig: true },
+      { id: 'Bhartiya Samaj Seva award', filename: 'Bhartiya Samaj Seva award.pdf', label: 'Bhartiya Samaj Seva Award', hasConfig: true },
+      { id: 'rashtriya padma bhushan samman', filename: 'rashtriya padma bhushan samman.pdf', label: 'Bhartiya Padma Bhushan Samman', hasConfig: true },
+      { id: 'women icon award', filename: 'women icon award.pdf', label: 'Women Icon Award', hasConfig: true }
     ];
-  }
-};
-
-// ── Default field config (used if no JSON config file exists) ────────────────
-const defaultConfig = () => ({
-  fields: {
-    fullName:          { x: 1200, y: 590,  fontSize: 56, font: 'bold', color: '#0f172a', align: 'center', maxWidth: 1800 },
-    category:         { x: 1200, y: 760,  fontSize: 34, font: 'bold', color: '#b45309', align: 'center', maxWidth: 1600, wrap: true },
-    refno:            { x: 300,  y: 1475, fontSize: 22, font: 'bold', color: '#475569', align: 'left' },
-    certificateNumber:{ x: 1200, y: 1475, fontSize: 22, font: 'bold', color: '#475569', align: 'center' },
-    letterIssuedAt:   { x: 2100, y: 1475, fontSize: 22, font: 'bold', color: '#475569', align: 'right' }
-  },
-  photo:  { x: 1080, y: 840, width: 240, height: 240 },
-  qrCode: { x: 2050, y: 100, size: 180 }
-});
-
-const loadConfig = (templateId) => {
-  const jsonPath = path.join(configDir, `${templateId}.json`);
-  if (fs.existsSync(jsonPath)) {
-    try { return JSON.parse(fs.readFileSync(jsonPath, 'utf8')); } catch {}
-  }
-  return defaultConfig();
-};
-
-// ── Draw text with auto-shrink and optional word-wrap ───────────────────────
-const drawTextField = (page, text, fieldConfig, pageHeight, font) => {
-  if (!text) return;
-  const str = String(text);
-  const maxWidth = fieldConfig.maxWidth || 0;
-  const wrap = Boolean(fieldConfig.wrap);
-  const color = hexToRgb(fieldConfig.color);
-
-  let fontSize = fieldConfig.fontSize || 24;
-  if (maxWidth && !wrap) {
-    while (fontSize > 10 && font.widthOfTextAtSize(str, fontSize) > maxWidth) {
-      fontSize -= 1;
-    }
-  }
-
-  const pdfY = pageHeight - fieldConfig.y;
-
-  if (wrap && maxWidth) {
-    const words = str.split(' ');
-    const lines = [];
-    let current = '';
-    for (const word of words) {
-      const test = current ? `${current} ${word}` : word;
-      if (font.widthOfTextAtSize(test, fontSize) > maxWidth && current) {
-        lines.push(current);
-        current = word;
-      } else {
-        current = test;
-      }
-    }
-    if (current) lines.push(current);
-    const lineHeight = fontSize * 1.3;
-    lines.forEach((line, i) => {
-      const lw = font.widthOfTextAtSize(line, fontSize);
-      let x = fieldConfig.x;
-      if (fieldConfig.align === 'center') x = fieldConfig.x - lw / 2;
-      else if (fieldConfig.align === 'right') x = fieldConfig.x - lw;
-      try {
-        page.drawText(line, { x: Math.max(0, x), y: pdfY - i * lineHeight, size: fontSize, font, color });
-      } catch {}
-    });
-  } else {
-    const tw = font.widthOfTextAtSize(str, fontSize);
-    let x = fieldConfig.x;
-    if (fieldConfig.align === 'center') x = fieldConfig.x - tw / 2;
-    else if (fieldConfig.align === 'right') x = fieldConfig.x - tw;
-    try {
-      page.drawText(str, { x: Math.max(0, x), y: pdfY, size: fontSize, font, color });
-    } catch {}
   }
 };
 
@@ -135,7 +97,13 @@ const embedPhoto = async (pdfDoc, studentData) => {
       isJpeg = /jpeg|jpg/.test(studentData.photoUrl);
     } else {
       const relPath = studentData.photoUrl.replace(/^\//, '');
-      for (const tryPath of [path.join('/tmp', relPath), path.resolve(__dirname, '..', relPath)]) {
+      const tryPaths = [
+        path.join('/tmp', relPath),
+        path.resolve(__dirname, '..', relPath),
+        path.join(process.cwd(), relPath),
+        path.join(process.cwd(), 'CertificateWeb', relPath)
+      ];
+      for (const tryPath of tryPaths) {
         if (fs.existsSync(tryPath)) { buf = fs.readFileSync(tryPath); isJpeg = /\.jpe?g$/i.test(tryPath); break; }
       }
     }
@@ -147,147 +115,98 @@ const embedPhoto = async (pdfDoc, studentData) => {
   return null;
 };
 
+// ── Find Template File Helper ────────────────────────────────────────────────
+const findTemplateFile = (baseName, extensions = ['.pdf', '.png', '.jpg']) => {
+  const tDir = getTemplatesDir();
+  const searchDirs = [
+    tDir,
+    path.resolve(__dirname, '../../src/assets'),
+    path.join(process.cwd(), 'src/assets'),
+    path.join(process.cwd(), 'CertificateWeb/src/assets')
+  ];
+  for (const dir of searchDirs) {
+    if (!fs.existsSync(dir)) continue;
+    for (const ext of extensions) {
+      const p = path.join(dir, `${baseName}${ext}`);
+      if (fs.existsSync(p)) return p;
+    }
+  }
+  return null;
+};
+
 // ── Render Authentic IHREO Vector PDF Base Certificate ───────────────────────
 const renderIhreDocPdf = async (studentData, templateId) => {
-  const pdfTemplatePath = path.join(templatesDir, 'Doctorate IHREO.pdf');
+  let pdfTemplatePath = findTemplateFile(templateId, ['.pdf']) || findTemplateFile('Doctorate IHREO', ['.pdf']);
+  if (!pdfTemplatePath || !fs.existsSync(pdfTemplatePath)) {
+    throw new Error(`Base PDF template not found for ${templateId}`);
+  }
+
   const baseDoc = await PDFDocument.load(fs.readFileSync(pdfTemplatePath));
   const fontBold = await baseDoc.embedFont(StandardFonts.HelveticaBold);
   const fontReg = await baseDoc.embedFont(StandardFonts.Helvetica);
   const page = baseDoc.getPage(0);
   const { width: cW, height: cH } = page.getSize();
 
-  // Top Left CIN, Licence & Sl. No.
+  // 1. Top Left CIN, Licence & Sl. No.
   const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${studentData.refno || 'WCAEO/2026/001'}\nReg No. 459383`;
   page.drawText(refText, {
-    x: 47, y: cH - 88, size: 7.5, font: fontReg, color: rgb(0.1, 0.1, 0.1), lineHeight: 10
+    x: 42, y: 785, size: 7.5, font: fontReg, color: rgb(0.1, 0.1, 0.1), lineHeight: 10.5
   });
 
-  // Top Right QR Code
+  // 2. Top Right QR Code
   try {
     const domain = process.env.APP_BASE_URL || 'https://certificate-generator.vercel.app';
     const verifyUrl = `${domain}/verify/${encodeURIComponent(studentData.certificateNumber || 'INVALID')}`;
     const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 150 });
     const qrImg = await baseDoc.embedPng(qrBuf);
-    page.drawImage(qrImg, { x: cW - 135, y: cH - 135, width: 70, height: 70 });
+    page.drawImage(qrImg, { x: 450, y: 720, width: 75, height: 75 });
   } catch (qrErr) {
     console.warn('QR Code generation error:', qrErr.message);
   }
 
-  // Recipient Photo inside Photo Frame
+  // 3. Draw Dynamic Award Title (e.g. Bhartiya Samaj Seva Award, Honorary Doctorate Award, etc.)
+  const titleStr = getAwardTitle(templateId);
+  const tw = fontBold.widthOfTextAtSize(titleStr, 23);
+  page.drawText(titleStr, { x: (cW - tw) / 2, y: 512, size: 23, font: fontBold, color: rgb(0.12, 0.15, 0.28) });
+
+  // 4. Recipient Photo inside Photo Frame
   const pImg = await embedPhoto(baseDoc, studentData);
   if (pImg) {
-    page.drawImage(pImg, { x: cW / 2 - 40, y: cH / 2 + 15, width: 80, height: 95 });
-  } else {
-    // Elegant silhouette placeholder if no photo uploaded
-    page.drawRectangle({
-      x: cW / 2 - 38, y: cH / 2 + 15, width: 76, height: 90,
-      color: rgb(0.94, 0.96, 0.98), borderColor: rgb(0.75, 0.8, 0.85), borderWidth: 1
-    });
+    page.drawImage(pImg, { x: 247, y: 385, width: 100, height: 105 });
   }
 
-  // Recipient Name
+  // 5. Recipient Name
   const nameStr = (studentData.fullName || 'RECIPIENT NAME').toUpperCase();
-  const nw = fontBold.widthOfTextAtSize(nameStr, 15);
-  page.drawText(nameStr, { x: (cW - nw) / 2, y: 288, size: 15, font: fontBold, color: rgb(0.05, 0.05, 0.05) });
+  const nw = fontBold.widthOfTextAtSize(nameStr, 16);
+  page.drawText(nameStr, { x: (cW - nw) / 2, y: 295, size: 16, font: fontBold, color: rgb(0.05, 0.05, 0.05) });
 
-  // Award Category
+  // 6. Award Category
   const catStr = studentData.category || 'For Outstanding Achievements & Social Excellence';
   const words = catStr.split(' ');
   let l1 = '', l2 = '';
   for (const w of words) {
-    if (fontBold.widthOfTextAtSize(l1 + ' ' + w, 11) < cW - 120 && !l2) {
+    if (fontBold.widthOfTextAtSize(l1 + ' ' + w, 12) < cW - 120 && !l2) {
       l1 = l1 ? l1 + ' ' + w : w;
     } else {
       l2 = l2 ? l2 + ' ' + w : w;
     }
   }
-  const l1w = fontBold.widthOfTextAtSize(l1, 11);
-  page.drawText(l1, { x: (cW - l1w) / 2, y: l2 ? 200 : 192, size: 11, font: fontBold, color: rgb(0.85, 0.1, 0.1) });
+  const l1w = fontBold.widthOfTextAtSize(l1, 12);
+  page.drawText(l1, { x: (cW - l1w) / 2, y: l2 ? 208 : 198, size: 12, font: fontBold, color: rgb(0.85, 0.1, 0.1) });
   if (l2) {
-    const l2w = fontBold.widthOfTextAtSize(l2, 11);
-    page.drawText(l2, { x: (cW - l2w) / 2, y: 184, size: 11, font: fontBold, color: rgb(0.85, 0.1, 0.1) });
+    const l2w = fontBold.widthOfTextAtSize(l2, 12);
+    page.drawText(l2, { x: (cW - l2w) / 2, y: 190, size: 12, font: fontBold, color: rgb(0.85, 0.1, 0.1) });
   }
 
-  // Date of Issue
+  // 7. Date of Issue
   const dateFormatted = studentData.letterIssuedAt
     ? new Date(studentData.letterIssuedAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')
     : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
   const dateStr = `Date of Issue : ${dateFormatted}`;
   const dw = fontReg.widthOfTextAtSize(dateStr, 9.5);
-  page.drawText(dateStr, { x: (cW - dw) / 2, y: 139, size: 9.5, font: fontReg, color: rgb(0.1, 0.1, 0.1) });
+  page.drawText(dateStr, { x: (cW - dw) / 2, y: 138, size: 9.5, font: fontReg, color: rgb(0.1, 0.1, 0.1) });
 
   return await baseDoc.save();
-};
-
-// ── Generic PNG Template Builder ─────────────────────────────────────────────
-const renderPngTemplate = async (studentData, templateId) => {
-  const pngPath = path.join(templatesDir, `${templateId}.png`);
-  if (!fs.existsSync(pngPath)) {
-    return await renderIhreDocPdf(studentData, templateId);
-  }
-
-  const config = loadConfig(templateId);
-  const pdfDoc = await PDFDocument.create();
-  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const fontReg  = await pdfDoc.embedFont(StandardFonts.Helvetica);
-
-  const buf = fs.readFileSync(pngPath);
-  const img = await pdfDoc.embedPng(buf);
-  const pageWidth = img.width;
-  const pageHeight = img.height;
-  const page = pdfDoc.addPage([pageWidth, pageHeight]);
-  page.drawImage(img, { x: 0, y: 0, width: pageWidth, height: pageHeight });
-
-  const dateFormatted = studentData.letterIssuedAt
-    ? new Date(studentData.letterIssuedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-    : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-
-  const values = {
-    fullName:          studentData.fullName || '',
-    category:         studentData.category || '',
-    refno:            `Ref: ${studentData.refno || ''}`,
-    certificateNumber:`Cert No: ${studentData.certificateNumber || ''}`,
-    letterIssuedAt:   `Date: ${dateFormatted}`,
-    fathersHusbandName: studentData.fathersHusbandName ? `S/D/W of: ${studentData.fathersHusbandName}` : '',
-    designation:      studentData.designation || '',
-    nationality:      studentData.nationality || ''
-  };
-
-  if (config.fields) {
-    for (const [fieldName, fieldConfig] of Object.entries(config.fields)) {
-      const val = values[fieldName];
-      if (!val) continue;
-      const useFont = String(fieldConfig.font || '').toLowerCase().includes('bold') ? fontBold : fontReg;
-      drawTextField(page, val, fieldConfig, pageHeight, useFont);
-    }
-  }
-
-  const photoConfig = config.photo || { x: 1080, y: 840, width: 240, height: 240 };
-  const photoImg = await embedPhoto(pdfDoc, studentData);
-  if (photoImg) {
-    page.drawImage(photoImg, {
-      x: photoConfig.x + 6,
-      y: pageHeight - photoConfig.y - photoConfig.height + 6,
-      width: photoConfig.width - 12,
-      height: photoConfig.height - 12
-    });
-  }
-
-  const qrConfig = config.qrCode || { x: 2050, y: 100, size: 180 };
-  try {
-    const domain = process.env.APP_BASE_URL || 'https://certificate-generator.vercel.app';
-    const verifyUrl = `${domain}/verify/${encodeURIComponent(studentData.certificateNumber || 'INVALID')}`;
-    const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: qrConfig.size || 180 });
-    const qrImg = await pdfDoc.embedPng(qrBuf);
-    page.drawImage(qrImg, {
-      x: qrConfig.x,
-      y: pageHeight - qrConfig.y - qrConfig.size,
-      width: qrConfig.size,
-      height: qrConfig.size
-    });
-  } catch (e) { console.warn('QR embed warning:', e.message); }
-
-  return await pdfDoc.save();
 };
 
 // ── Award Certificate ────────────────────────────────────────────────────────
@@ -297,13 +216,7 @@ export const generateCertificate = async (studentData, templateId) => {
   const pdfPath = path.join(uploadsDir, `${name}.pdf`);
   const pngPath = path.join(uploadsDir, `${name}.png`);
   try {
-    const pdfTemplatePath = path.join(templatesDir, `${templateId}.pdf`);
-    let pdfBytes;
-    if (fs.existsSync(pdfTemplatePath) || templateId.includes('Doctorate') || templateId.includes('IHREO')) {
-      pdfBytes = await renderIhreDocPdf(studentData, templateId);
-    } else {
-      pdfBytes = await renderPngTemplate(studentData, templateId);
-    }
+    const pdfBytes = await renderIhreDocPdf(studentData, templateId);
     fs.writeFileSync(pdfPath, pdfBytes);
     if (!fs.existsSync(pngPath)) fs.writeFileSync(pngPath, Buffer.from([]));
   } catch (err) {
@@ -324,7 +237,7 @@ export const generateIdCard = async (studentData) => {
   const pdfPath = path.join(uploadsDir, `${name}.pdf`);
   const pngPath = path.join(uploadsDir, `${name}.png`);
   try {
-    const idTemplatePath = path.join(templatesDir, 'universal-id-card.pdf');
+    const idTemplatePath = findTemplateFile('universal-id-card', ['.pdf']) || path.join(templatesDir, 'universal-id-card.pdf');
     const baseDoc = await PDFDocument.load(fs.readFileSync(idTemplatePath));
     const fontBold = await baseDoc.embedFont(StandardFonts.HelveticaBold);
     const page = baseDoc.getPage(0);
@@ -380,7 +293,7 @@ export const generateMembershipCert = async (studentData) => {
   const pdfPath = path.join(uploadsDir, `${name}.pdf`);
   const pngPath = path.join(uploadsDir, `${name}.png`);
   try {
-    const memTemplatePath = path.join(templatesDir, 'universal-membership-certificate.pdf');
+    const memTemplatePath = findTemplateFile('universal-membership-certificate', ['.pdf']) || path.join(templatesDir, 'universal-membership-certificate.pdf');
     const baseDoc = await PDFDocument.load(fs.readFileSync(memTemplatePath));
     const fontBold = await baseDoc.embedFont(StandardFonts.HelveticaBold);
     const fontReg = await baseDoc.embedFont(StandardFonts.Helvetica);
