@@ -135,7 +135,7 @@ const findTemplateFile = (baseName, extensions = ['.pdf', '.png', '.jpg']) => {
 };
 
 // ── Render Authentic IHREO Vector PDF Base Certificate (Clean Superimposition) ──
-const renderIhreDocPdf = async (studentData, templateId) => {
+export const renderIhreDocPdf = async (studentData, templateId) => {
   let pdfTemplatePath = findTemplateFile(templateId, ['.pdf']) || findTemplateFile('Doctorate IHREO', ['.pdf']);
   if (!pdfTemplatePath || !fs.existsSync(pdfTemplatePath)) {
     throw new Error(`Base PDF template not found for ${templateId}`);
@@ -154,10 +154,10 @@ const renderIhreDocPdf = async (studentData, templateId) => {
     x: 65, y: 775, size: 7.5, font: fontHelv, color: rgb(0.12, 0.12, 0.12), lineHeight: 10
   });
 
-  // 2. Top Right QR Code (Clean Superimposition)
+  // 2. Top Right QR Code (Clean Superimposition with ?cert= universal routing)
   try {
     const domain = process.env.APP_BASE_URL || 'https://certificate-generator.vercel.app';
-    const verifyUrl = `${domain}/verify/${encodeURIComponent(studentData.certificateNumber || 'INVALID')}`;
+    const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(studentData.certificateNumber || 'INVALID')}`;
     const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 150 });
     const qrImg = await baseDoc.embedPng(qrBuf);
     page.drawImage(qrImg, { x: 450, y: 715, width: 72, height: 72 });
@@ -296,7 +296,7 @@ export const generateIdCard = async (studentData) => {
     // Top Right QR Code
     try {
       const domain = process.env.APP_BASE_URL || 'https://certificate-generator.vercel.app';
-      const verifyUrl = `${domain}/verify/${encodeURIComponent(studentData.certificateNumber || 'INVALID')}`;
+      const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(studentData.certificateNumber || 'INVALID')}`;
       const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 100 });
       const qrImg = await baseDoc.embedPng(qrBuf);
       page.drawImage(qrImg, { x: idW - 48, y: idH - 58, width: 32, height: 32 });
@@ -355,7 +355,7 @@ export const generateMembershipCert = async (studentData) => {
     // Top Right QR Code
     try {
       const domain = process.env.APP_BASE_URL || 'https://certificate-generator.vercel.app';
-      const verifyUrl = `${domain}/verify/${encodeURIComponent(studentData.certificateNumber || 'INVALID')}`;
+      const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(studentData.certificateNumber || 'INVALID')}`;
       const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 150 });
       const qrImg = await baseDoc.embedPng(qrBuf);
       page.drawImage(qrImg, { x: mW - 145, y: mH - 145, width: 70, height: 70 });

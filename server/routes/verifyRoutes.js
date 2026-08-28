@@ -3,27 +3,37 @@ import Student from '../models/Student.js';
 
 const router = express.Router();
 
-// GET /api/verify/:certificateNumber (PUBLIC - NO AUTH REQUIRED)
+// GET /api/verify (PUBLIC - NO AUTH REQUIRED)
 const verifyHandler = async (req, res) => {
   try {
-    const rawParam = req.params.certificateNumber || req.params[0] || '';
+    const rawParam = req.query.cert || req.query.certificateNumber || req.query.id || req.params.certificateNumber || req.params[0] || '';
     const certificateNumber = decodeURIComponent(rawParam).trim();
 
     if (!certificateNumber) {
       return res.status(400).json({ valid: false, status: 'BadRequest', message: 'Certificate number parameter is required.' });
     }
 
-    // Try exact match or regex match ignoring slashes
-    let student = await Student.findOne({ certificateNumber })
-      .populate('eventId', 'name')
-      .populate('subjectId', 'name');
-
-    if (!student) {
-      // Flexible lookup replacing dashes/slashes
-      const escaped = certificateNumber.replace(/[\/\\-]/g, '[\\/\\-]');
-      student = await Student.findOne({ certificateNumber: { $regex: `^${escaped}$`, $options: 'i' } })
+    // Try exact match or flexible regex match
+    let student = null;
+    try {
+      student = await Student.findOne({ certificateNumber })
         .populate('eventId', 'name')
         .populate('subjectId', 'name');
+
+      if (!student) {
+        const escaped = certificateNumber.replace(/[\/\\-]/g, '[\\/\\-]');
+        student = await Student.findOne({ certificateNumber: { $regex: `^${escaped}$`, $options: 'i' } })
+          .populate('eventId', 'name')
+          .populate('subjectId', 'name');
+      }
+    } catch (dbErr) {
+      console.warn('Database verify lookup warning:', dbErr.message);
+    }
+
+    if (!student && global._mockStudentsStore) {
+      student = global._mockStudentsStore.find(
+        (s) => s.certificateNumber === certificateNumber || s.certificateNumber?.toLowerCase() === certificateNumber.toLowerCase()
+      );
     }
 
     if (!student) {
@@ -74,6 +84,7 @@ const verifyHandler = async (req, res) => {
   }
 };
 
+router.get('/', verifyHandler);
 router.get('/:certificateNumber', verifyHandler);
 router.get('/*', verifyHandler);
 

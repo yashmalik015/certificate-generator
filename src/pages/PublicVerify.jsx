@@ -10,9 +10,15 @@ const PublicVerify = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Extract certificate number from path e.g. /verify/WCAEO%2FCERT%2F2026%2F0001 or /verify/...
+    // 1. Check query parameters e.g. /verify?cert=WCAEO/CERT/2026/0001
+    const searchParams = new URLSearchParams(location.search);
+    const queryCert = searchParams.get('cert') || searchParams.get('certificateNumber') || searchParams.get('id');
+
+    // 2. Check path parameter e.g. /verify/WCAEO%2FCERT%2F2026%2F0001 or /verify/...
     const pathParts = location.pathname.split('/verify/');
-    const certParam = pathParts[1] ? decodeURIComponent(pathParts[1]) : '';
+    const pathCert = pathParts[1] ? decodeURIComponent(pathParts[1]).replace(/^\/+/, '') : '';
+
+    const certParam = queryCert || pathCert;
 
     if (certParam) {
       verifyCertificate(certParam);
@@ -20,13 +26,13 @@ const PublicVerify = () => {
       setLoading(false);
       setError('No certificate number provided in URL.');
     }
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
 
   const verifyCertificate = async (certNumber) => {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get(`/api/verify/${encodeURIComponent(certNumber)}`);
+      const res = await axios.get(`/api/verify?cert=${encodeURIComponent(certNumber)}`);
       setData(res.data);
     } catch (err) {
       if (err.response && err.response.data) {
@@ -45,7 +51,7 @@ const PublicVerify = () => {
     <div style={{ minHeight: '100vh', background: 'radial-gradient(circle at center, #1e293b 0%, #0b0f19 100%)', color: '#f8fafc', padding: '32px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       {/* Institution Header */}
       <div style={{ textAlign: 'center', marginBottom: '32px', maxWidth: '700px' }}>
-        <div style={{ width: '64px', height: '64px', background: 'linear-gradient(135deg, #f59e0b, #b45309)', borderRadius: '16px', display: 'flex', alignItems: 'center', justify: 'center', color: '#ffffff', margin: '0 auto 16px', boxShadow: '0 8px 24px rgba(245, 158, 11, 0.3)' }}>
+        <div style={{ width: '64px', height: '64px', background: 'linear-gradient(135deg, #f59e0b, #b45309)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', margin: '0 auto 16px', boxShadow: '0 8px 24px rgba(245, 158, 11, 0.3)' }}>
           <Award size={36} />
         </div>
         <h1 style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '0.5px', color: '#ffffff', marginBottom: '6px' }}>
@@ -87,7 +93,7 @@ const PublicVerify = () => {
                 {student?.photoUrl ? (
                   <img src={student.photoUrl} alt={student.fullName} style={{ width: '90px', height: '90px', borderRadius: '12px', objectFit: 'cover', border: '3px solid #f59e0b', boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }} />
                 ) : (
-                  <div style={{ width: '90px', height: '90px', borderRadius: '12px', background: '#1a233a', border: '2px solid #334155', display: 'flex', alignItems: 'center', justifyCenter: 'center', color: '#94a3b8' }}>
+                  <div style={{ width: '90px', height: '90px', borderRadius: '12px', background: '#1a233a', border: '2px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
                     <User size={40} />
                   </div>
                 )}

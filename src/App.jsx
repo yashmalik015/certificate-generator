@@ -17,6 +17,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/verify" element={<PublicVerify />} />
         <Route path="/verify/*" element={<PublicVerify />} />
 
         <Route path="/superpanel" element={<Layout />}>
