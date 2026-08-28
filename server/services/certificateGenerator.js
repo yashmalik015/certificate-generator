@@ -135,6 +135,7 @@ const findTemplateFile = (baseName, extensions = ['.pdf', '.png', '.jpg']) => {
 };
 
 // ── Render Authentic IHREO Vector PDF Base Certificate ───────────────────────
+// Directly superimposes text and images on the blank certificate inputs WITHOUT ANY background bars or rectangles
 const renderIhreDocPdf = async (studentData, templateId) => {
   let pdfTemplatePath = findTemplateFile(templateId, ['.pdf']) || findTemplateFile('Doctorate IHREO', ['.pdf']);
   if (!pdfTemplatePath || !fs.existsSync(pdfTemplatePath)) {
@@ -147,64 +148,101 @@ const renderIhreDocPdf = async (studentData, templateId) => {
   const page = baseDoc.getPage(0);
   const { width: cW, height: cH } = page.getSize();
 
-  // 1. Top Left CIN, Licence & Sl. No.
+  // 1. Top Left: CIN, Licence No, Sl. No, Reg No (superimposed directly, no background bar)
   const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${studentData.refno || 'WCAEO/2026/001'}\nReg No. 459383`;
   page.drawText(refText, {
-    x: 42, y: 785, size: 7.5, font: fontReg, color: rgb(0.1, 0.1, 0.1), lineHeight: 10.5
+    x: 44,
+    y: 785,
+    size: 7.5,
+    font: fontReg,
+    color: rgb(0.12, 0.15, 0.20),
+    lineHeight: 10.5
   });
 
-  // 2. Top Right QR Code
+  // 2. Top Right: Verification QR Code (superimposed directly, no background bar)
   try {
     const domain = process.env.APP_BASE_URL || 'https://certificate-generator.vercel.app';
     const verifyUrl = `${domain}/verify/${encodeURIComponent(studentData.certificateNumber || 'INVALID')}`;
     const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 150 });
     const qrImg = await baseDoc.embedPng(qrBuf);
-    page.drawImage(qrImg, { x: 450, y: 720, width: 75, height: 75 });
+    page.drawImage(qrImg, { x: cW - 132, y: cH - 132, width: 68, height: 68 });
   } catch (qrErr) {
     console.warn('QR Code generation error:', qrErr.message);
   }
 
-  // 3. Draw Dynamic Award Title (e.g. Bhartiya Samaj Seva Award, Honorary Doctorate Award, etc.)
+  // 3. Award Title (superimposed directly on the light ribbon, no background bar)
   const titleStr = getAwardTitle(templateId);
-  const tw = fontBold.widthOfTextAtSize(titleStr, 23);
-  page.drawText(titleStr, { x: (cW - tw) / 2, y: 512, size: 23, font: fontBold, color: rgb(0.12, 0.15, 0.28) });
+  const tw = fontBold.widthOfTextAtSize(titleStr, 21);
+  page.drawText(titleStr, {
+    x: (cW - tw) / 2,
+    y: 516,
+    size: 21,
+    font: fontBold,
+    color: rgb(0.12, 0.16, 0.28)
+  });
 
-  // 4. Recipient Photo inside Photo Frame
+  // 4. Recipient Photo (superimposed directly inside center frame, no background bar)
   const pImg = await embedPhoto(baseDoc, studentData);
   if (pImg) {
-    page.drawImage(pImg, { x: 247, y: 385, width: 100, height: 105 });
+    page.drawImage(pImg, { x: (cW - 86) / 2, y: 388, width: 86, height: 96 });
   }
 
-  // 5. Recipient Name
+  // 5. Recipient Name (superimposed directly on the name ribbon, no background bar)
   const nameStr = (studentData.fullName || 'RECIPIENT NAME').toUpperCase();
-  const nw = fontBold.widthOfTextAtSize(nameStr, 16);
-  page.drawText(nameStr, { x: (cW - nw) / 2, y: 295, size: 16, font: fontBold, color: rgb(0.05, 0.05, 0.05) });
+  let nameSize = 16;
+  while (nameSize > 10 && fontBold.widthOfTextAtSize(nameStr, nameSize) > 360) {
+    nameSize -= 0.5;
+  }
+  const nw = fontBold.widthOfTextAtSize(nameStr, nameSize);
+  page.drawText(nameStr, {
+    x: (cW - nw) / 2,
+    y: 288,
+    size: nameSize,
+    font: fontBold,
+    color: rgb(0.06, 0.08, 0.14)
+  });
 
-  // 6. Award Category
+  // 6. Award Category / Distinction (superimposed directly with word-wrap, no background bar)
   const catStr = studentData.category || 'For Outstanding Achievements & Social Excellence';
   const words = catStr.split(' ');
-  let l1 = '', l2 = '';
+  const lines = [];
+  let cur = '';
   for (const w of words) {
-    if (fontBold.widthOfTextAtSize(l1 + ' ' + w, 12) < cW - 120 && !l2) {
-      l1 = l1 ? l1 + ' ' + w : w;
+    const test = cur ? `${cur} ${w}` : w;
+    if (fontBold.widthOfTextAtSize(test, 11.5) > cW - 120 && cur) {
+      lines.push(cur);
+      cur = w;
     } else {
-      l2 = l2 ? l2 + ' ' + w : w;
+      cur = test;
     }
   }
-  const l1w = fontBold.widthOfTextAtSize(l1, 12);
-  page.drawText(l1, { x: (cW - l1w) / 2, y: l2 ? 208 : 198, size: 12, font: fontBold, color: rgb(0.85, 0.1, 0.1) });
-  if (l2) {
-    const l2w = fontBold.widthOfTextAtSize(l2, 12);
-    page.drawText(l2, { x: (cW - l2w) / 2, y: 190, size: 12, font: fontBold, color: rgb(0.85, 0.1, 0.1) });
-  }
+  if (cur) lines.push(cur);
 
-  // 7. Date of Issue
+  const startY = lines.length === 1 ? 194 : (lines.length === 2 ? 202 : 210);
+  lines.forEach((line, i) => {
+    const lw = fontBold.widthOfTextAtSize(line, 11.5);
+    page.drawText(line, {
+      x: (cW - lw) / 2,
+      y: startY - (i * 15),
+      size: 11.5,
+      font: fontBold,
+      color: rgb(0.80, 0.10, 0.10)
+    });
+  });
+
+  // 7. Date of Issue (superimposed directly, no background bar)
   const dateFormatted = studentData.letterIssuedAt
     ? new Date(studentData.letterIssuedAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')
     : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
   const dateStr = `Date of Issue : ${dateFormatted}`;
   const dw = fontReg.widthOfTextAtSize(dateStr, 9.5);
-  page.drawText(dateStr, { x: (cW - dw) / 2, y: 138, size: 9.5, font: fontReg, color: rgb(0.1, 0.1, 0.1) });
+  page.drawText(dateStr, {
+    x: (cW - dw) / 2,
+    y: 138,
+    size: 9.5,
+    font: fontReg,
+    color: rgb(0.15, 0.18, 0.25)
+  });
 
   return await baseDoc.save();
 };
@@ -319,11 +357,6 @@ export const generateMembershipCert = async (studentData) => {
     const pImg = await embedPhoto(baseDoc, studentData);
     if (pImg) {
       page.drawImage(pImg, { x: mW / 2 - 40, y: 395, width: 80, height: 100 });
-    } else {
-      page.drawRectangle({
-        x: mW / 2 - 38, y: 395, width: 76, height: 95,
-        color: rgb(0.94, 0.96, 0.98), borderColor: rgb(0.75, 0.8, 0.85), borderWidth: 1
-      });
     }
 
     // Recipient Name
