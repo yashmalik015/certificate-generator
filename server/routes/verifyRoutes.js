@@ -13,16 +13,36 @@ const verifyHandler = async (req, res) => {
       return res.status(400).json({ valid: false, status: 'BadRequest', message: 'Certificate number parameter is required.' });
     }
 
-    // Try exact match or flexible regex match
+    // Prepare search variants to match IHREO, WCAEO, and refno interchangeably
+    const cleanNum = certificateNumber.replace(/[\/\\]/g, '/');
+    const variants = [
+      cleanNum,
+      cleanNum.replace(/^WCAEO/i, 'IHREO'),
+      cleanNum.replace(/^IHREO/i, 'WCAEO'),
+      cleanNum.replace('/CERT/', '/'),
+      cleanNum.replace(/^IHREO\//i, 'IHREO/CERT/'),
+      cleanNum.replace(/^WCAEO\//i, 'WCAEO/CERT/')
+    ];
+
     let student = null;
     try {
-      student = await Student.findOne({ certificateNumber })
+      student = await Student.findOne({
+        $or: [
+          { certificateNumber: { $in: variants } },
+          { refno: { $in: variants } }
+        ]
+      })
         .populate('eventId', 'name')
         .populate('subjectId', 'name');
 
       if (!student) {
-        const escaped = certificateNumber.replace(/[\/\\-]/g, '[\\/\\-]');
-        student = await Student.findOne({ certificateNumber: { $regex: `^${escaped}$`, $options: 'i' } })
+        const escaped = cleanNum.replace(/[\/\\-]/g, '[\\/\\-]');
+        student = await Student.findOne({
+          $or: [
+            { certificateNumber: { $regex: escaped, $options: 'i' } },
+            { refno: { $regex: escaped, $options: 'i' } }
+          ]
+        })
           .populate('eventId', 'name')
           .populate('subjectId', 'name');
       }
@@ -31,18 +51,31 @@ const verifyHandler = async (req, res) => {
     }
 
     if (!student && global._mockStudentsStore) {
-      student = global._mockStudentsStore.find(
-        (s) => s.certificateNumber === certificateNumber || s.certificateNumber?.toLowerCase() === certificateNumber.toLowerCase()
-      );
+      student = global._mockStudentsStore.find((s) => {
+        const sCert = (s.certificateNumber || '').toLowerCase();
+        const sRef = (s.refno || '').toLowerCase();
+        const target = cleanNum.toLowerCase();
+        return (
+          sCert === target ||
+          sRef === target ||
+          sCert.includes(target) ||
+          sRef.includes(target) ||
+          target.includes(sCert) ||
+          target.includes(sRef)
+        );
+      });
     }
 
     if (!student) {
       return res.status(404).json({
         valid: false,
         status: 'NotFound',
-        message: 'No official IHREO certificate record found for this certificate number.'
+        message: `No official IHREO certificate record found for: ${certificateNumber}`
       });
     }
+
+    const displayRefno = String(student.refno || '').replace(/^WCAEO/i, 'IHREO');
+    const displayCertNo = String(student.certificateNumber || '').replace(/^WCAEO/i, 'IHREO');
 
     if (student.status === 'Inactive') {
       return res.json({
@@ -51,8 +84,8 @@ const verifyHandler = async (req, res) => {
         message: 'This certificate has been revoked or set to inactive state.',
         student: {
           fullName: student.fullName,
-          refno: student.refno,
-          certificateNumber: student.certificateNumber,
+          refno: displayRefno,
+          certificateNumber: displayCertNo,
           category: student.category,
           letterIssuedAt: student.letterIssuedAt,
           status: student.status
@@ -67,8 +100,8 @@ const verifyHandler = async (req, res) => {
       student: {
         fullName: student.fullName,
         fathersHusbandName: student.fathersHusbandName,
-        refno: student.refno,
-        certificateNumber: student.certificateNumber,
+        refno: displayRefno,
+        certificateNumber: displayCertNo,
         category: student.category,
         letterIssuedAt: student.letterIssuedAt,
         photoUrl: student.photoUrl,

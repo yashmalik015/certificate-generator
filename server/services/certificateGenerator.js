@@ -148,8 +148,12 @@ export const renderIhreDocPdf = async (studentData, templateId) => {
   const page = baseDoc.getPage(0);
   const { width: cW } = page.getSize();
 
+  // Normalize reference numbers to always display IHREO prefix
+  const cleanRefno = String(studentData.refno || 'IHREO/2026/002').replace(/WCAEO/gi, 'IHREO');
+  const cleanCertNo = String(studentData.certificateNumber || cleanRefno.replace('IHREO/', 'IHREO/CERT/') || 'IHREO/CERT/2026/0002').replace(/WCAEO/gi, 'IHREO');
+
   // 1. Top Left CIN, Licence & Sl. No., Reg No. (Clean Superimposition)
-  const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${studentData.refno || 'IHREO/2026/002'}\nReg No. 459383`;
+  const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${cleanRefno}\nReg No. 459383`;
   page.drawText(refText, {
     x: 65, y: 775, size: 7.5, font: fontHelv, color: rgb(0.12, 0.12, 0.12), lineHeight: 10
   });
@@ -157,7 +161,7 @@ export const renderIhreDocPdf = async (studentData, templateId) => {
   // 2. Top Right QR Code (Clean Superimposition with ?cert= universal routing)
   try {
     const domain = process.env.APP_BASE_URL || 'https://certificate-generator.vercel.app';
-    const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(studentData.certificateNumber || 'INVALID')}`;
+    const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(cleanCertNo)}`;
     const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 150 });
     const qrImg = await baseDoc.embedPng(qrBuf);
     page.drawImage(qrImg, { x: 450, y: 715, width: 72, height: 72 });
@@ -258,7 +262,8 @@ export const renderIhreDocPdf = async (studentData, templateId) => {
 // ── Award Certificate ────────────────────────────────────────────────────────
 export const generateCertificate = async (studentData, templateId) => {
   const sanitize = (s) => String(s).replace(/[\/\s:\\]/g, '_');
-  const name = `${sanitize(studentData.refno || 'REF000')}-${sanitize(templateId)}`;
+  const cleanRef = String(studentData.refno || 'IHREO_2026_002').replace(/WCAEO/gi, 'IHREO');
+  const name = `${sanitize(cleanRef)}-${sanitize(templateId)}`;
   const pdfPath = path.join(uploadsDir, `${name}.pdf`);
   const pngPath = path.join(uploadsDir, `${name}.png`);
   try {
@@ -279,7 +284,9 @@ export const generateCertificate = async (studentData, templateId) => {
 export const generateIdCard = async (studentData) => {
   const templateId = 'universal-id-card';
   const sanitize = (s) => String(s).replace(/[\/\s:\\]/g, '_');
-  const name = `${sanitize(studentData.refno || 'REF000')}-id-card`;
+  const cleanRef = String(studentData.refno || 'IHREO_2026_002').replace(/WCAEO/gi, 'IHREO');
+  const cleanCertNo = String(studentData.certificateNumber || cleanRef.replace('IHREO/', 'IHREO/CERT/') || 'IHREO/CERT/2026/0002').replace(/WCAEO/gi, 'IHREO');
+  const name = `${sanitize(cleanRef)}-id-card`;
   const pdfPath = path.join(uploadsDir, `${name}.pdf`);
   const pngPath = path.join(uploadsDir, `${name}.png`);
   try {
@@ -291,12 +298,12 @@ export const generateIdCard = async (studentData) => {
 
     // Reg No & Sl No in top black bar
     page.drawText(`Reg No. 459383`, { x: 15, y: idH - 18, size: 10, font: fontBold, color: rgb(1, 1, 1) });
-    page.drawText(`Sl. No. ${studentData.refno || '459383/IHREO0208'}`, { x: 130, y: idH - 18, size: 10, font: fontBold, color: rgb(1, 1, 1) });
+    page.drawText(`Sl. No. ${cleanRef}`, { x: 130, y: idH - 18, size: 10, font: fontBold, color: rgb(1, 1, 1) });
 
     // Top Right QR Code
     try {
       const domain = process.env.APP_BASE_URL || 'https://certificate-generator.vercel.app';
-      const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(studentData.certificateNumber || 'INVALID')}`;
+      const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(cleanCertNo)}`;
       const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 100 });
       const qrImg = await baseDoc.embedPng(qrBuf);
       page.drawImage(qrImg, { x: idW - 48, y: idH - 58, width: 32, height: 32 });
@@ -335,7 +342,9 @@ export const generateIdCard = async (studentData) => {
 export const generateMembershipCert = async (studentData) => {
   const templateId = 'universal-membership-certificate';
   const sanitize = (s) => String(s).replace(/[\/\s:\\]/g, '_');
-  const name = `${sanitize(studentData.refno || 'REF000')}-membership`;
+  const cleanRef = String(studentData.refno || 'IHREO_2026_002').replace(/WCAEO/gi, 'IHREO');
+  const cleanCertNo = String(studentData.certificateNumber || cleanRef.replace('IHREO/', 'IHREO/CERT/') || 'IHREO/CERT/2026/0002').replace(/WCAEO/gi, 'IHREO');
+  const name = `${sanitize(cleanRef)}-membership`;
   const pdfPath = path.join(uploadsDir, `${name}.pdf`);
   const pngPath = path.join(uploadsDir, `${name}.png`);
   try {
@@ -347,7 +356,7 @@ export const generateMembershipCert = async (studentData) => {
     const { width: mW, height: mH } = page.getSize();
 
     // Top Left CIN, Licence & Sl. No.
-    const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${studentData.refno || 'IHREO/2026/002'}\nReg No. 459383`;
+    const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${cleanRef}\nReg No. 459383`;
     page.drawText(refText, {
       x: 52, y: mH - 105, size: 7.5, font: fontReg, color: rgb(0.1, 0.1, 0.1), lineHeight: 10
     });
@@ -355,7 +364,7 @@ export const generateMembershipCert = async (studentData) => {
     // Top Right QR Code
     try {
       const domain = process.env.APP_BASE_URL || 'https://certificate-generator.vercel.app';
-      const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(studentData.certificateNumber || 'INVALID')}`;
+      const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(cleanCertNo)}`;
       const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 150 });
       const qrImg = await baseDoc.embedPng(qrBuf);
       page.drawImage(qrImg, { x: mW - 145, y: mH - 145, width: 70, height: 70 });
