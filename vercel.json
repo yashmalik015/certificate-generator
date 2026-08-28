@@ -3,34 +3,16 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
-    "api/index.js": {
+    "api/*.js": {
       "includeFiles": "src/assets/**"
     }
   },
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index.js"
-    },
-    {
-      "source": "/api",
-      "destination": "/api/index.js"
-    },
-    {
-      "source": "/uploads/(.*)",
-      "destination": "/api/index.js"
-    },
-    {
-      "source": "/verify/(.*)",
-      "destination": "/api/index.js"
-    },
-    {
-      "source": "/verify",
-      "destination": "/api/index.js"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/api", "destination": "/api" },
+    { "source": "/uploads/(.*)", "destination": "/api" },
+    { "source": "/verify/(.*)", "destination": "/api" },
+    { "source": "/verify", "destination": "/api" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
