@@ -49,7 +49,7 @@ export const resolveAppDomain = (customDomain) => {
   if (process.env.APP_BASE_URL) return process.env.APP_BASE_URL.replace(/\/+$/, '');
   if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`.replace(/\/+$/, '');
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`.replace(/\/+$/, '');
-  return 'https://certificate-generator.vercel.app';
+  return 'https://certificate-generator-yashmalik015-6612s-projects.vercel.app';
 };
 
 // ── Friendly Award Titles ────────────────────────────────────────────────────

@@ -11,8 +11,6 @@
     { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/api", "destination": "/api" },
     { "source": "/uploads/(.*)", "destination": "/api" },
-    { "source": "/verify/(.*)", "destination": "/api" },
-    { "source": "/verify", "destination": "/api" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
