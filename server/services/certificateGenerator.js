@@ -142,18 +142,19 @@ const renderIhreDocPdf = async (studentData, templateId) => {
   }
 
   const baseDoc = await PDFDocument.load(fs.readFileSync(pdfTemplatePath));
-  const fontBold = await baseDoc.embedFont(StandardFonts.HelveticaBold);
-  const fontReg = await baseDoc.embedFont(StandardFonts.Helvetica);
+  const fontTimes = await baseDoc.embedFont(StandardFonts.TimesRoman);
+  const fontTimesBold = await baseDoc.embedFont(StandardFonts.TimesRomanBold);
+  const fontHelv = await baseDoc.embedFont(StandardFonts.Helvetica);
   const page = baseDoc.getPage(0);
-  const { width: cW, height: cH } = page.getSize();
+  const { width: cW } = page.getSize();
 
-  // 1. Top Left CIN, Licence & Sl. No. (Superimposed directly, NO white box)
-  const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${studentData.refno || 'WCAEO/2026/001'}\nReg No. 459383`;
+  // 1. Top Left CIN, Licence & Sl. No., Reg No. (Clean Superimposition)
+  const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${studentData.refno || '459383/IHREO0201'}\nReg No. 459383`;
   page.drawText(refText, {
-    x: 47, y: 785, size: 7.5, font: fontReg, color: rgb(0.1, 0.1, 0.1), lineHeight: 10.5
+    x: 65, y: 775, size: 7.5, font: fontHelv, color: rgb(0.12, 0.12, 0.12), lineHeight: 10
   });
 
-  // 2. Top Right QR Code (Superimposed directly, NO white box)
+  // 2. Top Right QR Code (Clean Superimposition)
   try {
     const domain = process.env.APP_BASE_URL || 'https://certificate-generator.vercel.app';
     const verifyUrl = `${domain}/verify/${encodeURIComponent(studentData.certificateNumber || 'INVALID')}`;
@@ -164,63 +165,92 @@ const renderIhreDocPdf = async (studentData, templateId) => {
     console.warn('QR Code generation error:', qrErr.message);
   }
 
-  // 3. Award Title inside Top Capsule (y center = 509, baseline = 502) (NO white box)
+  // 3. Award Title inside Top Capsule (Clean Serif Typography, Perfectly Centered)
   const titleStr = getAwardTitle(templateId);
-  const tw = fontBold.widthOfTextAtSize(titleStr, 21);
+  const tw = fontTimes.widthOfTextAtSize(titleStr, 23.5);
   page.drawText(titleStr, {
     x: (cW - tw) / 2,
-    y: 502,
-    size: 21,
-    font: fontBold,
-    color: rgb(0.12, 0.16, 0.28)
+    y: 504,
+    size: 23.5,
+    font: fontTimes,
+    color: rgb(0.1, 0.1, 0.1)
   });
 
-  // 4. Recipient Photo inside Center Slot (x: 254, y: 378, w: 88, h: 95) (NO white box)
+  // 4. Recipient Photo inside Center Slot between Graduation Caps
   const pImg = await embedPhoto(baseDoc, studentData);
   if (pImg) {
     page.drawImage(pImg, { x: 253.66, y: 377.78, width: 88.01, height: 95.05 });
   }
 
-  // 5. Recipient Name inside Bottom Capsule (y center = 284.34, baseline = 279) (NO white box)
-  let nameSize = 15.5;
-  const nameStr = (studentData.fullName || 'RECIPIENT NAME').toUpperCase();
-  while (nameSize > 9 && fontBold.widthOfTextAtSize(nameStr, nameSize) > 310) {
+  // 5. Recipient Name inside Bottom Capsule (Clean Serif Typography, Perfectly Centered)
+  const nameStr = studentData.fullName || 'Recipient Name';
+  let nameSize = 16.5;
+  while (nameSize > 9 && fontTimes.widthOfTextAtSize(nameStr, nameSize) > 310) {
     nameSize -= 0.5;
   }
-  const nw = fontBold.widthOfTextAtSize(nameStr, nameSize);
+  const nw = fontTimes.widthOfTextAtSize(nameStr, nameSize);
   page.drawText(nameStr, {
     x: (cW - nw) / 2,
-    y: 279,
+    y: 280,
     size: nameSize,
-    font: fontBold,
-    color: rgb(0.05, 0.05, 0.05)
+    font: fontTimes,
+    color: rgb(0.1, 0.1, 0.1)
   });
 
-  // 6. Award Category in whitespace under "he/she is hereby awarded" (NO white box)
-  const catStr = studentData.category || 'For Outstanding Achievements & Social Excellence';
+  // 6. Award Category (Bold Crimson Red in Dedicated Space below "he/she is hereby awarded")
+  const catStr = studentData.category || 'For Outstanding Distinction & Excellence';
   const words = catStr.split(' ');
   let l1 = '', l2 = '';
   for (const w of words) {
-    if (fontBold.widthOfTextAtSize(l1 + ' ' + w, 12) < cW - 120 && !l2) {
+    if (fontTimesBold.widthOfTextAtSize(l1 + ' ' + w, 13.5) < cW - 120 && !l2) {
       l1 = l1 ? l1 + ' ' + w : w;
     } else {
       l2 = l2 ? l2 + ' ' + w : w;
     }
   }
-  const l1w = fontBold.widthOfTextAtSize(l1, 12);
-  page.drawText(l1, { x: (cW - l1w) / 2, y: l2 ? 202 : 194, size: 12, font: fontBold, color: rgb(0.85, 0.1, 0.1) });
+  const l1w = fontTimesBold.widthOfTextAtSize(l1, 13.5);
+  page.drawText(l1, {
+    x: (cW - l1w) / 2,
+    y: l2 ? 202 : 196,
+    size: 13.5,
+    font: fontTimesBold,
+    color: rgb(0.8, 0.15, 0.15)
+  });
   if (l2) {
-    const l2w = fontBold.widthOfTextAtSize(l2, 12);
-    page.drawText(l2, { x: (cW - l2w) / 2, y: 186, size: 12, font: fontBold, color: rgb(0.85, 0.1, 0.1) });
+    const l2w = fontTimesBold.widthOfTextAtSize(l2, 13.5);
+    page.drawText(l2, {
+      x: (cW - l2w) / 2,
+      y: 186,
+      size: 13.5,
+      font: fontTimesBold,
+      color: rgb(0.8, 0.15, 0.15)
+    });
   }
 
-  // 7. Date of Issue centered above bottom logos (NO white box)
+  // 7. "Honoris causa with all rights and privileges there into pertaining"
+  const honorisText = 'Honoris causa with all rights and privileges there into pertaining';
+  const hw = fontTimes.widthOfTextAtSize(honorisText, 10.5);
+  page.drawText(honorisText, {
+    x: (cW - hw) / 2,
+    y: 176,
+    size: 10.5,
+    font: fontTimes,
+    color: rgb(0.15, 0.15, 0.15)
+  });
+
+  // 8. Date of Issue centered above bottom logos
   const dateFormatted = studentData.letterIssuedAt
     ? new Date(studentData.letterIssuedAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')
     : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
   const dateStr = `Date of Issue : ${dateFormatted}`;
-  const dw = fontReg.widthOfTextAtSize(dateStr, 9.5);
-  page.drawText(dateStr, { x: (cW - dw) / 2, y: 138, size: 9.5, font: fontReg, color: rgb(0.12, 0.12, 0.12) });
+  const dw = fontHelv.widthOfTextAtSize(dateStr, 9.5);
+  page.drawText(dateStr, {
+    x: (cW - dw) / 2,
+    y: 138,
+    size: 9.5,
+    font: fontHelv,
+    color: rgb(0.12, 0.12, 0.12)
+  });
 
   return await baseDoc.save();
 };
@@ -259,11 +289,11 @@ export const generateIdCard = async (studentData) => {
     const page = baseDoc.getPage(0);
     const { width: idW, height: idH } = page.getSize();
 
-    // Reg No & Sl No in top black bar (NO white box)
+    // Reg No & Sl No in top black bar
     page.drawText(`Reg No. 459383`, { x: 15, y: idH - 18, size: 10, font: fontBold, color: rgb(1, 1, 1) });
     page.drawText(`Sl. No. ${studentData.refno || '459383/IHREO0208'}`, { x: 130, y: idH - 18, size: 10, font: fontBold, color: rgb(1, 1, 1) });
 
-    // Top Right QR Code (NO white box)
+    // Top Right QR Code
     try {
       const domain = process.env.APP_BASE_URL || 'https://certificate-generator.vercel.app';
       const verifyUrl = `${domain}/verify/${encodeURIComponent(studentData.certificateNumber || 'INVALID')}`;
@@ -272,13 +302,13 @@ export const generateIdCard = async (studentData) => {
       page.drawImage(qrImg, { x: idW - 48, y: idH - 58, width: 32, height: 32 });
     } catch {}
 
-    // Recipient Photo inside left frame (NO white box)
+    // Recipient Photo inside left frame
     const pImg = await embedPhoto(baseDoc, studentData);
     if (pImg) {
       page.drawImage(pImg, { x: 15, y: 36, width: 38, height: 48 });
     }
 
-    // Dynamic Fields (Name, Designation, Nationality, Date) (NO white box)
+    // Dynamic Fields (Name, Designation, Nationality, Date)
     const dateFormatted = studentData.letterIssuedAt
       ? new Date(studentData.letterIssuedAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')
       : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
@@ -316,13 +346,13 @@ export const generateMembershipCert = async (studentData) => {
     const page = baseDoc.getPage(0);
     const { width: mW, height: mH } = page.getSize();
 
-    // Top Left CIN, Licence & Sl. No. (NO white box)
+    // Top Left CIN, Licence & Sl. No.
     const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${studentData.refno || 'WCAEO/2026/001'}\nReg No. 459383`;
     page.drawText(refText, {
       x: 52, y: mH - 105, size: 7.5, font: fontReg, color: rgb(0.1, 0.1, 0.1), lineHeight: 10
     });
 
-    // Top Right QR Code (NO white box)
+    // Top Right QR Code
     try {
       const domain = process.env.APP_BASE_URL || 'https://certificate-generator.vercel.app';
       const verifyUrl = `${domain}/verify/${encodeURIComponent(studentData.certificateNumber || 'INVALID')}`;
@@ -331,18 +361,18 @@ export const generateMembershipCert = async (studentData) => {
       page.drawImage(qrImg, { x: mW - 145, y: mH - 145, width: 70, height: 70 });
     } catch {}
 
-    // Center Recipient Photo (NO white box)
+    // Center Recipient Photo
     const pImg = await embedPhoto(baseDoc, studentData);
     if (pImg) {
       page.drawImage(pImg, { x: mW / 2 - 40, y: 395, width: 80, height: 100 });
     }
 
-    // Recipient Name (NO white box)
+    // Recipient Name
     const nameStr = (studentData.fullName || 'MEMBER NAME').toUpperCase();
     const nw = fontBold.widthOfTextAtSize(nameStr, 15);
     page.drawText(nameStr, { x: (mW - nw) / 2, y: 275, size: 15, font: fontBold, color: rgb(0.05, 0.05, 0.05) });
 
-    // Date of Issue (NO white box)
+    // Date of Issue
     const dateFormatted = studentData.letterIssuedAt
       ? new Date(studentData.letterIssuedAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')
       : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
