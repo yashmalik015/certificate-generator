@@ -16,6 +16,17 @@ const router = express.Router();
 // Global fallback store for serverless environments when DB is not connected
 global._mockStudentsStore = global._mockStudentsStore || [];
 
+// Helper to extract live domain from request headers
+const extractIncomingBaseUrl = (req) => {
+  if (!req) return null;
+  const proto = req.headers['x-forwarded-proto'] || (req.connection && req.connection.encrypted ? 'https' : 'http');
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  if (host && !host.includes('localhost:5050')) {
+    return `${proto}://${host}`;
+  }
+  return null;
+};
+
 // Helper to auto-generate Next Refno and Certificate Number
 const generateAutoNumbers = async () => {
   const year = new Date().getFullYear();
@@ -185,10 +196,12 @@ router.post('/', authMiddleware, async (req, res) => {
       });
       await newStudent.save();
 
+      const incomingDomain = extractIncomingBaseUrl(req);
+
       // Generate award certificates in parallel
       const certResults = await Promise.all(
         templatesToRun.map(async (tid) => {
-          try { return await generateCertificate(newStudent, tid); } catch (e) {
+          try { return await generateCertificate(newStudent, tid, incomingDomain); } catch (e) {
             console.error(`Cert gen error (${tid}):`, e); return null;
           }
         })
@@ -196,8 +209,8 @@ router.post('/', authMiddleware, async (req, res) => {
 
       // Generate universal ID Card + Membership Certificate
       let idCardResult = null, membershipResult = null;
-      try { idCardResult = await generateIdCard(newStudent); } catch (e) { console.error('ID card gen error:', e); }
-      try { membershipResult = await generateMembershipCert(newStudent); } catch (e) { console.error('Membership gen error:', e); }
+      try { idCardResult = await generateIdCard(newStudent, incomingDomain); } catch (e) { console.error('ID card gen error:', e); }
+      try { membershipResult = await generateMembershipCert(newStudent, incomingDomain); } catch (e) { console.error('Membership gen error:', e); }
 
       const generatedUrls = [
         ...certResults.filter(Boolean),
@@ -223,10 +236,11 @@ router.post('/', authMiddleware, async (req, res) => {
         createdAt: new Date()
       };
 
+      const incomingDomain = extractIncomingBaseUrl(req);
       const generatedResults = await Promise.all(
         templatesToRun.map(async (tid) => {
           try {
-            return await generateCertificate(mockStudent, tid);
+            return await generateCertificate(mockStudent, tid, incomingDomain);
           } catch (genErr) {
             console.error(`Certificate generation error for template ${tid}:`, genErr);
             return null;
@@ -370,13 +384,14 @@ router.get('/:id/certificate/:templateId/download', authMiddleware, async (req, 
       };
     }
 
+    const incomingDomain = extractIncomingBaseUrl(req);
     let certRes;
     if (templateId === 'universal-id-card') {
-      certRes = await generateIdCard(student);
+      certRes = await generateIdCard(student, incomingDomain);
     } else if (templateId === 'universal-membership-certificate') {
-      certRes = await generateMembershipCert(student);
+      certRes = await generateMembershipCert(student, incomingDomain);
     } else {
-      certRes = await generateCertificate(student, templateId);
+      certRes = await generateCertificate(student, templateId, incomingDomain);
     }
 
     const relativeUrl = format === 'png' ? certRes.pngUrl : certRes.pdfUrl;

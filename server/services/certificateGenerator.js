@@ -41,6 +41,17 @@ const hexToRgb = (hex) => {
   return r ? rgb(parseInt(r[1], 16) / 255, parseInt(r[2], 16) / 255, parseInt(r[3], 16) / 255) : rgb(0, 0, 0);
 };
 
+// ── Resolve live app base domain ───────────────────────────────────────────
+export const resolveAppDomain = (customDomain) => {
+  if (customDomain && typeof customDomain === 'string' && !customDomain.includes('localhost:5050')) {
+    return customDomain.replace(/\/+$/, '');
+  }
+  if (process.env.APP_BASE_URL) return process.env.APP_BASE_URL.replace(/\/+$/, '');
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`.replace(/\/+$/, '');
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`.replace(/\/+$/, '');
+  return 'https://certificate-generator.vercel.app';
+};
+
 // ── Friendly Award Titles ────────────────────────────────────────────────────
 export const getAwardTitle = (templateId) => {
   const lower = String(templateId || '').toLowerCase();
@@ -135,7 +146,7 @@ const findTemplateFile = (baseName, extensions = ['.pdf', '.png', '.jpg']) => {
 };
 
 // ── Render Authentic IHREO Vector PDF Base Certificate (Clean Superimposition) ──
-export const renderIhreDocPdf = async (studentData, templateId) => {
+export const renderIhreDocPdf = async (studentData, templateId, customDomain) => {
   let pdfTemplatePath = findTemplateFile(templateId, ['.pdf']) || findTemplateFile('Doctorate IHREO', ['.pdf']);
   if (!pdfTemplatePath || !fs.existsSync(pdfTemplatePath)) {
     throw new Error(`Base PDF template not found for ${templateId}`);
@@ -160,7 +171,7 @@ export const renderIhreDocPdf = async (studentData, templateId) => {
 
   // 2. Top Right QR Code (Clean Superimposition with ?cert= universal routing)
   try {
-    const domain = process.env.APP_BASE_URL || 'https://certificate-generator.vercel.app';
+    const domain = resolveAppDomain(customDomain);
     const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(cleanCertNo)}`;
     const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 150 });
     const qrImg = await baseDoc.embedPng(qrBuf);
@@ -260,14 +271,14 @@ export const renderIhreDocPdf = async (studentData, templateId) => {
 };
 
 // ── Award Certificate ────────────────────────────────────────────────────────
-export const generateCertificate = async (studentData, templateId) => {
+export const generateCertificate = async (studentData, templateId, customDomain) => {
   const sanitize = (s) => String(s).replace(/[\/\s:\\]/g, '_');
   const cleanRef = String(studentData.refno || 'IHREO_2026_002').replace(/WCAEO/gi, 'IHREO');
   const name = `${sanitize(cleanRef)}-${sanitize(templateId)}`;
   const pdfPath = path.join(uploadsDir, `${name}.pdf`);
   const pngPath = path.join(uploadsDir, `${name}.png`);
   try {
-    const pdfBytes = await renderIhreDocPdf(studentData, templateId);
+    const pdfBytes = await renderIhreDocPdf(studentData, templateId, customDomain);
     fs.writeFileSync(pdfPath, pdfBytes);
     if (!fs.existsSync(pngPath)) fs.writeFileSync(pngPath, Buffer.from([]));
   } catch (err) {
@@ -281,7 +292,7 @@ export const generateCertificate = async (studentData, templateId) => {
 };
 
 // ── Universal ID Card ────────────────────────────────────────────────────────
-export const generateIdCard = async (studentData) => {
+export const generateIdCard = async (studentData, customDomain) => {
   const templateId = 'universal-id-card';
   const sanitize = (s) => String(s).replace(/[\/\s:\\]/g, '_');
   const cleanRef = String(studentData.refno || 'IHREO_2026_002').replace(/WCAEO/gi, 'IHREO');
@@ -302,7 +313,7 @@ export const generateIdCard = async (studentData) => {
 
     // Top Right QR Code
     try {
-      const domain = process.env.APP_BASE_URL || 'https://certificate-generator.vercel.app';
+      const domain = resolveAppDomain(customDomain);
       const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(cleanCertNo)}`;
       const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 100 });
       const qrImg = await baseDoc.embedPng(qrBuf);
@@ -339,7 +350,7 @@ export const generateIdCard = async (studentData) => {
 };
 
 // ── Universal Membership Certificate ────────────────────────────────────────
-export const generateMembershipCert = async (studentData) => {
+export const generateMembershipCert = async (studentData, customDomain) => {
   const templateId = 'universal-membership-certificate';
   const sanitize = (s) => String(s).replace(/[\/\s:\\]/g, '_');
   const cleanRef = String(studentData.refno || 'IHREO_2026_002').replace(/WCAEO/gi, 'IHREO');
@@ -363,7 +374,7 @@ export const generateMembershipCert = async (studentData) => {
 
     // Top Right QR Code
     try {
-      const domain = process.env.APP_BASE_URL || 'https://certificate-generator.vercel.app';
+      const domain = resolveAppDomain(customDomain);
       const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(cleanCertNo)}`;
       const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 150 });
       const qrImg = await baseDoc.embedPng(qrBuf);
