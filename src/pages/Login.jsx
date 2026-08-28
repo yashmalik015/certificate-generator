@@ -44,7 +44,7 @@ const Login = () => {
           <div className="login-logo">
             <Award size={32} />
           </div>
-          <h2 className="login-title">WCAEO Portal</h2>
+          <h2 className="login-title">IHREO Portal</h2>
           <p className="login-subtitle">Sign in to manage student certificate records</p>
         </div>
 

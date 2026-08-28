@@ -40,7 +40,7 @@ const verifyHandler = async (req, res) => {
       return res.status(404).json({
         valid: false,
         status: 'NotFound',
-        message: 'No official WCAEO certificate record found for this certificate number.'
+        message: 'No official IHREO certificate record found for this certificate number.'
       });
     }
 
@@ -63,7 +63,7 @@ const verifyHandler = async (req, res) => {
     return res.json({
       valid: true,
       status: 'Active',
-      message: 'Official WCAEO Certificate Verified',
+      message: 'Official IHREO Certificate Verified',
       student: {
         fullName: student.fullName,
         fathersHusbandName: student.fathersHusbandName,
@@ -72,7 +72,7 @@ const verifyHandler = async (req, res) => {
         category: student.category,
         letterIssuedAt: student.letterIssuedAt,
         photoUrl: student.photoUrl,
-        eventName: typeof student.eventId === 'object' ? student.eventId?.name : 'WCAEO Honors Convocation',
+        eventName: typeof student.eventId === 'object' ? student.eventId?.name : 'IHREO Honors Convocation',
         subjectName: typeof student.subjectId === 'object' ? student.subjectId?.name : 'Academic & Educational Honors',
         certificateTemplateIds: student.certificateTemplateIds,
         status: student.status

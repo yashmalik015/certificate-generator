@@ -9,7 +9,7 @@ const Sidebar = () => {
         <div className="sidebar-logo">
           <Award size={22} />
         </div>
-        <div className="sidebar-title">WCAEO Panel</div>
+        <div className="sidebar-title">IHREO Panel</div>
       </div>
       <ul className="sidebar-menu">
         <li>

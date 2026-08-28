@@ -8,7 +8,7 @@ const Header = ({ title = 'Dashboard' }) => {
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const navigate = useNavigate();
 
-  const user = JSON.parse(localStorage.getItem('wcaeo_user') || '{"username":"wcaeo_admin","initials":"WA"}');
+  const user = JSON.parse(localStorage.getItem('wcaeo_user') || '{"username":"ihreo_admin","initials":"IH"}');
 
   const handleLogout = () => {
     localStorage.removeItem('wcaeo_token');
@@ -23,7 +23,7 @@ const Header = ({ title = 'Dashboard' }) => {
         <div className="header-actions">
           <div className="user-profile" onClick={() => setDropdownOpen(!dropdownOpen)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div className="user-avatar">{user.initials || 'WA'}</div>
+              <div className="user-avatar">{user.initials || 'IH'}</div>
               <span style={{ fontSize: '14px', fontWeight: 600 }}>{user.username}</span>
               <ChevronDown size={16} style={{ color: 'var(--text-muted)' }} />
             </div>

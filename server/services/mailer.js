@@ -53,26 +53,26 @@ export const sendCertificateEmail = async (student, certificateItems) => {
   });
 
   const mailOptions = {
-    from: '"WCAEO Honors & Awards" <certificates@wcaeo.org>',
+    from: '"IHREO Honors & Awards" <certificates@ihreo.org>',
     to: student.email,
-    subject: `Congratulations ${student.fullName}! Your WCAEO Certificate of Honor`,
+    subject: `Congratulations ${student.fullName}! Your IHREO Certificate of Honor`,
     html: `
       <div style="font-family: Arial, sans-serif; background-color: #f8fafc; padding: 24px;">
         <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0;">
           <div style="background-color: #1e293b; color: #ffffff; padding: 20px; text-align: center;">
-            <h2 style="margin: 0; color: #f59e0b;">WCAEO HONORS COUNCIL</h2>
-            <p style="margin: 4px 0 0 0; font-size: 14px; color: #cbd5e1;">World Council of Academic & Educational Organizations</p>
+            <h2 style="margin: 0; color: #f59e0b;">IHREO HONORS COUNCIL</h2>
+            <p style="margin: 4px 0 0 0; font-size: 14px; color: #cbd5e1;">Iconic Human Rights & Educational Organisation</p>
           </div>
           <div style="padding: 24px; color: #334155; line-height: 1.6;">
             <h3 style="color: #0f172a;">Dear ${student.fullName},</h3>
-            <p>Congratulations! We are pleased to present your official WCAEO Certificate(s) of Distinction.</p>
+            <p>Congratulations! We are pleased to present your official IHREO Certificate(s) of Distinction.</p>
             <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
               <tr><td style="padding: 8px; color: #64748b;"><strong>Ref No:</strong></td><td style="padding: 8px;">${student.refno}</td></tr>
               <tr><td style="padding: 8px; color: #64748b;"><strong>Certificate No:</strong></td><td style="padding: 8px;">${student.certificateNumber}</td></tr>
               <tr><td style="padding: 8px; color: #64748b;"><strong>Category:</strong></td><td style="padding: 8px;">${student.category}</td></tr>
             </table>
             <p>Your official PDF certificate(s) are attached to this email. You can download and print them directly.</p>
-            <p style="margin-top: 24px; font-size: 14px; color: #64748b;">Best regards,<br><strong>WCAEO Secretariat</strong></p>
+            <p style="margin-top: 24px; font-size: 14px; color: #64748b;">Best regards,<br><strong>IHREO Secretariat</strong></p>
           </div>
         </div>
       </div>

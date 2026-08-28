@@ -186,7 +186,7 @@ app.use('/api/designations', designationRoutes);
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
-    app: 'WCAEO Certificate Backend Server',
+    app: 'IHREO Certificate Backend Server',
     dbConnected: mongoose.connection.readyState === 1,
     timestamp: new Date()
   });
@@ -197,7 +197,7 @@ const PORT = process.env.PORT || 5050;
 if (!process.env.VERCEL) {
   setupDatabase().then(() => {
     app.listen(PORT, () => {
-      console.log(`WCAEO Backend Server running on http://localhost:${PORT}`);
+      console.log(`IHREO Backend Server running on http://localhost:${PORT}`);
     });
   }).catch((err) => {
     console.error('Fatal database setup error:', err);

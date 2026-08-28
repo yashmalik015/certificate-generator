@@ -149,7 +149,7 @@ export const renderIhreDocPdf = async (studentData, templateId) => {
   const { width: cW } = page.getSize();
 
   // 1. Top Left CIN, Licence & Sl. No., Reg No. (Clean Superimposition)
-  const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${studentData.refno || '459383/IHREO0201'}\nReg No. 459383`;
+  const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${studentData.refno || 'IHREO/2026/002'}\nReg No. 459383`;
   page.drawText(refText, {
     x: 65, y: 775, size: 7.5, font: fontHelv, color: rgb(0.12, 0.12, 0.12), lineHeight: 10
   });
@@ -347,7 +347,7 @@ export const generateMembershipCert = async (studentData) => {
     const { width: mW, height: mH } = page.getSize();
 
     // Top Left CIN, Licence & Sl. No.
-    const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${studentData.refno || 'WCAEO/2026/001'}\nReg No. 459383`;
+    const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${studentData.refno || 'IHREO/2026/002'}\nReg No. 459383`;
     page.drawText(refText, {
       x: 52, y: mH - 105, size: 7.5, font: fontReg, color: rgb(0.1, 0.1, 0.1), lineHeight: 10
     });

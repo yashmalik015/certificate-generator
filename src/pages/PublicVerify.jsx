@@ -55,10 +55,10 @@ const PublicVerify = () => {
           <Award size={36} />
         </div>
         <h1 style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '0.5px', color: '#ffffff', marginBottom: '6px' }}>
-          WORLD COUNCIL OF ACADEMIC & EDUCATIONAL ORGANIZATIONS
+          ICONIC HUMAN RIGHTS & EDUCATIONAL ORGANISATION
         </h1>
         <p style={{ fontSize: '13px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>
-          Official International Award Verification Registry (WCAEO)
+          Official National & International Award Verification Registry (IHREO)
         </p>
       </div>
 
@@ -66,7 +66,7 @@ const PublicVerify = () => {
       <div style={{ width: '100%', maxWidth: '640px', background: '#131b2e', border: '1px solid #23304c', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
         {loading ? (
           <div style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>
-            <p style={{ fontSize: '16px' }}>Verifying certificate authenticity against WCAEO Registry...</p>
+            <p style={{ fontSize: '16px' }}>Verifying certificate authenticity against IHREO Registry...</p>
           </div>
         ) : error ? (
           <div style={{ padding: '40px', textAlign: 'center' }}>
@@ -81,9 +81,9 @@ const PublicVerify = () => {
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', background: '#10b981', color: '#000000', padding: '8px 20px', borderRadius: '30px', fontWeight: 700, fontSize: '14px', marginBottom: '12px', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)' }}>
                 <CheckCircle2 size={18} /> OFFICIAL CERTIFICATE VERIFIED
               </div>
-              <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#ffffff' }}>Authentic WCAEO Honor & Award Record</h2>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#ffffff' }}>Authentic IHREO Honor & Award Record</h2>
               <p style={{ fontSize: '13px', color: '#cbd5e1', marginTop: '4px' }}>
-                This record has been officially authenticated and confirmed in the WCAEO central register.
+                This record has been officially authenticated and confirmed in the IHREO central register.
               </p>
             </div>
 
@@ -166,7 +166,7 @@ const PublicVerify = () => {
             <XCircle size={56} style={{ color: '#ef4444', margin: '0 auto 16px' }} />
             <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>Certificate Record Not Found</h2>
             <p style={{ color: '#94a3b8', fontSize: '14px', maxWidth: '440px', margin: '0 auto' }}>
-              {data?.message || 'No official WCAEO certificate matches the provided certificate number.'}
+              {data?.message || 'No official IHREO certificate matches the provided certificate number.'}
             </p>
           </div>
         )}
@@ -174,7 +174,7 @@ const PublicVerify = () => {
         {/* Footer info */}
         <div style={{ background: '#0b0f19', padding: '16px 24px', borderTop: '1px solid #23304c', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', color: '#64748b' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Building2 size={14} /> WCAEO Honors Council
+            <Building2 size={14} /> IHREO Honors Council
           </div>
           <div>Official Seal & Authenticated Record</div>
         </div>

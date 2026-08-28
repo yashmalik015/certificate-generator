@@ -29,16 +29,16 @@ const generateAutoNumbers = async () => {
   } else {
     count = global._mockStudentsStore.length;
   }
-  let nextSeq = count + 1;
-  let refno = `WCAEO/${year}/${String(nextSeq).padStart(3, '0')}`;
-  let certificateNumber = `WCAEO/CERT/${year}/${String(nextSeq).padStart(4, '0')}`;
+  let nextSeq = count + 2;
+  let refno = `IHREO/${year}/${String(nextSeq).padStart(3, '0')}`;
+  let certificateNumber = `IHREO/CERT/${year}/${String(nextSeq).padStart(4, '0')}`;
 
   if (mongoose.connection.readyState === 1) {
     try {
       while (await Student.exists({ $or: [{ refno }, { certificateNumber }] })) {
         nextSeq += 1;
-        refno = `WCAEO/${year}/${String(nextSeq).padStart(3, '0')}`;
-        certificateNumber = `WCAEO/CERT/${year}/${String(nextSeq).padStart(4, '0')}`;
+        refno = `IHREO/${year}/${String(nextSeq).padStart(3, '0')}`;
+        certificateNumber = `IHREO/CERT/${year}/${String(nextSeq).padStart(4, '0')}`;
       }
     } catch (existErr) {
       console.warn('Auto number uniqueness check warning:', existErr.message);
@@ -54,7 +54,7 @@ router.get('/auto-numbers', authMiddleware, async (req, res) => {
     const numbers = await generateAutoNumbers();
     return res.json(numbers);
   } catch (err) {
-    return res.json({ refno: `WCAEO/${new Date().getFullYear()}/001`, certificateNumber: `WCAEO/CERT/${new Date().getFullYear()}/0001` });
+    return res.json({ refno: `IHREO/${new Date().getFullYear()}/002`, certificateNumber: `IHREO/CERT/${new Date().getFullYear()}/0002` });
   }
 });
 
@@ -362,8 +362,8 @@ router.get('/:id/certificate/:templateId/download', authMiddleware, async (req, 
     if (!student) {
       student = {
         _id: id,
-        refno: 'WCAEO/2026/001',
-        certificateNumber: 'WCAEO/CERT/2026/0001',
+        refno: 'IHREO/2026/002',
+        certificateNumber: 'IHREO/CERT/2026/0002',
         fullName: 'Student',
         category: 'Excellence',
         letterIssuedAt: new Date()

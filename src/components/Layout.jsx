@@ -12,7 +12,7 @@ const getPageTitle = (pathname) => {
   if (pathname.includes('/superpanel/subjects')) return 'Subjects Management';
   if (pathname.includes('/superpanel/designations')) return 'Designations Management';
   if (pathname.includes('/superpanel/template-calibrator')) return 'Template Calibrator';
-  return 'WCAEO Admin Superpanel';
+  return 'IHREO Admin Superpanel';
 };
 
 const Layout = () => {

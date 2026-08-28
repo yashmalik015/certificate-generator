@@ -99,7 +99,7 @@ const Dashboard = () => {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '6px', color: '#ffffff' }}>
-              Issue New WCAEO Award Certificate
+              Issue New IHREO Award Certificate
             </h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
               Create recipient records, auto-fill reference numbers, overlay dynamic award details, and generate print-ready PDFs.
