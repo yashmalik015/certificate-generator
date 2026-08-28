@@ -16,23 +16,6 @@ const router = express.Router();
 // Global fallback store for serverless environments when DB is not connected
 global._mockStudentsStore = global._mockStudentsStore || [];
 
-// Helper to determine active base URL for QR codes
-const getReqBaseUrl = (req) => {
-  const forwardedProto = req.headers['x-forwarded-proto'];
-  const proto = forwardedProto ? forwardedProto.split(',')[0].trim() : (req.secure ? 'https' : 'http');
-  const host = req.headers['x-forwarded-host'] || req.headers.host;
-  if (host) {
-    return `${proto}://${host}`;
-  }
-  if (process.env.APP_BASE_URL) {
-    return process.env.APP_BASE_URL.replace(/\/$/, '');
-  }
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL.replace(/\/$/, '')}`;
-  }
-  return 'https://certificate-generator.vercel.app';
-};
-
 // Helper to auto-generate Next Refno and Certificate Number
 const generateAutoNumbers = async () => {
   const year = new Date().getFullYear();
@@ -80,91 +63,75 @@ router.get('/', authMiddleware, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const perPage = parseInt(req.query.perPage) || 10;
-    const search = req.query.search ? req.query.search.trim() : '';
-    const eventFilter = req.query.event || '';
-    const subjectFilter = req.query.subject || '';
-    const statusFilter = req.query.status || '';
+    const search = (req.query.search || '').trim().toLowerCase();
+    const status = req.query.status;
+    const category = req.query.category;
 
-    if (mongoose.connection.readyState === 1) {
-      const query = {};
-
-      if (search) {
-        query.$or = [
-          { fullName: { $regex: search, $options: 'i' } },
-          { refno: { $regex: search, $options: 'i' } },
-          { certificateNumber: { $regex: search, $options: 'i' } },
-          { category: { $regex: search, $options: 'i' } }
-        ];
-      }
-
-      if (eventFilter && mongoose.Types.ObjectId.isValid(eventFilter)) {
-        query.eventId = eventFilter;
-      }
-      if (subjectFilter && mongoose.Types.ObjectId.isValid(subjectFilter)) {
-        query.subjectId = subjectFilter;
-      }
-      if (statusFilter) {
-        query.status = statusFilter;
-      }
-
-      const total = await Student.countDocuments(query);
-      const students = await Student.find(query)
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * perPage)
-        .limit(perPage)
-        .populate('eventId', 'name')
-        .populate('subjectId', 'name');
-
-      // Normalize displayed ref numbers
-      const normalizedStudents = students.map((s) => {
-        const obj = s.toObject();
-        obj.refno = String(obj.refno || '').replace(/^WCAEO/i, 'IHREO');
-        obj.certificateNumber = String(obj.certificateNumber || '').replace(/^WCAEO/i, 'IHREO');
-        return obj;
-      });
-
-      return res.json({
-        students: normalizedStudents,
-        total,
-        page,
-        totalPages: Math.ceil(total / perPage)
-      });
-    } else {
+    if (mongoose.connection.readyState !== 1) {
       let filtered = [...global._mockStudentsStore];
-
       if (search) {
-        const s = search.toLowerCase();
-        filtered = filtered.filter((st) =>
-          (st.fullName && st.fullName.toLowerCase().includes(s)) ||
-          (st.refno && st.refno.toLowerCase().includes(s)) ||
-          (st.certificateNumber && st.certificateNumber.toLowerCase().includes(s)) ||
-          (st.category && st.category.toLowerCase().includes(s))
+        filtered = filtered.filter((s) =>
+          (s.fullName || '').toLowerCase().includes(search) ||
+          (s.refno || '').toLowerCase().includes(search) ||
+          (s.certificateNumber || '').toLowerCase().includes(search) ||
+          (s.category || '').toLowerCase().includes(search) ||
+          (s.email || '').toLowerCase().includes(search)
         );
       }
-      if (statusFilter) {
-        filtered = filtered.filter((st) => st.status === statusFilter);
-      }
+      if (status) filtered = filtered.filter((s) => s.status === status);
+      if (category) filtered = filtered.filter((s) => s.category === category);
 
       const total = filtered.length;
-      const start = (page - 1) * perPage;
-      const paginated = filtered.slice(start, start + perPage);
-
-      const normalized = paginated.map((st) => ({
-        ...st,
-        refno: String(st.refno || '').replace(/^WCAEO/i, 'IHREO'),
-        certificateNumber: String(st.certificateNumber || '').replace(/^WCAEO/i, 'IHREO')
-      }));
+      const totalPages = Math.ceil(total / perPage) || 1;
+      const startIdx = (page - 1) * perPage;
+      const paginated = filtered.slice(startIdx, startIdx + perPage);
 
       return res.json({
-        students: normalized,
-        total,
-        page,
-        totalPages: Math.ceil(total / perPage)
+        data: paginated,
+        pagination: { total, page, perPage, totalPages }
       });
     }
+
+    const query = {};
+
+    if (search) {
+      query.$or = [
+        { fullName: { $regex: search, $options: 'i' } },
+        { refno: { $regex: search, $options: 'i' } },
+        { certificateNumber: { $regex: search, $options: 'i' } },
+        { category: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    if (status) query.status = status;
+    if (category) query.category = category;
+
+    const total = await Student.countDocuments(query);
+    const totalPages = Math.ceil(total / perPage) || 1;
+
+    const students = await Student.find(query)
+      .populate('eventId', 'name')
+      .populate('subjectId', 'name')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * perPage)
+      .limit(perPage);
+
+    return res.json({
+      data: students,
+      pagination: {
+        total,
+        page,
+        perPage,
+        totalPages
+      }
+    });
   } catch (err) {
     console.error('Fetch students error:', err);
-    return res.status(500).json({ error: 'Failed to retrieve students: ' + err.message });
+    return res.json({
+      data: global._mockStudentsStore,
+      pagination: { total: global._mockStudentsStore.length, page: 1, perPage: 10, totalPages: 1 }
+    });
   }
 });
 
@@ -173,26 +140,13 @@ router.get('/:id', authMiddleware, async (req, res) => {
   try {
     if (mongoose.connection.readyState === 1) {
       const student = await Student.findById(req.params.id)
-        .populate('eventId', 'name')
-        .populate('subjectId', 'name');
-      if (!student) {
-        return res.status(404).json({ error: 'Student not found.' });
-      }
-      const obj = student.toObject();
-      obj.refno = String(obj.refno || '').replace(/^WCAEO/i, 'IHREO');
-      obj.certificateNumber = String(obj.certificateNumber || '').replace(/^WCAEO/i, 'IHREO');
-      return res.json(obj);
-    } else {
-      const mock = global._mockStudentsStore.find((s) => s._id === req.params.id);
-      if (!mock) {
-        return res.status(404).json({ error: 'Student not found.' });
-      }
-      return res.json({
-        ...mock,
-        refno: String(mock.refno || '').replace(/^WCAEO/i, 'IHREO'),
-        certificateNumber: String(mock.certificateNumber || '').replace(/^WCAEO/i, 'IHREO')
-      });
+        .populate('eventId')
+        .populate('subjectId');
+      if (student) return res.json(student);
     }
+    const found = global._mockStudentsStore.find((s) => s._id === req.params.id);
+    if (found) return res.json(found);
+    return res.status(404).json({ error: 'Student not found.' });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch student details.' });
   }
@@ -202,12 +156,10 @@ router.get('/:id', authMiddleware, async (req, res) => {
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const auto = await generateAutoNumbers();
-    const baseUrl = getReqBaseUrl(req);
-
     const studentData = {
       ...req.body,
-      refno: String(req.body.refno || auto.refno).replace(/WCAEO/gi, 'IHREO'),
-      certificateNumber: String(req.body.certificateNumber || auto.certificateNumber).replace(/WCAEO/gi, 'IHREO'),
+      refno: req.body.refno || auto.refno,
+      certificateNumber: req.body.certificateNumber || auto.certificateNumber,
       letterIssuedAt: req.body.letterIssuedAt || new Date()
     };
 
@@ -233,19 +185,19 @@ router.post('/', authMiddleware, async (req, res) => {
       });
       await newStudent.save();
 
-      // Generate award certificates in parallel with real-time baseUrl
+      // Generate award certificates in parallel
       const certResults = await Promise.all(
         templatesToRun.map(async (tid) => {
-          try { return await generateCertificate(newStudent, tid, baseUrl); } catch (e) {
+          try { return await generateCertificate(newStudent, tid); } catch (e) {
             console.error(`Cert gen error (${tid}):`, e); return null;
           }
         })
       );
 
-      // Generate universal ID Card + Membership Certificate with real-time baseUrl
+      // Generate universal ID Card + Membership Certificate
       let idCardResult = null, membershipResult = null;
-      try { idCardResult = await generateIdCard(newStudent, baseUrl); } catch (e) { console.error('ID card gen error:', e); }
-      try { membershipResult = await generateMembershipCert(newStudent, baseUrl); } catch (e) { console.error('Membership gen error:', e); }
+      try { idCardResult = await generateIdCard(newStudent); } catch (e) { console.error('ID card gen error:', e); }
+      try { membershipResult = await generateMembershipCert(newStudent); } catch (e) { console.error('Membership gen error:', e); }
 
       const generatedUrls = [
         ...certResults.filter(Boolean),
@@ -274,7 +226,7 @@ router.post('/', authMiddleware, async (req, res) => {
       const generatedResults = await Promise.all(
         templatesToRun.map(async (tid) => {
           try {
-            return await generateCertificate(mockStudent, tid, baseUrl);
+            return await generateCertificate(mockStudent, tid);
           } catch (genErr) {
             console.error(`Certificate generation error for template ${tid}:`, genErr);
             return null;
@@ -298,17 +250,12 @@ router.post('/', authMiddleware, async (req, res) => {
 // PUT /api/students/:id
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const baseUrl = getReqBaseUrl(req);
-    const updatedData = { ...req.body };
-    if (updatedData.refno) updatedData.refno = String(updatedData.refno).replace(/WCAEO/gi, 'IHREO');
-    if (updatedData.certificateNumber) updatedData.certificateNumber = String(updatedData.certificateNumber).replace(/WCAEO/gi, 'IHREO');
-
     if (mongoose.connection.readyState === 1) {
       const student = await Student.findById(req.params.id);
       if (student) {
-        Object.assign(student, updatedData);
+        Object.assign(student, req.body);
 
-        let templatesToRun = updatedData.certificateTemplateIds || student.certificateTemplateIds;
+        let templatesToRun = req.body.certificateTemplateIds || student.certificateTemplateIds;
         if (typeof templatesToRun === 'string') templatesToRun = [templatesToRun];
         student.certificateTemplateIds = templatesToRun;
 
@@ -316,14 +263,14 @@ router.put('/:id', authMiddleware, async (req, res) => {
         const generatedUrls = [];
         for (const tid of templatesToRun) {
           try {
-            const certRes = await generateCertificate(student, tid, baseUrl);
+            const certRes = await generateCertificate(student, tid);
             generatedUrls.push(certRes);
           } catch (genErr) { console.error(`Cert regen error (${tid}):`, genErr); }
         }
 
         // Regenerate universal docs
-        try { const r = await generateIdCard(student, baseUrl); if (r) generatedUrls.push(r); } catch (e) { console.error('ID card regen:', e); }
-        try { const r = await generateMembershipCert(student, baseUrl); if (r) generatedUrls.push(r); } catch (e) { console.error('Membership regen:', e); }
+        try { const r = await generateIdCard(student); if (r) generatedUrls.push(r); } catch (e) { console.error('ID card regen:', e); }
+        try { const r = await generateMembershipCert(student); if (r) generatedUrls.push(r); } catch (e) { console.error('Membership regen:', e); }
 
         student.generatedCertificateUrls = generatedUrls;
         await student.save();
@@ -338,11 +285,11 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     const idx = global._mockStudentsStore.findIndex((s) => s._id === req.params.id);
     if (idx !== -1) {
-      Object.assign(global._mockStudentsStore[idx], updatedData);
+      Object.assign(global._mockStudentsStore[idx], req.body);
       return res.json(global._mockStudentsStore[idx]);
     }
 
-    return res.json({ _id: req.params.id, ...updatedData });
+    return res.json({ _id: req.params.id, ...req.body });
   } catch (err) {
     console.error('Update student error:', err);
     return res.status(500).json({ error: 'Failed to update student record.' });
@@ -402,7 +349,6 @@ router.get('/:id/certificate/:templateId/download', authMiddleware, async (req, 
   try {
     const { id, templateId } = req.params;
     const format = req.query.format || 'pdf'; // 'pdf' or 'png'
-    const baseUrl = getReqBaseUrl(req);
     let student = null;
 
     if (mongoose.connection.readyState === 1) {
@@ -426,11 +372,11 @@ router.get('/:id/certificate/:templateId/download', authMiddleware, async (req, 
 
     let certRes;
     if (templateId === 'universal-id-card') {
-      certRes = await generateIdCard(student, baseUrl);
+      certRes = await generateIdCard(student);
     } else if (templateId === 'universal-membership-certificate') {
-      certRes = await generateMembershipCert(student, baseUrl);
+      certRes = await generateMembershipCert(student);
     } else {
-      certRes = await generateCertificate(student, templateId, baseUrl);
+      certRes = await generateCertificate(student, templateId);
     }
 
     const relativeUrl = format === 'png' ? certRes.pngUrl : certRes.pdfUrl;

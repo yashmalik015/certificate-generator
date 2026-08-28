@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
@@ -23,11 +22,11 @@
     },
     {
       "source": "/verify/(.*)",
-      "destination": "/index.html"
+      "destination": "/api/index.js"
     },
     {
       "source": "/verify",
-      "destination": "/index.html"
+      "destination": "/api/index.js"
     },
     {
       "source": "/(.*)",

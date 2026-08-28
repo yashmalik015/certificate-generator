@@ -172,6 +172,7 @@ app.use(async (req, res, next) => {
 
 // Public verification route (no auth middleware required)
 app.use('/api/verify', verifyRoutes);
+app.use('/verify', verifyRoutes);
 
 // Routes
 app.use('/api/auth', authRoutes);
