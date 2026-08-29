@@ -98,7 +98,7 @@ export const getAvailableTemplates = () => {
   }
 };
 
-// ── Embed photo helper ───────────────────────────────────────────────────────
+// ── Embed photo helper with rounded corners & clean border ───────────────────
 const embedPhoto = async (pdfDoc, studentData) => {
   if (!studentData.photoUrl) return null;
   try {
@@ -119,6 +119,55 @@ const embedPhoto = async (pdfDoc, studentData) => {
       }
     }
     if (!buf || !buf.length) return null;
+
+    // Apply smooth rounded corners and crisp border matching official certificate format
+    try {
+      const { createCanvas, loadImage } = await import('canvas');
+      const img = await loadImage(buf);
+      const w = img.width || 400;
+      const h = img.height || 480;
+      const canvas = createCanvas(w, h);
+      const ctx = canvas.getContext('2d');
+
+      const radius = Math.min(w, h) * 0.08; // Smooth corner radius
+      const strokeWidth = Math.max(3, Math.min(w, h) * 0.015); // Crisp border
+
+      // Create rounded rectangle path
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(strokeWidth / 2, strokeWidth / 2, w - strokeWidth, h - strokeWidth, radius);
+      } else {
+        const r = radius, cw = w - strokeWidth, ch = h - strokeWidth, ox = strokeWidth / 2, oy = strokeWidth / 2;
+        ctx.moveTo(ox + r, oy);
+        ctx.lineTo(ox + cw - r, oy);
+        ctx.quadraticCurveTo(ox + cw, oy, ox + cw, oy + r);
+        ctx.lineTo(ox + cw, oy + ch - r);
+        ctx.quadraticCurveTo(ox + cw, oy + ch, ox + cw - r, oy + ch);
+        ctx.lineTo(ox + r, oy + ch);
+        ctx.quadraticCurveTo(ox, oy + ch, ox, oy + ch - r);
+        ctx.lineTo(ox, oy + r);
+        ctx.quadraticCurveTo(ox, oy, ox + r, oy);
+      }
+      ctx.closePath();
+
+      // Clip image to rounded rect
+      ctx.save();
+      ctx.clip();
+      ctx.drawImage(img, 0, 0, w, h);
+      ctx.restore();
+
+      // Stroke crisp dark rounded border
+      ctx.lineWidth = strokeWidth;
+      ctx.strokeStyle = '#222222';
+      ctx.stroke();
+
+      const roundedBuf = canvas.toBuffer('image/png');
+      return await pdfDoc.embedPng(roundedBuf);
+    } catch (canvasErr) {
+      console.warn('Canvas photo rounding fallback:', canvasErr.message);
+    }
+
+    // Fallback: embed standard photo buffer directly
     for (const [tryJpeg] of [[isJpeg], [!isJpeg]]) {
       try { return tryJpeg ? await pdfDoc.embedJpg(buf) : await pdfDoc.embedPng(buf); } catch {}
     }
