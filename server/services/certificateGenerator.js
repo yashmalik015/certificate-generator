@@ -98,41 +98,91 @@ export const getAvailableTemplates = () => {
   }
 };
 
+// ── Robust Photo Fetcher & Embedder Helper ────────────────────────────────────
+const getPhotoBuffer = async (photoUrl) => {
+  if (!photoUrl || typeof photoUrl !== 'string') return null;
+
+  const trimmed = photoUrl.trim();
+
+  // 1. Data URI / Base64 format
+  if (trimmed.startsWith('data:')) {
+    try {
+      const commaIdx = trimmed.indexOf(',');
+      const b64 = commaIdx !== -1 ? trimmed.slice(commaIdx + 1) : trimmed;
+      // Handle URL-encoded base64 and whitespace
+      const cleanB64 = decodeURIComponent(b64).replace(/\s+/g, '').replace(/ /g, '+');
+      return Buffer.from(cleanB64, 'base64');
+    } catch (e) {
+      console.warn('Base64 parse warning:', e.message);
+    }
+  }
+
+  // 2. Raw Base64 string (without data: prefix)
+  if (/^[A-Za-z0-9+/=]{100,}$/.test(trimmed.slice(0, 200))) {
+    try {
+      return Buffer.from(trimmed.replace(/\s+/g, '').replace(/ /g, '+'), 'base64');
+    } catch {}
+  }
+
+  // 3. HTTP / HTTPS Remote URL
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const axios = (await import('axios')).default;
+      const res = await axios.get(trimmed, { responseType: 'arraybuffer', timeout: 8000 });
+      if (res.data) return Buffer.from(res.data);
+    } catch (netErr) {
+      console.warn('Remote photo fetch warning:', netErr.message);
+    }
+  }
+
+  // 4. Local / Serverless filesystem paths
+  const relPath = trimmed.replace(/^\//, '');
+  const candidatePaths = [
+    path.join('/tmp', relPath),
+    path.resolve(__dirname, '..', relPath),
+    path.resolve(__dirname, '../uploads/photos', path.basename(trimmed)),
+    path.join(process.cwd(), relPath),
+    path.join(process.cwd(), 'server', relPath),
+    path.join(process.cwd(), 'CertificateWeb', relPath),
+    path.join(process.cwd(), 'CertificateWeb/server', relPath)
+  ];
+
+  for (const p of candidatePaths) {
+    try {
+      if (fs.existsSync(p)) {
+        const stats = fs.statSync(p);
+        if (stats.isFile() && stats.size > 0) {
+          return fs.readFileSync(p);
+        }
+      }
+    } catch {}
+  }
+
+  return null;
+};
+
 // ── Embed photo helper with rounded corners & clean border ───────────────────
 const embedPhoto = async (pdfDoc, studentData) => {
   if (!studentData.photoUrl) return null;
   try {
-    let buf = null, isJpeg = false;
-    if (studentData.photoUrl.startsWith('data:image/')) {
-      buf = Buffer.from(studentData.photoUrl.split(',')[1], 'base64');
-      isJpeg = /jpeg|jpg/.test(studentData.photoUrl);
-    } else {
-      const relPath = studentData.photoUrl.replace(/^\//, '');
-      const tryPaths = [
-        path.join('/tmp', relPath),
-        path.resolve(__dirname, '..', relPath),
-        path.join(process.cwd(), relPath),
-        path.join(process.cwd(), 'CertificateWeb', relPath)
-      ];
-      for (const tryPath of tryPaths) {
-        if (fs.existsSync(tryPath)) { buf = fs.readFileSync(tryPath); isJpeg = /\.jpe?g$/i.test(tryPath); break; }
-      }
+    const rawBuf = await getPhotoBuffer(studentData.photoUrl);
+    if (!rawBuf || !rawBuf.length) {
+      console.warn('Could not retrieve photo buffer for student:', studentData.fullName);
+      return null;
     }
-    if (!buf || !buf.length) return null;
 
-    // Apply smooth rounded corners and crisp border matching official certificate format
+    // Strategy 1: Canvas (High fidelity rendering with rounded corners & dark border)
     try {
       const { createCanvas, loadImage } = await import('canvas');
-      const img = await loadImage(buf);
+      const img = await loadImage(rawBuf);
       const w = img.width || 400;
       const h = img.height || 480;
       const canvas = createCanvas(w, h);
       const ctx = canvas.getContext('2d');
 
-      const radius = Math.min(w, h) * 0.08; // Smooth corner radius
-      const strokeWidth = Math.max(3, Math.min(w, h) * 0.015); // Crisp border
+      const radius = Math.min(w, h) * 0.08;
+      const strokeWidth = Math.max(3, Math.min(w, h) * 0.016);
 
-      // Create rounded rectangle path
       ctx.beginPath();
       if (ctx.roundRect) {
         ctx.roundRect(strokeWidth / 2, strokeWidth / 2, w - strokeWidth, h - strokeWidth, radius);
@@ -150,13 +200,11 @@ const embedPhoto = async (pdfDoc, studentData) => {
       }
       ctx.closePath();
 
-      // Clip image to rounded rect
       ctx.save();
       ctx.clip();
       ctx.drawImage(img, 0, 0, w, h);
       ctx.restore();
 
-      // Stroke crisp dark rounded border
       ctx.lineWidth = strokeWidth;
       ctx.strokeStyle = '#222222';
       ctx.stroke();
@@ -164,14 +212,94 @@ const embedPhoto = async (pdfDoc, studentData) => {
       const roundedBuf = canvas.toBuffer('image/png');
       return await pdfDoc.embedPng(roundedBuf);
     } catch (canvasErr) {
-      console.warn('Canvas photo rounding fallback:', canvasErr.message);
+      // Canvas not available or image decode error, fallback to pure JS pipeline
     }
 
-    // Fallback: embed standard photo buffer directly
-    for (const [tryJpeg] of [[isJpeg], [!isJpeg]]) {
-      try { return tryJpeg ? await pdfDoc.embedJpg(buf) : await pdfDoc.embedPng(buf); } catch {}
+    // Strategy 2: Pure JavaScript JPEG/PNG decoder + PNG encoder with rounded border
+    try {
+      let width = 0, height = 0, data = null;
+
+      // Check if image is JPEG (magic bytes 0xFF 0xD8)
+      if (rawBuf[0] === 0xFF && rawBuf[1] === 0xD8) {
+        const jpeg = (await import('jpeg-js')).default;
+        const decoded = jpeg.decode(rawBuf, { useTArray: true });
+        width = decoded.width;
+        height = decoded.height;
+        data = decoded.data;
+      } else if (rawBuf[0] === 0x89 && rawBuf[1] === 0x50) {
+        // PNG magic bytes
+        const { PNG } = await import('pngjs');
+        const parsed = PNG.sync.read(rawBuf);
+        width = parsed.width;
+        height = parsed.height;
+        data = parsed.data;
+      }
+
+      if (width > 0 && height > 0 && data) {
+        const radius = Math.min(width, height) * 0.08;
+        const strokeWidth = Math.max(2, Math.min(width, height) * 0.016);
+
+        // Apply rounded corner clipping and border directly on pixel buffer
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const idx = (y * width + x) * 4;
+            let isOutside = false;
+            let isBorder = false;
+
+            let cx = -1, cy = -1;
+            if (x < radius && y < radius) { cx = radius; cy = radius; }
+            else if (x >= width - radius && y < radius) { cx = width - radius - 1; cy = radius; }
+            else if (x < radius && y >= height - radius) { cx = radius; cy = height - radius - 1; }
+            else if (x >= width - radius && y >= height - radius) { cx = width - radius - 1; cy = height - radius - 1; }
+
+            if (cx !== -1) {
+              const dist = Math.hypot(x - cx, y - cy);
+              if (dist > radius) {
+                isOutside = true;
+              } else if (dist >= radius - strokeWidth) {
+                isBorder = true;
+              }
+            } else {
+              if (x < strokeWidth || x >= width - strokeWidth || y < strokeWidth || y >= height - strokeWidth) {
+                isBorder = true;
+              }
+            }
+
+            if (isOutside) {
+              data[idx + 3] = 0; // Transparent
+            } else if (isBorder) {
+              data[idx] = 34;     // R
+              data[idx + 1] = 34; // G
+              data[idx + 2] = 34; // B
+              data[idx + 3] = 255;// A
+            }
+          }
+        }
+
+        const { PNG } = await import('pngjs');
+        const png = new PNG({ width, height });
+        png.data = Buffer.from(data);
+        const pngBuf = PNG.sync.write(png);
+        return await pdfDoc.embedPng(pngBuf);
+      }
+    } catch (pureJsErr) {
+      console.warn('Pure JS photo rounding fallback:', pureJsErr.message);
     }
-  } catch (e) { console.warn('Photo embed warning:', e.message); }
+
+    // Strategy 3: Direct pdf-lib embed fallback
+    try {
+      if (rawBuf[0] === 0xFF && rawBuf[1] === 0xD8) {
+        return await pdfDoc.embedJpg(rawBuf);
+      } else {
+        return await pdfDoc.embedPng(rawBuf);
+      }
+    } catch (directErr) {
+      try { return await pdfDoc.embedJpg(rawBuf); } catch {}
+      try { return await pdfDoc.embedPng(rawBuf); } catch {}
+    }
+  } catch (e) {
+    console.error('Fatal Photo Embed Error:', e);
+  }
   return null;
 };
 
