@@ -5,184 +5,383 @@ const router = express.Router();
 
 // Helper to render standalone mobile-responsive HTML for browser visitors
 const renderHtmlVerification = ({ valid, status, student, message, query }) => {
+  // Format date of birth
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return 'N/A';
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
+  };
+
+  // Extract registration number from refno (e.g. "459383/IHREO0214" → "459383")
+  const regNo = student?.refno ? String(student.refno).split('/')[0] : '';
+  const slNo = student?.refno || '';
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Official Certificate Verification | IHREO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       min-height: 100vh;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background: radial-gradient(circle at center, #1e293b 0%, #0b0f19 100%);
-      color: #f8fafc;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f0f0;
+      color: #1a1a1a;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 32px 16px;
+      justify-content: center;
+      padding: 20px 12px;
     }
-    .header { text-align: center; margin-bottom: 28px; max-width: 680px; }
-    .logo-badge {
-      width: 60px; height: 60px;
-      background: linear-gradient(135deg, #f59e0b, #b45309);
-      border-radius: 16px;
+
+    .document-card {
+      width: 100%;
+      max-width: 480px;
+      background: #ffffff;
+      border: 2px solid #222;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* --- Top registration bar --- */
+    .reg-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 1px solid #ddd;
+    }
+
+    /* --- Organization header --- */
+    .org-header {
+      text-align: center;
+      padding: 16px 16px 10px;
+      border-bottom: 1px solid #ddd;
+    }
+    .org-name {
+      font-family: 'Playfair Display', 'Georgia', serif;
+      font-size: 20px;
+      font-weight: 900;
+      color: #111;
+      line-height: 1.2;
+      margin-bottom: 4px;
+    }
+    .org-approved {
+      font-size: 10px;
+      color: #666;
+      font-style: italic;
+      margin-bottom: 8px;
+    }
+    .award-title {
+      font-family: 'Playfair Display', 'Georgia', serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: #111;
+      margin-top: 4px;
+    }
+
+    /* --- Photo section with watermark --- */
+    .photo-section {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 16px;
+      min-height: 200px;
+    }
+    .watermark-logo {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 220px;
+      height: 220px;
+      opacity: 0.08;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .photo-frame {
+      position: relative;
+      z-index: 1;
+      width: 150px;
+      height: 180px;
+      border: 2px solid #333;
+      overflow: hidden;
+      background: #f5f5f5;
+    }
+    .photo-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .photo-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      color: #ccc;
+      background: #f5f5f5;
+    }
+
+    /* --- Details section --- */
+    .details-section {
+      position: relative;
+      padding: 6px 20px 16px;
+    }
+    .details-watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 280px;
+      height: 280px;
+      opacity: 0.05;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .detail-row {
+      position: relative;
+      z-index: 1;
+      font-size: 13.5px;
+      line-height: 1.7;
+      color: #222;
+      text-align: center;
+    }
+    .detail-row strong {
+      font-weight: 700;
+    }
+
+    /* --- Date of issue --- */
+    .date-section {
+      text-align: center;
+      padding: 12px 16px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #111;
+    }
+    .date-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 2px;
+    }
+
+    /* --- Verified badge bar --- */
+    .verified-bar {
+      background: #0d6e3f;
+      color: #fff;
+      text-align: center;
+      padding: 10px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .verified-bar .checkmark {
+      display: inline-block;
+      background: #fff;
+      color: #0d6e3f;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      font-size: 12px;
+      line-height: 18px;
+      text-align: center;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    /* --- Error state --- */
+    .error-card {
+      padding: 48px 24px;
+      text-align: center;
+    }
+    .error-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: #fee2e2;
+      color: #dc2626;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: #ffffff;
-      font-size: 28px;
-      margin-bottom: 12px;
-      box-shadow: 0 8px 24px rgba(245, 158, 11, 0.3);
-    }
-    .title { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; color: #ffffff; margin-bottom: 6px; }
-    .subtitle { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
-    .card {
-      width: 100%; max-width: 620px;
-      background: #131b2e;
-      border: 1px solid #23304c;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-    }
-    .banner-success {
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 95, 70, 0.3));
-      border-bottom: 1px solid rgba(16, 185, 129, 0.3);
-      padding: 22px 20px;
-      text-align: center;
-    }
-    .status-pill {
-      display: inline-block;
-      background: #10b981;
-      color: #000000;
-      padding: 6px 18px;
-      border-radius: 30px;
+      font-size: 32px;
       font-weight: 700;
-      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .error-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: #111;
       margin-bottom: 8px;
-      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
     }
-    .banner-title { font-size: 17px; font-weight: 700; color: #ffffff; }
-    .banner-desc { font-size: 12.5px; color: #cbd5e1; margin-top: 4px; }
-    .content { padding: 28px 24px; }
-    .profile-row {
-      display: flex; gap: 18px; align-items: center;
-      margin-bottom: 24px; padding-bottom: 20px;
-      border-bottom: 1px solid #23304c;
+    .error-desc {
+      color: #666;
+      font-size: 13px;
+      max-width: 360px;
+      margin: 0 auto;
+      line-height: 1.6;
     }
-    .profile-photo {
-      width: 85px; height: 85px;
-      border-radius: 12px;
-      object-fit: cover;
-      border: 3px solid #f59e0b;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-    }
-    .profile-placeholder {
-      width: 85px; height: 85px;
-      border-radius: 12px;
-      background: #1a233a;
-      border: 2px solid #334155;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 32px; color: #94a3b8;
-    }
-    .profile-name { font-size: 20px; font-weight: 700; color: #ffffff; margin-bottom: 4px; }
-    .badge-active {
-      display: inline-block;
-      background: rgba(245, 158, 11, 0.15);
-      color: #f59e0b;
-      padding: 3px 10px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 600;
-      margin-top: 6px;
-    }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 13.5px; }
-    .grid-col-2 { grid-column: span 2; }
-    .label { color: #94a3b8; font-size: 11px; font-weight: 600; text-transform: uppercase; margin-bottom: 3px; }
-    .value { font-weight: 600; color: #ffffff; word-break: break-all; }
-    .value-highlight { color: #f59e0b; font-weight: 700; }
+
+    /* --- Footer --- */
     .footer-bar {
-      background: #0b0f19;
-      padding: 14px 20px;
-      border-top: 1px solid #23304c;
+      background: #f7f7f7;
+      border-top: 1px solid #ddd;
+      padding: 10px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 11.5px;
-      color: #64748b;
+      font-size: 10px;
+      color: #888;
     }
-    .error-card { padding: 44px 24px; text-align: center; }
-    .error-icon { font-size: 48px; color: #ef4444; margin-bottom: 12px; }
-    .error-title { font-size: 20px; font-weight: 700; color: #ffffff; margin-bottom: 8px; }
-    .error-desc { color: #94a3b8; font-size: 13.5px; max-width: 420px; margin: 0 auto; line-height: 1.5; }
+
+    /* --- Status pill for inactive --- */
+    .inactive-pill {
+      display: inline-block;
+      background: #dc2626;
+      color: #fff;
+      padding: 4px 14px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 11px;
+      margin-top: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    @media (max-width: 500px) {
+      .document-card { border-width: 1px; }
+      .org-name { font-size: 17px; }
+      .award-title { font-size: 15px; }
+      .photo-frame { width: 130px; height: 155px; }
+      .detail-row { font-size: 12.5px; }
+    }
   </style>
 </head>
 <body>
-  <div class="header">
-    <div class="logo-badge">🏛️</div>
-    <h1 class="title">ICONIC HUMAN RIGHTS & EDUCATIONAL ORGANISATION</h1>
-    <p class="subtitle">Approved by Ministry of Corporate Affairs, Government of India | Official Registry (IHREO)</p>
-  </div>
-
-  <div class="card">
+  <div class="document-card">
     ${valid ? `
-      <div class="banner-success">
-        <div class="status-pill">✓ OFFICIAL CERTIFICATE VERIFIED</div>
-        <h2 class="banner-title">Authentic IHREO Honor & Award Record</h2>
-        <p class="banner-desc">This record has been officially authenticated and confirmed in the IHREO central register.</p>
+      <!-- Verified banner -->
+      <div class="verified-bar">
+        <span class="checkmark">✓</span> Official Certificate — Verified
       </div>
 
-      <div class="content">
-        <div class="profile-row">
-          ${student?.photoUrl ? `<img src="${student.photoUrl}" alt="${student.fullName}" class="profile-photo" />` : `<div class="profile-placeholder">👤</div>`}
-          <div>
-            <h3 class="profile-name">${student?.fullName}</h3>
-            ${student?.fathersHusbandName ? `<p style="font-size: 12.5px; color: #94a3b8;">S/D/W of: ${student.fathersHusbandName}</p>` : ''}
-            <div class="badge-active">🛡️ Active Certificate</div>
-          </div>
-        </div>
+      <!-- Registration numbers -->
+      <div class="reg-bar">
+        <span>Reg No. ${regNo}</span>
+        <span>Sl. No. ${slNo}</span>
+      </div>
 
-        <div class="grid">
-          <div>
-            <div class="label">Certificate Number</div>
-            <div class="value value-highlight">${student?.certificateNumber}</div>
-          </div>
-          <div>
-            <div class="label">Reference Number</div>
-            <div class="value">${student?.refno}</div>
-          </div>
-          <div class="grid-col-2">
-            <div class="label">Award Category</div>
-            <div class="value" style="font-size: 14.5px;">${student?.category}</div>
-          </div>
-          <div>
-            <div class="label">Event / Ceremony</div>
-            <div class="value" style="color: #e2e8f0;">${student?.eventName}</div>
-          </div>
-          <div>
-            <div class="label">Subject Discipline</div>
-            <div class="value" style="color: #e2e8f0;">${student?.subjectName}</div>
-          </div>
-          <div>
-            <div class="label">Date of Issue</div>
-            <div class="value" style="color: #e2e8f0;">
-              ${student?.letterIssuedAt ? new Date(student.letterIssuedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A'}
-            </div>
-          </div>
-        </div>
+      <!-- Organization header -->
+      <div class="org-header">
+        <div class="org-name">Iconic Human Rights<br>& Educational Organisation</div>
+        <div class="org-approved">Approved by Ministry of Corporate Affairs, Government of India</div>
+        <div class="award-title">${student?.category || 'Honorary Award'}</div>
+      </div>
+
+      <!-- Photo with watermark -->
+      <div class="photo-section">
+        <!-- IHREO circular seal watermark SVG -->
+        <svg class="watermark-logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="100" cy="100" r="95" fill="none" stroke="#222" stroke-width="4"/>
+          <circle cx="100" cy="100" r="80" fill="none" stroke="#222" stroke-width="2"/>
+          <path id="topArc" d="M 30,100 A 70,70 0 0,1 170,100" fill="none"/>
+          <text font-size="11" font-weight="700" fill="#222" letter-spacing="3">
+            <textPath href="#topArc" startOffset="50%" text-anchor="middle">ICONIC HUMAN RIGHTS</textPath>
+          </text>
+          <path id="bottomArc" d="M 170,100 A 70,70 0 0,1 30,100" fill="none"/>
+          <text font-size="11" font-weight="700" fill="#222" letter-spacing="3">
+            <textPath href="#bottomArc" startOffset="50%" text-anchor="middle">& EDUCATIONAL ORGANISATION</textPath>
+          </text>
+          <!-- Center: graduation cap icon simplified -->
+          <text x="100" y="95" text-anchor="middle" font-size="36" fill="#222">🎓</text>
+          <text x="100" y="118" text-anchor="middle" font-size="16" font-weight="800" fill="#222">IHREO</text>
+          <!-- Laurel branches (simplified) -->
+          <path d="M20,130 Q30,100 25,70 Q35,95 30,120 Q25,125 20,130Z" fill="#2d7a3a" opacity="0.6"/>
+          <path d="M15,140 Q28,108 22,78 Q32,102 28,128 Q22,135 15,140Z" fill="#2d7a3a" opacity="0.4"/>
+          <path d="M180,130 Q170,100 175,70 Q165,95 170,120 Q175,125 180,130Z" fill="#2d7a3a" opacity="0.6"/>
+          <path d="M185,140 Q172,108 178,78 Q168,102 172,128 Q178,135 185,140Z" fill="#2d7a3a" opacity="0.4"/>
+          <!-- Stars -->
+          <text x="80" y="68" text-anchor="middle" font-size="10" fill="#d97706">★</text>
+          <text x="100" y="62" text-anchor="middle" font-size="12" fill="#d97706">★</text>
+          <text x="120" y="68" text-anchor="middle" font-size="10" fill="#d97706">★</text>
+        </svg>
+
+        ${student?.photoUrl 
+          ? `<div class="photo-frame"><img src="${student.photoUrl}" alt="${student.fullName}" /></div>` 
+          : `<div class="photo-frame"><div class="photo-placeholder">👤</div></div>`}
+      </div>
+
+      <!-- Details -->
+      <div class="details-section">
+        <!-- Watermark behind details too -->
+        <svg class="details-watermark" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="100" cy="100" r="95" fill="none" stroke="#222" stroke-width="4"/>
+          <circle cx="100" cy="100" r="80" fill="none" stroke="#222" stroke-width="2"/>
+          <path id="topArc2" d="M 30,100 A 70,70 0 0,1 170,100" fill="none"/>
+          <text font-size="11" font-weight="700" fill="#222" letter-spacing="3">
+            <textPath href="#topArc2" startOffset="50%" text-anchor="middle">ICONIC HUMAN RIGHTS</textPath>
+          </text>
+          <path id="bottomArc2" d="M 170,100 A 70,70 0 0,1 30,100" fill="none"/>
+          <text font-size="11" font-weight="700" fill="#222" letter-spacing="3">
+            <textPath href="#bottomArc2" startOffset="50%" text-anchor="middle">& EDUCATIONAL ORGANISATION</textPath>
+          </text>
+          <text x="100" y="95" text-anchor="middle" font-size="36" fill="#222">🎓</text>
+          <text x="100" y="118" text-anchor="middle" font-size="16" font-weight="800" fill="#222">IHREO</text>
+          <path d="M20,130 Q30,100 25,70 Q35,95 30,120 Q25,125 20,130Z" fill="#2d7a3a" opacity="0.6"/>
+          <path d="M15,140 Q28,108 22,78 Q32,102 28,128 Q22,135 15,140Z" fill="#2d7a3a" opacity="0.4"/>
+          <path d="M180,130 Q170,100 175,70 Q165,95 170,120 Q175,125 180,130Z" fill="#2d7a3a" opacity="0.6"/>
+          <path d="M185,140 Q172,108 178,78 Q168,102 172,128 Q178,135 185,140Z" fill="#2d7a3a" opacity="0.4"/>
+          <text x="80" y="68" text-anchor="middle" font-size="10" fill="#d97706">★</text>
+          <text x="100" y="62" text-anchor="middle" font-size="12" fill="#d97706">★</text>
+          <text x="120" y="68" text-anchor="middle" font-size="10" fill="#d97706">★</text>
+        </svg>
+
+        <div class="detail-row"><strong>Name:</strong> ${student?.fullName || 'N/A'}</div>
+        ${student?.fathersHusbandName ? `<div class="detail-row"><strong>Father's Name:</strong> ${student.fathersHusbandName}</div>` : ''}
+        ${student?.phoneNumber ? `<div class="detail-row"><strong>Mobile Number:</strong> ${student.phoneNumber}</div>` : ''}
+        ${student?.email ? `<div class="detail-row"><strong>E-mail Id:</strong> ${student.email}</div>` : ''}
+        ${student?.bloodGroup ? `<div class="detail-row"><strong>Blood Group -</strong> ${student.bloodGroup}</div>` : ''}
+        ${student?.dateOfBirth ? `<div class="detail-row"><strong>D.O.B.:</strong> ${formatDate(student.dateOfBirth)}</div>` : ''}
+        <div class="detail-row"><strong>Category:</strong> ${student?.category || 'N/A'}</div>
+        ${student?.address ? `<div class="detail-row"><strong>Full Address:</strong> ${student.address}</div>` : ''}
+        ${student?.eventName ? `<div class="detail-row"><strong>Event:</strong> ${student.eventName}</div>` : ''}
+        ${student?.subjectName ? `<div class="detail-row"><strong>Subject:</strong> ${student.subjectName}</div>` : ''}
+      </div>
+
+      <!-- Date of issue -->
+      <div class="date-section">
+        <div class="date-label">Date of Issue</div>
+        <div>${student?.letterIssuedAt ? formatDate(student.letterIssuedAt) : 'N/A'}</div>
       </div>
     ` : `
       <div class="error-card">
         <div class="error-icon">✕</div>
-        <h2 class="error-title">Certificate Record Not Found</h2>
+        <h2 class="error-title">Certificate Not Found</h2>
         <p class="error-desc">${message || `No official IHREO certificate matches the query: ${query}`}</p>
       </div>
     `}
 
     <div class="footer-bar">
-      <div>🏛️ IHREO Honors Council</div>
-      <div>Official Seal & Authenticated Record</div>
+      <div>IHREO — Official Registry</div>
+      <div>Authenticated Record</div>
     </div>
   </div>
 </body>
@@ -284,6 +483,11 @@ const verifyHandler = async (req, res) => {
       category: student.category,
       letterIssuedAt: student.letterIssuedAt,
       photoUrl: student.photoUrl,
+      phoneNumber: student.phoneNumber,
+      email: student.email,
+      bloodGroup: student.bloodGroup,
+      dateOfBirth: student.dateOfBirth,
+      address: student.address,
       eventName: typeof student.eventId === 'object' ? student.eventId?.name : 'IHREO Honors Convocation',
       subjectName: typeof student.subjectId === 'object' ? student.subjectId?.name : 'Academic & Educational Honors',
       certificateTemplateIds: student.certificateTemplateIds,
