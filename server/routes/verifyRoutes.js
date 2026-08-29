@@ -5,20 +5,31 @@ const router = express.Router();
 
 // Helper to render standalone mobile-responsive HTML for browser visitors
 const renderHtmlVerification = ({ valid, status, student, message, query }) => {
-  // Format date of birth
+  // Format date
   const formatDate = (dateStr) => {
-    if (!dateStr) return 'N/A';
+    if (!dateStr) return '';
     const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return 'N/A';
+    if (isNaN(d.getTime())) return String(dateStr);
     const dd = String(d.getDate()).padStart(2, '0');
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const yyyy = d.getFullYear();
-    return `${dd}-${mm}-${yyyy}`;
+    return `${dd}.${mm}.${yyyy}`;
   };
 
-  // Extract registration number from refno (e.g. "459383/IHREO0214" → "459383")
-  const regNo = student?.refno ? String(student.refno).split('/')[0] : '';
-  const slNo = student?.refno || '';
+  const formatDateSlash = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  };
+
+  // Extract registration number and serial number
+  const rawRef = student?.refno || '';
+  const regNo = rawRef ? rawRef.split('/')[0] : '459383';
+  const slNo = rawRef || (student?.certificateNumber ? student.certificateNumber.replace('/CERT/', '/') : '459383/IHREO0201');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -28,99 +39,120 @@ const renderHtmlVerification = ({ valid, status, student, message, query }) => {
   <title>Official Certificate Verification | IHREO</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       min-height: 100vh;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #f0f0f0;
-      color: #1a1a1a;
+      background-color: #ecefe6;
+      background-image: radial-gradient(#d4dcd2 1px, transparent 1px);
+      background-size: 20px 20px;
+      color: #111111;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 20px 12px;
+      padding: 24px 12px;
     }
 
-    .document-card {
+    .card {
       width: 100%;
-      max-width: 480px;
+      max-width: 460px;
       background: #ffffff;
-      border: 2px solid #222;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+      border: 1.5px solid #222222;
+      border-radius: 2px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08);
       position: relative;
       overflow: hidden;
     }
 
-    /* --- Top registration bar --- */
+    /* --- Reg numbers top bar --- */
     .reg-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 16px;
-      font-size: 12px;
-      font-weight: 600;
-      color: #333;
-      border-bottom: 1px solid #ddd;
+      padding: 12px 18px 6px;
+      font-size: 15px;
+      fontWeight: 600;
+      color: #111111;
     }
 
-    /* --- Organization header --- */
+    /* --- Org header --- */
     .org-header {
       text-align: center;
-      padding: 16px 16px 10px;
-      border-bottom: 1px solid #ddd;
+      padding: 6px 16px 12px;
     }
     .org-name {
-      font-family: 'Playfair Display', 'Georgia', serif;
-      font-size: 20px;
+      font-family: 'Playfair Display', 'Georgia', 'Times New Roman', serif;
+      font-size: 25px;
       font-weight: 900;
-      color: #111;
-      line-height: 1.2;
-      margin-bottom: 4px;
+      color: #0a0a0a;
+      line-height: 1.18;
+      margin: 0 0 3px 0;
     }
-    .org-approved {
-      font-size: 10px;
-      color: #666;
-      font-style: italic;
-      margin-bottom: 8px;
-    }
-    .award-title {
-      font-family: 'Playfair Display', 'Georgia', serif;
-      font-size: 18px;
-      font-weight: 700;
-      color: #111;
-      margin-top: 4px;
+    .org-sub {
+      font-size: 11px;
+      color: #333333;
+      font-weight: 500;
+      margin: 0 0 12px 0;
+      letter-spacing: 0.1px;
     }
 
-    /* --- Photo section with watermark --- */
-    .photo-section {
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px 16px;
-      min-height: 200px;
+    /* --- Award pill --- */
+    .award-pill {
+      display: inline-block;
+      background: linear-gradient(180deg, #edf2f7 0%, #e2e8f0 100%);
+      border: 1px solid #cbd5e1;
+      border-radius: 24px;
+      padding: 5px 22px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
-    .watermark-logo {
+    .award-pill span {
+      font-family: 'Playfair Display', 'Georgia', serif;
+      font-size: 17px;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: 0.2px;
+    }
+
+    /* --- Main content area with watermark --- */
+    .main-area {
+      position: relative;
+      padding: 10px 18px 24px;
+      min-height: 380px;
+    }
+    .watermark {
       position: absolute;
-      top: 50%;
+      top: 52%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 220px;
-      height: 220px;
-      opacity: 0.08;
+      width: 340px;
+      height: 340px;
+      opacity: 0.12;
       pointer-events: none;
       z-index: 0;
     }
-    .photo-frame {
+
+    /* --- Photo --- */
+    .photo-area {
       position: relative;
       z-index: 1;
-      width: 150px;
-      height: 180px;
-      border: 2px solid #333;
+      display: flex;
+      justify-content: center;
+      margin-bottom: 14px;
+    }
+    .photo-frame {
+      width: 125px;
+      height: 150px;
+      border-radius: 8px;
+      border: 1.5px solid #222222;
+      background-color: #f8fafc;
       overflow: hidden;
-      background: #f5f5f5;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .photo-frame img {
       width: 100%;
@@ -128,261 +160,118 @@ const renderHtmlVerification = ({ valid, status, student, message, query }) => {
       object-fit: cover;
     }
     .photo-placeholder {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 48px;
-      color: #ccc;
-      background: #f5f5f5;
+      font-size: 38px;
+      color: #94a3b8;
     }
 
-    /* --- Details section --- */
-    .details-section {
-      position: relative;
-      padding: 6px 20px 16px;
-    }
-    .details-watermark {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 280px;
-      height: 280px;
-      opacity: 0.05;
-      pointer-events: none;
-      z-index: 0;
-    }
-    .detail-row {
+    /* --- Details text --- */
+    .details-box {
       position: relative;
       z-index: 1;
-      font-size: 13.5px;
-      line-height: 1.7;
-      color: #222;
       text-align: center;
+      font-size: 16.5px;
+      color: #111111;
+      font-weight: 500;
+      line-height: 1.75;
     }
-    .detail-row strong {
-      font-weight: 700;
-    }
-
-    /* --- Date of issue --- */
-    .date-section {
-      text-align: center;
-      padding: 12px 16px 16px;
-      font-size: 14px;
-      font-weight: 700;
-      color: #111;
-    }
-    .date-label {
-      font-size: 12px;
+    .name-line {
+      font-size: 18px;
       font-weight: 600;
-      color: #555;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 2px;
+      color: #000000;
+      margin-bottom: 1px;
     }
-
-    /* --- Verified badge bar --- */
-    .verified-bar {
-      background: #0d6e3f;
-      color: #fff;
-      text-align: center;
-      padding: 10px 16px;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-    .verified-bar .checkmark {
-      display: inline-block;
-      background: #fff;
-      color: #0d6e3f;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      font-size: 12px;
-      line-height: 18px;
-      text-align: center;
-      margin-right: 6px;
-      vertical-align: middle;
+    .date-line {
+      margin-top: 14px;
+      font-size: 17px;
+      font-weight: 600;
+      color: #000000;
     }
 
     /* --- Error state --- */
     .error-card {
-      padding: 48px 24px;
+      padding: 54px 24px;
       text-align: center;
     }
     .error-icon {
-      width: 64px;
-      height: 64px;
+      width: 54px;
+      height: 54px;
       border-radius: 50%;
       background: #fee2e2;
       color: #dc2626;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 32px;
+      font-size: 26px;
       font-weight: 700;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
     .error-title {
-      font-family: 'Playfair Display', serif;
       font-size: 20px;
       font-weight: 700;
-      color: #111;
+      color: #111111;
       margin-bottom: 8px;
     }
     .error-desc {
-      color: #666;
-      font-size: 13px;
-      max-width: 360px;
+      color: #666666;
+      font-size: 13.5px;
+      max-width: 380px;
       margin: 0 auto;
-      line-height: 1.6;
-    }
-
-    /* --- Footer --- */
-    .footer-bar {
-      background: #f7f7f7;
-      border-top: 1px solid #ddd;
-      padding: 10px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 10px;
-      color: #888;
-    }
-
-    /* --- Status pill for inactive --- */
-    .inactive-pill {
-      display: inline-block;
-      background: #dc2626;
-      color: #fff;
-      padding: 4px 14px;
-      border-radius: 4px;
-      font-weight: 700;
-      font-size: 11px;
-      margin-top: 8px;
-      letter-spacing: 0.5px;
-    }
-
-    @media (max-width: 500px) {
-      .document-card { border-width: 1px; }
-      .org-name { font-size: 17px; }
-      .award-title { font-size: 15px; }
-      .photo-frame { width: 130px; height: 155px; }
-      .detail-row { font-size: 12.5px; }
+      line-height: 1.5;
     }
   </style>
 </head>
 <body>
-  <div class="document-card">
+  <div class="card">
     ${valid ? `
-      <!-- Verified banner -->
-      <div class="verified-bar">
-        <span class="checkmark">✓</span> Official Certificate — Verified
-      </div>
-
-      <!-- Registration numbers -->
+      <!-- Reg bar -->
       <div class="reg-bar">
         <span>Reg No. ${regNo}</span>
         <span>Sl. No. ${slNo}</span>
       </div>
 
-      <!-- Organization header -->
+      <!-- Org header -->
       <div class="org-header">
-        <div class="org-name">Iconic Human Rights<br>& Educational Organisation</div>
-        <div class="org-approved">Approved by Ministry of Corporate Affairs, Government of India</div>
-        <div class="award-title">${student?.category || 'Honorary Award'}</div>
+        <h1 class="org-name">Iconic Human Rights<br>& Educational Organisation</h1>
+        <div class="org-sub">Approved by Ministry of Corporate Affairs, Government of India</div>
+        <div class="award-pill">
+          <span>${student?.category || 'Honorary Doctorate Award'}</span>
+        </div>
       </div>
 
-      <!-- Photo with watermark -->
-      <div class="photo-section">
-        <!-- IHREO circular seal watermark SVG -->
-        <svg class="watermark-logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="100" cy="100" r="95" fill="none" stroke="#222" stroke-width="4"/>
-          <circle cx="100" cy="100" r="80" fill="none" stroke="#222" stroke-width="2"/>
-          <path id="topArc" d="M 30,100 A 70,70 0 0,1 170,100" fill="none"/>
-          <text font-size="11" font-weight="700" fill="#222" letter-spacing="3">
-            <textPath href="#topArc" startOffset="50%" text-anchor="middle">ICONIC HUMAN RIGHTS</textPath>
-          </text>
-          <path id="bottomArc" d="M 170,100 A 70,70 0 0,1 30,100" fill="none"/>
-          <text font-size="11" font-weight="700" fill="#222" letter-spacing="3">
-            <textPath href="#bottomArc" startOffset="50%" text-anchor="middle">& EDUCATIONAL ORGANISATION</textPath>
-          </text>
-          <!-- Center: graduation cap icon simplified -->
-          <text x="100" y="95" text-anchor="middle" font-size="36" fill="#222">🎓</text>
-          <text x="100" y="118" text-anchor="middle" font-size="16" font-weight="800" fill="#222">IHREO</text>
-          <!-- Laurel branches (simplified) -->
-          <path d="M20,130 Q30,100 25,70 Q35,95 30,120 Q25,125 20,130Z" fill="#2d7a3a" opacity="0.6"/>
-          <path d="M15,140 Q28,108 22,78 Q32,102 28,128 Q22,135 15,140Z" fill="#2d7a3a" opacity="0.4"/>
-          <path d="M180,130 Q170,100 175,70 Q165,95 170,120 Q175,125 180,130Z" fill="#2d7a3a" opacity="0.6"/>
-          <path d="M185,140 Q172,108 178,78 Q168,102 172,128 Q178,135 185,140Z" fill="#2d7a3a" opacity="0.4"/>
-          <!-- Stars -->
-          <text x="80" y="68" text-anchor="middle" font-size="10" fill="#d97706">★</text>
-          <text x="100" y="62" text-anchor="middle" font-size="12" fill="#d97706">★</text>
-          <text x="120" y="68" text-anchor="middle" font-size="10" fill="#d97706">★</text>
-        </svg>
+      <!-- Main area with watermark -->
+      <div class="main-area">
+        <!-- High-res SVG Logo Watermark -->
+        <img class="watermark" src="/ihreo-logo.svg" onerror="this.src='/ihreo-logo.png'" alt="" />
 
-        ${student?.photoUrl 
-          ? `<div class="photo-frame"><img src="${student.photoUrl}" alt="${student.fullName}" /></div>` 
-          : `<div class="photo-frame"><div class="photo-placeholder">👤</div></div>`}
-      </div>
+        <!-- Photo -->
+        <div class="photo-area">
+          <div class="photo-frame">
+            ${student?.photoUrl
+              ? `<img src="${student.photoUrl}" alt="${student.fullName}" />`
+              : `<span class="photo-placeholder">👤</span>`}
+          </div>
+        </div>
 
-      <!-- Details -->
-      <div class="details-section">
-        <!-- Watermark behind details too -->
-        <svg class="details-watermark" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="100" cy="100" r="95" fill="none" stroke="#222" stroke-width="4"/>
-          <circle cx="100" cy="100" r="80" fill="none" stroke="#222" stroke-width="2"/>
-          <path id="topArc2" d="M 30,100 A 70,70 0 0,1 170,100" fill="none"/>
-          <text font-size="11" font-weight="700" fill="#222" letter-spacing="3">
-            <textPath href="#topArc2" startOffset="50%" text-anchor="middle">ICONIC HUMAN RIGHTS</textPath>
-          </text>
-          <path id="bottomArc2" d="M 170,100 A 70,70 0 0,1 30,100" fill="none"/>
-          <text font-size="11" font-weight="700" fill="#222" letter-spacing="3">
-            <textPath href="#bottomArc2" startOffset="50%" text-anchor="middle">& EDUCATIONAL ORGANISATION</textPath>
-          </text>
-          <text x="100" y="95" text-anchor="middle" font-size="36" fill="#222">🎓</text>
-          <text x="100" y="118" text-anchor="middle" font-size="16" font-weight="800" fill="#222">IHREO</text>
-          <path d="M20,130 Q30,100 25,70 Q35,95 30,120 Q25,125 20,130Z" fill="#2d7a3a" opacity="0.6"/>
-          <path d="M15,140 Q28,108 22,78 Q32,102 28,128 Q22,135 15,140Z" fill="#2d7a3a" opacity="0.4"/>
-          <path d="M180,130 Q170,100 175,70 Q165,95 170,120 Q175,125 180,130Z" fill="#2d7a3a" opacity="0.6"/>
-          <path d="M185,140 Q172,108 178,78 Q168,102 172,128 Q178,135 185,140Z" fill="#2d7a3a" opacity="0.4"/>
-          <text x="80" y="68" text-anchor="middle" font-size="10" fill="#d97706">★</text>
-          <text x="100" y="62" text-anchor="middle" font-size="12" fill="#d97706">★</text>
-          <text x="120" y="68" text-anchor="middle" font-size="10" fill="#d97706">★</text>
-        </svg>
-
-        <div class="detail-row"><strong>Name:</strong> ${student?.fullName || 'N/A'}</div>
-        ${student?.fathersHusbandName ? `<div class="detail-row"><strong>Father's Name:</strong> ${student.fathersHusbandName}</div>` : ''}
-        ${student?.phoneNumber ? `<div class="detail-row"><strong>Mobile Number:</strong> ${student.phoneNumber}</div>` : ''}
-        ${student?.email ? `<div class="detail-row"><strong>E-mail Id:</strong> ${student.email}</div>` : ''}
-        ${student?.bloodGroup ? `<div class="detail-row"><strong>Blood Group -</strong> ${student.bloodGroup}</div>` : ''}
-        ${student?.dateOfBirth ? `<div class="detail-row"><strong>D.O.B.:</strong> ${formatDate(student.dateOfBirth)}</div>` : ''}
-        <div class="detail-row"><strong>Category:</strong> ${student?.category || 'N/A'}</div>
-        ${student?.address ? `<div class="detail-row"><strong>Full Address:</strong> ${student.address}</div>` : ''}
-        ${student?.eventName ? `<div class="detail-row"><strong>Event:</strong> ${student.eventName}</div>` : ''}
-        ${student?.subjectName ? `<div class="detail-row"><strong>Subject:</strong> ${student.subjectName}</div>` : ''}
-      </div>
-
-      <!-- Date of issue -->
-      <div class="date-section">
-        <div class="date-label">Date of Issue</div>
-        <div>${student?.letterIssuedAt ? formatDate(student.letterIssuedAt) : 'N/A'}</div>
+        <!-- Details -->
+        <div class="details-box">
+          <div class="name-line">Name - ${student?.fullName || 'N/A'}</div>
+          ${student?.fathersHusbandName ? `<div>Guardian Name - ${student.fathersHusbandName}</div>` : ''}
+          ${student?.phoneNumber ? `<div>Mobile Number - ${student.phoneNumber}</div>` : ''}
+          ${student?.email ? `<div>Mail - ${student.email}</div>` : ''}
+          ${student?.bloodGroup ? `<div>Blood Group - ${student.bloodGroup}</div>` : ''}
+          ${student?.dateOfBirth ? `<div>D.O.B - ${formatDate(student.dateOfBirth)}</div>` : ''}
+          ${student?.category ? `<div>Category - ${student.category}</div>` : ''}
+          ${student?.address ? `<div style="margin-top: 2px; padding: 0 10px; word-break: break-word;">Address - ${student.address}</div>` : ''}
+          <div class="date-line">Date Of Issue - ${formatDateSlash(student?.letterIssuedAt) || formatDateSlash(new Date())}</div>
+        </div>
       </div>
     ` : `
       <div class="error-card">
         <div class="error-icon">✕</div>
-        <h2 class="error-title">Certificate Not Found</h2>
+        <h2 class="error-title">Certificate Record Not Found</h2>
         <p class="error-desc">${message || `No official IHREO certificate matches the query: ${query}`}</p>
       </div>
     `}
-
-    <div class="footer-bar">
-      <div>IHREO — Official Registry</div>
-      <div>Authenticated Record</div>
-    </div>
   </div>
 </body>
 </html>`;
