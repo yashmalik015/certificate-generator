@@ -544,18 +544,24 @@ export const generateMembershipCert = async (studentData, customDomain) => {
     const { width: mW } = page.getSize();
 
     // 1. Top Left CIN, Licence & Sl. No., Reg No. (Clean Superimposition)
-    const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${cleanRef}\nReg No. 459383`;
+    const slNoStr = cleanRef.includes('459383') ? cleanRef : `459383/${cleanRef.replace(/^IHREO\/?/, 'IHREO')}`;
+    const refText = `CIN NO.:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${slNoStr}\nReg No. 459383`;
     page.drawText(refText, {
-      x: 65, y: 775, size: 7.5, font: fontHelv, color: rgb(0.12, 0.12, 0.12), lineHeight: 10
+      x: 93.0,
+      y: 740.0,
+      size: 7.8,
+      font: fontHelv,
+      color: rgb(0.12, 0.12, 0.12),
+      lineHeight: 11.9
     });
 
     // 2. Top Right QR Code (Clean Superimposition with ?cert= universal routing)
     try {
       const domain = resolveAppDomain(customDomain);
       const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(cleanCertNo)}`;
-      const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 150 });
+      const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 120 });
       const qrImg = await baseDoc.embedPng(qrBuf);
-      page.drawImage(qrImg, { x: 450, y: 715, width: 72, height: 72 });
+      page.drawImage(qrImg, { x: 442.63, y: 686.92, width: 56.90, height: 56.90 });
     } catch (qrErr) {
       console.warn('Membership QR Code error:', qrErr.message);
     }
@@ -563,11 +569,12 @@ export const generateMembershipCert = async (studentData, customDomain) => {
     // 3. Recipient Photo inside Center Slot with rounded corners & border
     const pImg = await embedPhoto(baseDoc, studentData);
     if (pImg) {
-      page.drawImage(pImg, { x: 254.68, y: 360.42, width: 87.92, height: 99.08 });
+      page.drawImage(pImg, { x: 254.63, y: 360.09, width: 88.06, height: 99.58 });
     }
 
     // 4. Recipient Name inside Bottom Capsule (Clean Serif Typography, Perfectly Centered)
-    const nameStr = (studentData.fullName || 'Member Name').toUpperCase();
+    const rawName = studentData.fullName || studentData.name || studentData.studentName || studentData.recipientName || 'Member Name';
+    const nameStr = String(rawName).trim().toUpperCase();
     let nameSize = 16.5;
     while (nameSize > 9 && fontTimesBold.widthOfTextAtSize(nameStr, nameSize) > 310) {
       nameSize -= 0.5;
@@ -575,10 +582,10 @@ export const generateMembershipCert = async (studentData, customDomain) => {
     const nw = fontTimesBold.widthOfTextAtSize(nameStr, nameSize);
     page.drawText(nameStr, {
       x: (mW - nw) / 2,
-      y: 262,
+      y: 266.5,
       size: nameSize,
       font: fontTimesBold,
-      color: rgb(0.1, 0.1, 0.1)
+      color: rgb(0.08, 0.08, 0.08)
     });
 
     // 5. Date of Issue centered above bottom logos
@@ -586,11 +593,11 @@ export const generateMembershipCert = async (studentData, customDomain) => {
       ? new Date(studentData.letterIssuedAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')
       : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
     const dateStr = `Date of Issue : ${dateFormatted}`;
-    const dw = fontHelv.widthOfTextAtSize(dateStr, 9.5);
+    const dw = fontHelv.widthOfTextAtSize(dateStr, 9.0);
     page.drawText(dateStr, {
       x: (mW - dw) / 2,
-      y: 176,
-      size: 9.5,
+      y: 181.0,
+      size: 9.0,
       font: fontHelv,
       color: rgb(0.12, 0.12, 0.12)
     });
@@ -607,3 +614,4 @@ export const generateMembershipCert = async (studentData, customDomain) => {
     pdfUrl: `/uploads/certificates/${name}.pdf`
   };
 };
+

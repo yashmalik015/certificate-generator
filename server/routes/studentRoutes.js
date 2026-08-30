@@ -272,8 +272,15 @@ router.post('/', authMiddleware, async (req, res) => {
 // PUT /api/students/:id
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
+    const incomingDomain = extractIncomingBaseUrl(req);
     if (mongoose.connection.readyState === 1) {
-      const student = await Student.findById(req.params.id);
+      let student = null;
+      if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+        student = await Student.findById(req.params.id);
+      } else {
+        student = await Student.findOne({ $or: [{ _id: req.params.id }, { refno: req.params.id }, { certificateNumber: req.params.id }] });
+      }
+
       if (student) {
         Object.assign(student, req.body);
 
@@ -285,14 +292,14 @@ router.put('/:id', authMiddleware, async (req, res) => {
         const generatedUrls = [];
         for (const tid of templatesToRun) {
           try {
-            const certRes = await generateCertificate(student, tid);
+            const certRes = await generateCertificate(student, tid, incomingDomain);
             generatedUrls.push(certRes);
           } catch (genErr) { console.error(`Cert regen error (${tid}):`, genErr); }
         }
 
         // Regenerate universal docs
-        try { const r = await generateIdCard(student); if (r) generatedUrls.push(r); } catch (e) { console.error('ID card regen:', e); }
-        try { const r = await generateMembershipCert(student); if (r) generatedUrls.push(r); } catch (e) { console.error('Membership regen:', e); }
+        try { const r = await generateIdCard(student, incomingDomain); if (r) generatedUrls.push(r); } catch (e) { console.error('ID card regen:', e); }
+        try { const r = await generateMembershipCert(student, incomingDomain); if (r) generatedUrls.push(r); } catch (e) { console.error('Membership regen:', e); }
 
         student.generatedCertificateUrls = generatedUrls;
         await student.save();
@@ -305,7 +312,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
       }
     }
 
-    const idx = global._mockStudentsStore.findIndex((s) => s._id === req.params.id);
+    const idx = global._mockStudentsStore.findIndex((s) => s._id === req.params.id || s.refno === req.params.id);
     if (idx !== -1) {
       Object.assign(global._mockStudentsStore[idx], req.body);
       return res.json(global._mockStudentsStore[idx]);
@@ -374,11 +381,16 @@ router.get('/:id/certificate/:templateId/download', authMiddleware, async (req, 
     let student = null;
 
     if (mongoose.connection.readyState === 1) {
-      student = await Student.findById(id);
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        student = await Student.findById(id);
+      }
+      if (!student) {
+        student = await Student.findOne({ $or: [{ _id: id }, { refno: id }, { certificateNumber: id }] });
+      }
     }
 
     if (!student) {
-      student = global._mockStudentsStore.find((s) => s._id === id);
+      student = global._mockStudentsStore.find((s) => String(s._id) === String(id) || s.refno === id);
     }
 
     if (!student) {
@@ -421,3 +433,4 @@ router.get('/:id/certificate/:templateId/download', authMiddleware, async (req, 
 });
 
 export default router;
+
