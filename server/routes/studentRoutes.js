@@ -247,7 +247,15 @@ router.post('/', authMiddleware, async (req, res) => {
           }
         })
       );
-      mockStudent.generatedCertificateUrls = generatedResults.filter(Boolean);
+      let idCardResult = null, membershipResult = null;
+      try { idCardResult = await generateIdCard(mockStudent, incomingDomain); } catch (e) { console.error('ID card gen error:', e); }
+      try { membershipResult = await generateMembershipCert(mockStudent, incomingDomain); } catch (e) { console.error('Membership gen error:', e); }
+
+      mockStudent.generatedCertificateUrls = [
+        ...generatedResults.filter(Boolean),
+        ...(idCardResult ? [idCardResult] : []),
+        ...(membershipResult ? [membershipResult] : [])
+      ];
 
       global._mockStudentsStore.unshift(mockStudent);
       return res.status(201).json(mockStudent);
