@@ -9,36 +9,37 @@ const router = express.Router();
 
 router.post('/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const username = String(req.body?.username || '').trim();
+    const password = String(req.body?.password || '');
 
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password are required.' });
     }
 
-    const seedUser = process.env.ADMIN_SEED_USERNAME || 'wcaeo_admin';
-    const seedPass = process.env.ADMIN_SEED_PASSWORD || 'Wc@eo#2026$Secure91';
+    const seedUser = String(process.env.ADMIN_SEED_USERNAME || 'wcaeo_admin').trim();
+    const seedPass = String(process.env.ADMIN_SEED_PASSWORD || 'Wc@eo#2026$Secure91');
 
     let admin = null;
     let isMatch = false;
 
     if (mongoose.connection.readyState === 1) {
       try {
-        admin = await AdminUser.findOne({ username: username.trim() });
-        if (admin) {
+        admin = await AdminUser.findOne({ username }).maxTimeMS(2000);
+        if (admin && admin.passwordHash) {
           isMatch = await bcrypt.compare(password, admin.passwordHash);
           if (!isMatch && (password === seedPass || password === 'Wc@eo#2026$Secure91')) {
             admin.passwordHash = await bcrypt.hash(password, 10);
-            await admin.save();
+            await admin.save().catch(() => {});
             isMatch = true;
           }
         }
       } catch (dbErr) {
-        console.warn('Database query fallback during login:', dbErr);
+        console.warn('Database query fallback during login:', dbErr.message);
       }
     }
 
-    // Fallback credential check if DB is not connected or admin record not found
-    if (!isMatch && (username.trim() === seedUser || username.trim() === 'wcaeo_admin')) {
+    // Direct fallback credential check if DB is not connected or user not found
+    if (!isMatch && (username === seedUser || username === 'wcaeo_admin')) {
       if (password === seedPass || password === 'Wc@eo#2026$Secure91') {
         isMatch = true;
         admin = {
@@ -52,8 +53,8 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid username or password.' });
     }
 
-    const userId = admin ? admin._id : 'wcaeo_admin_id_001';
-    const userUsername = admin ? admin.username : 'wcaeo_admin';
+    const userId = admin?._id ? String(admin._id) : 'wcaeo_admin_id_001';
+    const userUsername = admin?.username || 'wcaeo_admin';
 
     const secret = process.env.JWT_SECRET || 'wcaeo_super_secret_jwt_key_2026_production_grade';
     const token = jwt.sign(
@@ -72,7 +73,7 @@ router.post('/login', async (req, res) => {
     });
   } catch (err) {
     console.error('Login error:', err);
-    return res.status(500).json({ error: 'Server error during login.' });
+    return res.status(500).json({ error: 'Server error during login: ' + err.message });
   }
 });
 

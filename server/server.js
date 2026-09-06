@@ -176,23 +176,53 @@ app.use(async (req, res, next) => {
 app.use('/api/verify', verifyRoutes);
 app.use('/verify', verifyRoutes);
 
-// Routes
+// Auth routes
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
+
+// Template routes
 app.use('/api/certificate-templates', templateRoutes);
+app.use('/certificate-templates', templateRoutes);
+
+// Event routes
 app.use('/api/events', eventRoutes);
+app.use('/events', eventRoutes);
+
+// Subject routes
 app.use('/api/subjects', subjectRoutes);
+app.use('/subjects', subjectRoutes);
+
+// Student routes
 app.use('/api/students', studentRoutes);
+app.use('/students', studentRoutes);
+
+// Upload routes
 app.use('/api/uploads', uploadRoutes);
+app.use('/uploads', uploadRoutes);
+
+// Designation routes
 app.use('/api/designations', designationRoutes);
+app.use('/designations', designationRoutes);
 
 // Root health check
-app.get('/api/health', (req, res) => {
+app.get(['/api/health', '/health'], (req, res) => {
   res.json({
     status: 'ok',
     app: 'IHREO Certificate Backend Server',
     dbConnected: mongoose.connection.readyState === 1,
     timestamp: new Date()
   });
+});
+
+// Fallback JSON 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: `Not Found: ${req.method} ${req.originalUrl || req.url}` });
+});
+
+// Fallback error handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled server error:', err);
+  res.status(err.status || 500).json({ error: err?.message || 'Internal Server Error' });
 });
 
 const PORT = process.env.PORT || 5050;

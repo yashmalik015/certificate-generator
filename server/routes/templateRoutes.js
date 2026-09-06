@@ -55,6 +55,10 @@ router.put('/:id/config', authMiddleware, (req, res) => {
     return res.json({ message: `Config saved for template: ${templateId}`, configPath });
   } catch (err) {
     console.error('Save template config error:', err);
+    return res.status(500).json({ error: 'Failed to save template config.' });
+  }
+});
+
 // GET /api/certificate-templates/:id/preview — stream preview image of a template
 router.get('/:id/preview', (req, res) => {
   try {
