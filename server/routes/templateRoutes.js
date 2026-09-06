@@ -55,7 +55,29 @@ router.put('/:id/config', authMiddleware, (req, res) => {
     return res.json({ message: `Config saved for template: ${templateId}`, configPath });
   } catch (err) {
     console.error('Save template config error:', err);
-    return res.status(500).json({ error: 'Failed to save template config: ' + err.message });
+// GET /api/certificate-templates/:id/preview — stream preview image of a template
+router.get('/:id/preview', (req, res) => {
+  try {
+    const templateId = decodeURIComponent(req.params.id);
+    const possiblePaths = [
+      path.resolve(__dirname, '../../public/assets/certificate-templates', `${templateId}.png`),
+      path.resolve(__dirname, '../../src/assets/certificate-templates', `${templateId}.png`),
+      path.resolve(__dirname, '../../src/assets', `${templateId}.png`),
+      path.join(process.cwd(), 'public/assets/certificate-templates', `${templateId}.png`),
+      path.join(process.cwd(), 'src/assets/certificate-templates', `${templateId}.png`),
+      path.join(process.cwd(), 'src/assets', `${templateId}.png`)
+    ];
+
+    const foundPath = possiblePaths.find((p) => fs.existsSync(p));
+    if (foundPath) {
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.sendFile(foundPath);
+    }
+    return res.status(404).send('Template image not found');
+  } catch (err) {
+    console.error('Preview stream error:', err);
+    return res.status(500).send('Error loading preview');
   }
 });
 

@@ -195,22 +195,32 @@ const StudentForm = () => {
     reader.readAsDataURL(file);
   };
 
+  const [previewLoading, setPreviewLoading] = useState(false);
+
   // Live Canvas Rendering inside Preview Modal
   useEffect(() => {
     if (!previewingTemplate || !previewCanvasRef.current) return;
     const canvas = previewCanvasRef.current;
     const ctx = canvas.getContext('2d');
+    setPreviewLoading(true);
+
+    const tid = previewingTemplate.id.toLowerCase();
+    const candidateUrls = [
+      `/assets/certificate-templates/${encodeURIComponent(previewingTemplate.id)}.png`,
+      `/certificate-templates/${encodeURIComponent(previewingTemplate.id)}.png`,
+      `/api/certificate-templates/${encodeURIComponent(previewingTemplate.id)}/preview`,
+      previewingTemplate.previewUrl
+    ].filter(Boolean);
+
+    let urlIdx = 0;
     const bgImg = new Image();
-    bgImg.crossOrigin = 'anonymous';
-    bgImg.src = previewingTemplate.previewUrl || `/assets/certificate-templates/${encodeURIComponent(previewingTemplate.id)}.png`;
 
-    bgImg.onload = () => {
-      canvas.width = bgImg.width || 700;
-      canvas.height = bgImg.height || 1000;
+    const drawCertificate = (img) => {
+      canvas.width = img.width || 700;
+      canvas.height = img.height || 1000;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-      const tid = previewingTemplate.id.toLowerCase();
       const pW = canvas.width;
       const pH = canvas.height;
 
@@ -248,7 +258,7 @@ const StudentForm = () => {
       }
 
       // Draw Recipient Name
-      const name = formData.fullName || 'Sample Recipient Name';
+      const name = formData.fullName || 'Recipient Full Name';
       ctx.textAlign = 'center';
 
       if (tid.includes('padm') || tid.includes('bhushan')) {
@@ -280,7 +290,73 @@ const StudentForm = () => {
         ctx.fillStyle = '#111827';
         ctx.fillText(name, pW / 2, 280);
       }
+      setPreviewLoading(false);
     };
+
+    const tryNextUrl = () => {
+      if (urlIdx < candidateUrls.length) {
+        bgImg.src = candidateUrls[urlIdx++];
+      } else {
+        // Fallback: draw rich vector template preview
+        canvas.width = 680;
+        canvas.height = 960;
+        ctx.fillStyle = '#fdfbf7';
+        ctx.fillRect(0, 0, 680, 960);
+        ctx.strokeStyle = '#d4af37';
+        ctx.lineWidth = 12;
+        ctx.strokeRect(20, 20, 640, 920);
+        ctx.lineWidth = 2;
+        ctx.strokeRect(32, 32, 616, 896);
+
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 24px "Playfair Display", Georgia, serif';
+        ctx.fillStyle = '#0f172a';
+        ctx.fillText('Iconic Human Rights & Educational Organisation', 340, 120);
+
+        ctx.font = '14px "Inter", sans-serif';
+        ctx.fillStyle = '#64748b';
+        ctx.fillText('Approved by Ministry of Corporate Affairs, Government of India', 340, 150);
+
+        ctx.font = 'bold 28px "Playfair Display", Georgia, serif';
+        ctx.fillStyle = '#b45309';
+        ctx.fillText(previewingTemplate.label, 340, 240);
+
+        // Photo slot
+        if (formData.photoUrl) {
+          const pImg = new Image();
+          pImg.onload = () => {
+            ctx.drawImage(pImg, 280, 310, 120, 140);
+          };
+          pImg.src = formData.photoUrl;
+        } else {
+          ctx.fillStyle = '#f1f5f9';
+          ctx.fillRect(280, 310, 120, 140);
+          ctx.strokeStyle = '#94a3b8';
+          ctx.strokeRect(280, 310, 120, 140);
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '14px sans-serif';
+          ctx.fillText('Photo', 340, 385);
+        }
+
+        ctx.font = 'bold 26px "Playfair Display", Georgia, serif';
+        ctx.fillStyle = '#0f172a';
+        ctx.fillText(formData.fullName || 'Recipient Full Name', 340, 520);
+
+        ctx.font = '16px "Inter", sans-serif';
+        ctx.fillStyle = '#334155';
+        ctx.fillText(formData.category || 'For Outstanding Distinction & Excellence', 340, 580);
+
+        ctx.font = '14px "Inter", sans-serif';
+        ctx.fillStyle = '#64748b';
+        ctx.fillText(`Date of Issue : ${formData.letterIssuedAt || new Date().toISOString().split('T')[0]}`, 340, 720);
+
+        setPreviewLoading(false);
+      }
+    };
+
+    bgImg.onload = () => drawCertificate(bgImg);
+    bgImg.onerror = tryNextUrl;
+    tryNextUrl();
   }, [previewingTemplate, formData]);
 
   const saveStudent = async (createAnother = false) => {
@@ -731,11 +807,20 @@ const StudentForm = () => {
                     >
                       <div className="template-card-media">
                         <img
-                          src={tpl.previewUrl || `/assets/certificate-templates/${encodeURIComponent(tpl.id)}.png`}
+                          src={`/assets/certificate-templates/${encodeURIComponent(tpl.id)}.png`}
                           alt={tpl.label}
                           onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = '/ihreo-logo.png';
+                            const tried = e.currentTarget.dataset.fallbackStep || '0';
+                            if (tried === '0') {
+                              e.currentTarget.dataset.fallbackStep = '1';
+                              e.currentTarget.src = `/certificate-templates/${encodeURIComponent(tpl.id)}.png`;
+                            } else if (tried === '1') {
+                              e.currentTarget.dataset.fallbackStep = '2';
+                              e.currentTarget.src = `/api/certificate-templates/${encodeURIComponent(tpl.id)}/preview`;
+                            } else if (tried === '2') {
+                              e.currentTarget.dataset.fallbackStep = '3';
+                              e.currentTarget.src = '/ihreo-logo.png';
+                            }
                           }}
                         />
                         <span className={`template-card-category-badge ${getBadgeClass(tpl.category)}`}>
@@ -826,7 +911,13 @@ const StudentForm = () => {
               </button>
             </div>
 
-            <div className="cert-preview-modal-body">
+            <div className="cert-preview-modal-body" style={{ position: 'relative', minHeight: '360px' }}>
+              {previewLoading && (
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.7)', zIndex: 10 }}>
+                  <div style={{ width: '36px', height: '36px', border: '3px solid #cbd5e1', borderTopColor: '#f59e0b', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '10px' }} />
+                  <span style={{ fontSize: '13px', color: '#e2e8f0', fontWeight: 600 }}>Rendering live certificate simulation...</span>
+                </div>
+              )}
               <canvas ref={previewCanvasRef} className="cert-preview-canvas" />
             </div>
 
