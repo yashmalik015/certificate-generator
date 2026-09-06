@@ -10,53 +10,13 @@
     "y": 548,
     "width": 172,
     "height": 190,
-    "radius": 8,
+    "radius": 6,
     "borderColor": "#2d5a27",
-    "borderWidth": 1.5
+    "borderWidth": 2
   },
   "qrCode": {
     "x": 535,
     "y": 95,
     "size": 72
-  },
-  "fields": {
-    "refText": {
-      "x": 72,
-      "y": 110,
-      "fontSize": 10,
-      "lineHeight": 14,
-      "color": "#1a1a1a",
-      "font": "bold",
-      "align": "left"
-    },
-    "fullName": {
-      "x": 341,
-      "y": 765,
-      "fontSize": 24,
-      "font": "bold",
-      "color": "#111827",
-      "align": "center",
-      "maxWidth": 380
-    },
-    "category": {
-      "x": 341,
-      "y": 842,
-      "fontSize": 11.5,
-      "font": "normal",
-      "color": "#222222",
-      "align": "center",
-      "maxWidth": 440,
-      "wrap": true,
-      "lineHeight": 16
-    },
-    "letterIssuedAt": {
-      "x": 341,
-      "y": 882,
-      "fontSize": 11,
-      "font": "normal",
-      "color": "#1a1a1a",
-      "align": "center",
-      "prefix": "Date of Issue : "
-    }
   }
 }

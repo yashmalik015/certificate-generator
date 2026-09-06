@@ -9,7 +9,7 @@
     "type": "circle",
     "centerX": 361,
     "centerY": 340,
-    "radius": 72,
+    "radius": 70,
     "borderColor": "#c49a45",
     "borderWidth": 2.5
   },
@@ -17,41 +17,5 @@
     "x": 558,
     "y": 90,
     "size": 70
-  },
-  "fields": {
-    "ribbonName": {
-      "x": 361,
-      "y": 434,
-      "fontSize": 14,
-      "font": "bold",
-      "color": "#2a1a08",
-      "align": "center",
-      "maxWidth": 180
-    },
-    "category": {
-      "x": 361,
-      "y": 610,
-      "fontSize": 14,
-      "font": "bold",
-      "color": "#b45309",
-      "align": "center"
-    },
-    "fullName": {
-      "x": 361,
-      "y": 676,
-      "fontSize": 26,
-      "font": "bold",
-      "color": "#111827",
-      "align": "center",
-      "maxWidth": 420
-    },
-    "letterIssuedAt": {
-      "x": 361,
-      "y": 728,
-      "fontSize": 13,
-      "font": "bold",
-      "color": "#1a1a1a",
-      "align": "center"
-    }
   }
 }

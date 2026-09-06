@@ -6,57 +6,17 @@
   "height": 1024,
   "photo": {
     "type": "rect",
-    "x": 280,
-    "y": 563,
-    "width": 122,
-    "height": 137,
-    "radius": 6,
-    "borderColor": "#333333",
-    "borderWidth": 1.5
+    "x": 282,
+    "y": 565,
+    "width": 118,
+    "height": 133,
+    "radius": 4,
+    "borderColor": "#cda250",
+    "borderWidth": 2
   },
   "qrCode": {
     "x": 535,
     "y": 72,
     "size": 72
-  },
-  "fields": {
-    "refText": {
-      "x": 72,
-      "y": 84,
-      "fontSize": 10,
-      "lineHeight": 14,
-      "color": "#1a1a1a",
-      "font": "bold",
-      "align": "left"
-    },
-    "fullName": {
-      "x": 341,
-      "y": 726,
-      "fontSize": 22,
-      "font": "bold",
-      "color": "#111827",
-      "align": "center",
-      "maxWidth": 380
-    },
-    "category": {
-      "x": 341,
-      "y": 796,
-      "fontSize": 11.5,
-      "font": "normal",
-      "color": "#222222",
-      "align": "center",
-      "maxWidth": 440,
-      "wrap": true,
-      "lineHeight": 16
-    },
-    "letterIssuedAt": {
-      "x": 341,
-      "y": 838,
-      "fontSize": 11,
-      "font": "normal",
-      "color": "#1a1a1a",
-      "align": "center",
-      "prefix": "Date of Issue : "
-    }
   }
 }

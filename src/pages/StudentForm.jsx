@@ -286,27 +286,43 @@ const StudentForm = () => {
       } else if (tid.includes('ashok')) {
         ctx.font = 'bold 22px "Times New Roman", serif';
         ctx.fillStyle = '#111827';
-        ctx.fillText(name, 341, 726);
+        ctx.fillText(name, 341, 724);
 
-        ctx.font = '11.5px "Times New Roman", serif';
+        ctx.font = '13px "Times New Roman", serif';
         ctx.fillStyle = '#222222';
-        ctx.fillText(`For his exceptional work in ${category}, notable accomplishments, and significant contributions towards`, 341, 788);
-        ctx.fillText('the progress of the nation.', 341, 804);
+        ctx.fillText('And is honored with the title', 341, 748);
 
-        ctx.font = '11px "Helvetica", sans-serif';
+        ctx.font = 'bold 17px "Times New Roman", serif';
+        ctx.fillStyle = '#8B1E0F';
+        ctx.fillText('“Bhartiye Ashok Samman”', 341, 772);
+
+        ctx.font = '11px "Times New Roman", serif';
+        ctx.fillStyle = '#222222';
+        ctx.fillText(`For his exceptional ${category.toLowerCase().startsWith('social') ? category : 'work in ' + category}, notable accomplishments,`, 341, 796);
+        ctx.fillText('and significant contributions towards the progress of the nation.', 341, 812);
+
+        ctx.font = '10.5px "Helvetica", sans-serif';
         ctx.fillStyle = '#1a1a1a';
-        ctx.fillText(dateStr, 341, 838);
+        ctx.fillText(dateStr, 341, 840);
       } else if (tid.includes('gaurav')) {
-        ctx.font = 'bold 24px "Times New Roman", serif';
+        ctx.font = 'bold 22px "Times New Roman", serif';
         ctx.fillStyle = '#111827';
         ctx.fillText(name, 341, 765);
 
-        ctx.font = '11.5px "Times New Roman", serif';
+        ctx.font = '13px "Times New Roman", serif';
         ctx.fillStyle = '#222222';
-        ctx.fillText(`For his exceptional work as a ${category}, notable accomplishments, and significant contributions towards`, 341, 838);
-        ctx.fillText('the progress of the nation.', 341, 854);
+        ctx.fillText('And is honored with the title', 341, 790);
 
-        ctx.font = '11px "Helvetica", sans-serif';
+        ctx.font = 'bold 17px "Times New Roman", serif';
+        ctx.fillStyle = '#1e5422';
+        ctx.fillText('“Bhartiye Gaurav Ratan Samman”', 341, 814);
+
+        ctx.font = '11px "Times New Roman", serif';
+        ctx.fillStyle = '#222222';
+        ctx.fillText(`For his exceptional work as a ${category}, notable accomplishments,`, 341, 838);
+        ctx.fillText('and significant contributions towards the progress of the nation.', 341, 854);
+
+        ctx.font = '10.5px "Helvetica", sans-serif';
         ctx.fillStyle = '#1a1a1a';
         ctx.fillText(dateStr, 341, 882);
       } else if (tid.includes('business')) {

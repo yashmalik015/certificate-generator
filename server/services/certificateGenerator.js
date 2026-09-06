@@ -227,24 +227,23 @@ const getPhotoBuffer = async (photoUrl) => {
   return null;
 };
 
-// ── Embed photo helper with shape masking (rect / circle) ────────────────────
+// ── Embed photo helper with shape masking (rect / circle) & cover fitting ─────
 const embedPhotoWithShape = async (pdfDoc, studentData, shape = 'rect', borderColor = '#333333', borderWidth = 2) => {
   if (!studentData.photoUrl) return null;
   try {
     const rawBuf = await getPhotoBuffer(studentData.photoUrl);
     if (!rawBuf || !rawBuf.length) return null;
 
-    // Strategy 1: Dynamic Canvas import if available (local development with native bindings)
     try {
       const { createCanvas, loadImage } = await import('canvas');
       const img = await loadImage(rawBuf);
       const w = img.width || 400;
       const h = img.height || 480;
-      const size = Math.max(200, Math.max(w, h));
-      const canvas = createCanvas(shape === 'circle' ? size : Math.max(200, w), shape === 'circle' ? size : Math.max(200, h));
+      const size = Math.max(300, Math.max(w, h));
+      const targetW = shape === 'circle' ? size : 300;
+      const targetH = shape === 'circle' ? size : 340;
+      const canvas = createCanvas(targetW, targetH);
       const ctx = canvas.getContext('2d');
-      const targetW = canvas.width;
-      const targetH = canvas.height;
 
       if (shape === 'circle') {
         const cx = size / 2;
@@ -255,7 +254,6 @@ const embedPhotoWithShape = async (pdfDoc, studentData, shape = 'rect', borderCo
         ctx.closePath();
         ctx.save();
         ctx.clip();
-        // Draw image centered & cover-fitted inside circle
         const scale = Math.max(size / w, size / h);
         const dw = w * scale;
         const dh = h * scale;
@@ -268,8 +266,8 @@ const embedPhotoWithShape = async (pdfDoc, studentData, shape = 'rect', borderCo
           ctx.stroke();
         }
       } else {
-        // Rectangular with rounded corners
-        const radius = Math.min(targetW, targetH) * 0.08;
+        // Rectangular with rounded corners and cover fitting
+        const radius = 10;
         const bw = Math.max(1, borderWidth);
         ctx.beginPath();
         if (ctx.roundRect) {
@@ -280,7 +278,23 @@ const embedPhotoWithShape = async (pdfDoc, studentData, shape = 'rect', borderCo
         ctx.closePath();
         ctx.save();
         ctx.clip();
-        ctx.drawImage(img, 0, 0, targetW, targetH);
+
+        // Cover fit
+        const imgAspect = w / h;
+        const targetAspect = (targetW - bw * 2) / (targetH - bw * 2);
+        let drawW, drawH, drawX, drawY;
+        if (imgAspect > targetAspect) {
+          drawH = targetH - bw * 2;
+          drawW = drawH * imgAspect;
+          drawX = bw + (targetW - bw * 2 - drawW) / 2;
+          drawY = bw;
+        } else {
+          drawW = targetW - bw * 2;
+          drawH = drawW / imgAspect;
+          drawX = bw;
+          drawY = bw + (targetH - bw * 2 - drawH) / 2;
+        }
+        ctx.drawImage(img, drawX, drawY, drawW, drawH);
         ctx.restore();
 
         if (borderWidth > 0) {
@@ -345,7 +359,7 @@ const formatIssueDate = (dateVal, format = 'DD-MM-YYYY') => {
 
 // ── RENDER SPECIFIC CERTIFICATE TEMPLATES ────────────────────────────────────
 
-// 1. Bhartiye Ashok Samman Render
+// 1. Bhartiye Ashok Samman Render (Matches Reference Image 2 Exactly)
 const renderAshokSammanDoc = async (baseDoc, page, studentData, customDomain, templateName = 'Bhartiye Ashok Samman') => {
   const { width: pW, height: pH } = page.getSize();
   const fontTimes = await baseDoc.embedFont(StandardFonts.TimesRoman);
@@ -383,75 +397,99 @@ const renderAshokSammanDoc = async (baseDoc, page, studentData, customDomain, te
     console.warn('QR Code generation error:', qrErr.message);
   }
 
-  // 3. Center Recipient Photo (Rectangular rounded inside gold frame)
-  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#333333', 1.5);
+  // 3. Center Recipient Photo (Inside double gold frame)
+  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#cda250', 2);
   if (pImg) {
     page.drawImage(pImg, {
-      x: 280,
-      y: pH - (563 + 137),
-      width: 122,
-      height: 137
+      x: 282,
+      y: pH - (565 + 133),
+      width: 118,
+      height: 133
     });
   }
 
-  // 4. Recipient Name
+  // 4. Recipient Full Name (Line 1)
   const nameStr = studentData.fullName || 'Recipient Name';
-  let nameSize = 21;
-  while (nameSize > 12 && fontTimesBold.widthOfTextAtSize(nameStr, nameSize) > 340) {
+  let nameSize = 22;
+  while (nameSize > 12 && fontTimesBold.widthOfTextAtSize(nameStr, nameSize) > 360) {
     nameSize -= 0.5;
   }
   const nw = fontTimesBold.widthOfTextAtSize(nameStr, nameSize);
   page.drawText(nameStr, {
     x: (pW - nw) / 2,
-    y: pH - 726,
+    y: pH - 724,
     size: nameSize,
     font: fontTimesBold,
     color: rgb(0.1, 0.1, 0.1)
   });
 
-  // 5. Category / Citation text
-  const catField = studentData.category || 'For outstanding social welfare, notable accomplishments, and significant contributions towards the progress of the nation.';
-  const citationLine = catField.startsWith('For') ? catField : `For his exceptional work in ${catField}, notable accomplishments, and significant contributions towards the progress of the nation.`;
-  
-  // Wrap citation text
-  const words = citationLine.split(' ');
-  let line1 = '', line2 = '';
-  for (const w of words) {
-    if (fontTimes.widthOfTextAtSize(line1 + ' ' + w, 10.5) < 420 && !line2) {
-      line1 = line1 ? line1 + ' ' + w : w;
-    } else {
-      line2 = line2 ? line2 + ' ' + w : w;
+  // 5. Subtitle: "And is honored with the title" (Line 2)
+  const subText = 'And is honored with the title';
+  const subW = fontTimes.widthOfTextAtSize(subText, 13);
+  page.drawText(subText, {
+    x: (pW - subW) / 2,
+    y: pH - 748,
+    size: 13,
+    font: fontTimes,
+    color: rgb(0.15, 0.15, 0.15)
+  });
+
+  // 6. Award Title Highlight in Quotes: “Bhartiye Ashok Samman” (Line 3, Rich Crimson Bold)
+  const titleHighlight = '“Bhartiye Ashok Samman”';
+  const thW = fontTimesBold.widthOfTextAtSize(titleHighlight, 17);
+  page.drawText(titleHighlight, {
+    x: (pW - thW) / 2,
+    y: pH - 772,
+    size: 17,
+    font: fontTimesBold,
+    color: rgb(0.55, 0.12, 0.06) // Rich crimson/maroon #8B1E0F
+  });
+
+  // 7. Category / Citation text (Lines 4 & 5, Balanced 2 Lines)
+  const catField = studentData.category || 'social welfare';
+  let line1 = `For his exceptional ${catField.toLowerCase().startsWith('social') ? catField : 'work in ' + catField}, notable accomplishments,`;
+  let line2 = 'and significant contributions towards the progress of the nation.';
+  if (line1.length > 68) {
+    const words = `For his exceptional work in ${catField}, notable accomplishments, and significant contributions towards the progress of the nation.`.split(' ');
+    line1 = '';
+    line2 = '';
+    for (const w of words) {
+      if (fontTimes.widthOfTextAtSize(line1 + ' ' + w, 11) < 420 && !line2) {
+        line1 = line1 ? line1 + ' ' + w : w;
+      } else {
+        line2 = line2 ? line2 + ' ' + w : w;
+      }
     }
   }
-  const l1w = fontTimes.widthOfTextAtSize(line1, 10.5);
+  const l1w = fontTimes.widthOfTextAtSize(line1, 11);
   page.drawText(line1, {
     x: (pW - l1w) / 2,
-    y: line2 ? pH - 792 : pH - 796,
-    size: 10.5,
+    y: pH - 796,
+    size: 11,
     font: fontTimes,
-    color: rgb(0.2, 0.2, 0.2)
+    color: rgb(0.18, 0.18, 0.18)
   });
   if (line2) {
-    const l2w = fontTimes.widthOfTextAtSize(line2, 10.5);
+    const l2w = fontTimes.widthOfTextAtSize(line2, 11);
     page.drawText(line2, {
       x: (pW - l2w) / 2,
-      y: pH - 806,
-      size: 10.5,
+      y: pH - 812,
+      size: 11,
       font: fontTimes,
-      color: rgb(0.2, 0.2, 0.2)
+      color: rgb(0.18, 0.18, 0.18)
     });
   }
 
-  // 6. Date of Issue
+  // 8. Date of Issue (Single, perfectly placed above MSME seal)
   const dateFormatted = formatIssueDate(studentData.letterIssuedAt, 'DD-MM-YYYY');
   const dateStr = `Date of Issue : ${dateFormatted}`;
-  const dw = fontHelv.widthOfTextAtSize(dateStr, 10);
+  const dw = fontHelv.widthOfTextAtSize(dateStr, 10.5);
   page.drawText(dateStr, {
     x: (pW - dw) / 2,
-    y: pH - 838,
-    size: 10,
+    y: pH - 840,
+    size: 10.5,
     font: fontHelv,
-    color: rgb(0.12, 0.12, 0.12)
+    color: rgb(0.1, 0.1, 0.1)
   });
 };
 
@@ -494,7 +532,7 @@ const renderGauravRatanDoc = async (baseDoc, page, studentData, customDomain) =>
   }
 
   // 3. Center Recipient Photo (Inside green/gold frame)
-  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#2d5a27', 1.5);
+  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#2d5a27', 2);
   if (pImg) {
     page.drawImage(pImg, {
       x: 255,
@@ -504,7 +542,7 @@ const renderGauravRatanDoc = async (baseDoc, page, studentData, customDomain) =>
     });
   }
 
-  // 4. Recipient Name
+  // 4. Recipient Full Name
   const nameStr = studentData.fullName || 'Recipient Name';
   let nameSize = 22;
   while (nameSize > 12 && fontTimesBold.widthOfTextAtSize(nameStr, nameSize) > 340) {
@@ -519,47 +557,61 @@ const renderGauravRatanDoc = async (baseDoc, page, studentData, customDomain) =>
     color: rgb(0.1, 0.1, 0.1)
   });
 
-  // 5. Category / Citation text
+  // 5. Subtitle: "And is honored with the title"
+  const subText = 'And is honored with the title';
+  const subW = fontTimes.widthOfTextAtSize(subText, 13);
+  page.drawText(subText, {
+    x: (pW - subW) / 2,
+    y: pH - 790,
+    size: 13,
+    font: fontTimes,
+    color: rgb(0.15, 0.15, 0.15)
+  });
+
+  // 6. Award Title Highlight in Quotes: “Bhartiye Gaurav Ratan Samman” (Deep Green Bold)
+  const titleHighlight = '“Bhartiye Gaurav Ratan Samman”';
+  const thW = fontTimesBold.widthOfTextAtSize(titleHighlight, 17);
+  page.drawText(titleHighlight, {
+    x: (pW - thW) / 2,
+    y: pH - 814,
+    size: 17,
+    font: fontTimesBold,
+    color: rgb(0.12, 0.35, 0.15) // Rich forest green #1e5422
+  });
+
+  // 7. Category / Citation text
   const catField = studentData.category || 'Wild Life Expert';
-  const citationLine = `For his exceptional work as a ${catField}, notable accomplishments, and significant contributions towards the progress of the nation.`;
-  const words = citationLine.split(' ');
-  let line1 = '', line2 = '';
-  for (const w of words) {
-    if (fontTimes.widthOfTextAtSize(line1 + ' ' + w, 10.5) < 430 && !line2) {
-      line1 = line1 ? line1 + ' ' + w : w;
-    } else {
-      line2 = line2 ? line2 + ' ' + w : w;
-    }
-  }
-  const l1w = fontTimes.widthOfTextAtSize(line1, 10.5);
+  const line1 = `For his exceptional work as a ${catField}, notable accomplishments,`;
+  const line2 = 'and significant contributions towards the progress of the nation.';
+  const l1w = fontTimes.widthOfTextAtSize(line1, 11);
   page.drawText(line1, {
     x: (pW - l1w) / 2,
-    y: line2 ? pH - 838 : pH - 842,
-    size: 10.5,
+    y: pH - 838,
+    size: 11,
     font: fontTimes,
-    color: rgb(0.2, 0.2, 0.2)
+    color: rgb(0.18, 0.18, 0.18)
   });
   if (line2) {
-    const l2w = fontTimes.widthOfTextAtSize(line2, 10.5);
+    const l2w = fontTimes.widthOfTextAtSize(line2, 11);
     page.drawText(line2, {
       x: (pW - l2w) / 2,
-      y: pH - 852,
-      size: 10.5,
+      y: pH - 854,
+      size: 11,
       font: fontTimes,
-      color: rgb(0.2, 0.2, 0.2)
+      color: rgb(0.18, 0.18, 0.18)
     });
   }
 
-  // 6. Date of Issue
+  // 8. Date of Issue
   const dateFormatted = formatIssueDate(studentData.letterIssuedAt, 'DD-MM-YYYY');
   const dateStr = `Date of Issue : ${dateFormatted}`;
-  const dw = fontHelv.widthOfTextAtSize(dateStr, 10);
+  const dw = fontHelv.widthOfTextAtSize(dateStr, 10.5);
   page.drawText(dateStr, {
     x: (pW - dw) / 2,
     y: pH - 882,
-    size: 10,
+    size: 10.5,
     font: fontHelv,
-    color: rgb(0.12, 0.12, 0.12)
+    color: rgb(0.1, 0.1, 0.1)
   });
 };
 

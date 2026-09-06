@@ -31,6 +31,7 @@ function cleanHorizontalZone(ctx, startY, endY, leftCleanX, rightCleanX, startCl
 
   function getPixel(x, y) {
     x = Math.max(0, Math.min(cW - 1, Math.round(x)));
+    y = Math.max(0, Math.min(ctx.canvas.height - 1, Math.round(y)));
     const idx = (y * cW + x) * 4;
     return [data[idx], data[idx + 1], data[idx + 2]];
   }
@@ -116,7 +117,7 @@ async function saveCanvasAsPngAndPdf(canvas, baseName) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. Bhartiye Ashok Samman
+// 1. Bhartiye Ashok Samman (Flawless Reference Matching)
 // ─────────────────────────────────────────────────────────────────────────────
 async function generateAshokSamman() {
   const imgPath = path.join(userDir, 'media_1788675039736.jpg');
@@ -125,35 +126,36 @@ async function generateAshokSamman() {
   const ctx = canvas.getContext('2d');
   ctx.drawImage(img, 0, 0);
 
-  // 1. Clean Top Left Ref area
-  cleanCornerBox(ctx, 65, 65, 265, 142, 275);
+  // 1. Clean Top Left Ref area (from x=50 to x=290, y=55 to y=150) - Removes stray "3" and old CIN/SL!
+  cleanCornerBox(ctx, 50, 55, 290, 150, 298);
 
-  // 2. Clean Top Right QR area
-  cleanCornerBox(ctx, 525, 65, 625, 155, 515);
+  // 2. Clean Top Right QR area (from x=510 to x=635, y=55 to y=160) - Removes old QR and edge lines near G20
+  cleanCornerBox(ctx, 510, 55, 635, 160, 500);
 
-  // 3. Clean inside photo frame with neutral parchment
+  // 3. Clean inside photo frame with neutral parchment & draw pristine double gold frame
   ctx.save();
-  ctx.fillStyle = '#f8f4e6';
-  ctx.fillRect(281, 564, 120, 135);
-  ctx.strokeStyle = '#d4af37';
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(280.5, 563.5, 121, 136);
+  ctx.fillStyle = '#fbf6ea';
+  ctx.fillRect(280, 563, 122, 137);
+
+  // Outer gold frame
+  ctx.strokeStyle = '#cda250';
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(279, 562, 124, 139);
+
+  // Inner subtle border
+  ctx.strokeStyle = '#e6c875';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(281, 564, 120, 135);
   ctx.restore();
 
-  // 4. Clean Recipient Name zone (y=704..740)
-  cleanHorizontalZone(ctx, 704, 740, 115, 565, 130, 550);
-
-  // 5. Clean Citation & Date of Issue zone (y=760..855)
-  // This removes all old ghost citation text AND old "Date of Issue : 26-12-2025" completely!
-  cleanHorizontalZone(ctx, 760, 855, 115, 565, 115, 565);
-
-  // 6. Re-render crisp static subtitle "And is honored with the title"
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.font = '15px "Times New Roman", serif';
-  ctx.fillStyle = '#222222';
-  ctx.fillText('And is honored with the title', 341, 752);
-  ctx.restore();
+  // 4. Clean ALL text from y=696 down to y=855 across x=115..565!
+  // This completely eliminates:
+  // - "Dr. Jojo Koruth James"
+  // - "And is honored with the title"
+  // - "Bhartiye Ashok Samman"
+  // - old citation lines
+  // - old "Date of Issue : 26-12-2025"
+  cleanHorizontalZone(ctx, 696, 855, 115, 565, 120, 560);
 
   await saveCanvasAsPngAndPdf(canvas, 'Bhartiye Ashok Samman');
 
@@ -165,58 +167,18 @@ async function generateAshokSamman() {
     height: img.height,
     photo: {
       type: 'rect',
-      x: 280,
-      y: 563,
-      width: 122,
-      height: 137,
-      radius: 6,
-      borderColor: '#333333',
-      borderWidth: 1.5
+      x: 282,
+      y: 565,
+      width: 118,
+      height: 133,
+      radius: 4,
+      borderColor: '#cda250',
+      borderWidth: 2
     },
     qrCode: {
       x: 535,
       y: 72,
       size: 72
-    },
-    fields: {
-      refText: {
-        x: 72,
-        y: 84,
-        fontSize: 10,
-        lineHeight: 14,
-        color: '#1a1a1a',
-        font: 'bold',
-        align: 'left'
-      },
-      fullName: {
-        x: 341,
-        y: 726,
-        fontSize: 22,
-        font: 'bold',
-        color: '#111827',
-        align: 'center',
-        maxWidth: 380
-      },
-      category: {
-        x: 341,
-        y: 796,
-        fontSize: 11.5,
-        font: 'normal',
-        color: '#222222',
-        align: 'center',
-        maxWidth: 440,
-        wrap: true,
-        lineHeight: 16
-      },
-      letterIssuedAt: {
-        x: 341,
-        y: 838,
-        fontSize: 11,
-        font: 'normal',
-        color: '#1a1a1a',
-        align: 'center',
-        prefix: 'Date of Issue : '
-      }
     }
   };
 
@@ -234,35 +196,35 @@ async function generateInternationalBusinessExcellence() {
   ctx.drawImage(img, 0, 0);
 
   // 1. Clean Top Left Ref area
-  cleanCornerBox(ctx, 80, 70, 280, 150, 290);
+  cleanCornerBox(ctx, 75, 60, 290, 155, 300);
 
   // 2. Clean Top Right QR area
-  cleanCornerBox(ctx, 570, 70, 665, 160, 560);
+  cleanCornerBox(ctx, 565, 60, 670, 165, 555);
 
   // 3. Clean inside photo frame
   ctx.save();
-  ctx.fillStyle = '#e8eff5';
-  ctx.fillRect(313, 363, 108, 118);
+  ctx.fillStyle = '#eef3f7';
+  ctx.fillRect(312, 362, 110, 120);
   ctx.strokeStyle = '#555555';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(312, 362, 110, 120);
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(311.5, 361.5, 111, 121);
   ctx.restore();
 
-  // 4. Clean Recipient Name on underline
-  cleanHorizontalZone(ctx, 502, 540, 150, 650, 220, 610);
+  // 4. Clean Recipient Name on underline (y=498..540, x=220..610)
+  cleanHorizontalZone(ctx, 498, 540, 150, 650, 220, 610);
 
   // 5. Re-render crisp golden-brown underline
   ctx.save();
   ctx.strokeStyle = '#8b6f52';
-  ctx.lineWidth = 1.2;
+  ctx.lineWidth = 1.4;
   ctx.beginPath();
   ctx.moveTo(225, 542);
   ctx.lineTo(608, 542);
   ctx.stroke();
   ctx.restore();
 
-  // 6. Clean Date of Issue area (y=830..865)
-  cleanHorizontalZone(ctx, 830, 865, 180, 580, 280, 530);
+  // 6. Clean Date of Issue area (y=830..865, x=270..540)
+  cleanHorizontalZone(ctx, 830, 865, 180, 580, 270, 540);
 
   await saveCanvasAsPngAndPdf(canvas, 'INTERNATIONAL BUSINESS EXCELLENCE AWARD');
 
@@ -278,7 +240,7 @@ async function generateInternationalBusinessExcellence() {
       y: 362,
       width: 110,
       height: 120,
-      radius: 8,
+      radius: 6,
       borderColor: '#333333',
       borderWidth: 1.5
     },
@@ -286,35 +248,6 @@ async function generateInternationalBusinessExcellence() {
       x: 580,
       y: 80,
       size: 72
-    },
-    fields: {
-      refText: {
-        x: 88,
-        y: 95,
-        fontSize: 10,
-        lineHeight: 14,
-        color: '#1a1a1a',
-        font: 'bold',
-        align: 'left'
-      },
-      fullName: {
-        x: 416,
-        y: 534,
-        fontSize: 23,
-        font: 'italic bold',
-        color: '#2b1b17',
-        align: 'center',
-        maxWidth: 360
-      },
-      letterIssuedAt: {
-        x: 367,
-        y: 849,
-        fontSize: 11,
-        font: 'normal',
-        color: '#1a1a1a',
-        align: 'center',
-        prefix: 'Date of Issue : '
-      }
     }
   };
 
@@ -332,7 +265,7 @@ async function generatePadmaBhushan() {
   ctx.drawImage(img, 0, 0);
 
   // 1. Clean Top Right QR area
-  cleanCornerBox(ctx, 545, 80, 645, 170, 535);
+  cleanCornerBox(ctx, 540, 70, 655, 175, 530);
 
   // 2. Clean inside circular laurel frame
   ctx.save();
@@ -364,7 +297,6 @@ async function generatePadmaBhushan() {
   ctx.restore();
 
   // 4. Clean Body Citation, Name, and Date zones (y=518..735)
-  // This completely removes all old ghost text, double names, and double dates!
   cleanHorizontalZone(ctx, 518, 735, 115, 605, 130, 590);
 
   // 5. Re-render crisp static boilerplate in body
@@ -392,7 +324,7 @@ async function generatePadmaBhushan() {
       type: 'circle',
       centerX: 361,
       centerY: 340,
-      radius: 72,
+      radius: 70,
       borderColor: '#c49a45',
       borderWidth: 2.5
     },
@@ -400,42 +332,6 @@ async function generatePadmaBhushan() {
       x: 558,
       y: 90,
       size: 70
-    },
-    fields: {
-      ribbonName: {
-        x: 361,
-        y: 434,
-        fontSize: 14,
-        font: 'bold',
-        color: '#2a1a08',
-        align: 'center',
-        maxWidth: 180
-      },
-      category: {
-        x: 361,
-        y: 610,
-        fontSize: 14,
-        font: 'bold',
-        color: '#b45309',
-        align: 'center'
-      },
-      fullName: {
-        x: 361,
-        y: 676,
-        fontSize: 26,
-        font: 'bold',
-        color: '#111827',
-        align: 'center',
-        maxWidth: 420
-      },
-      letterIssuedAt: {
-        x: 361,
-        y: 728,
-        fontSize: 13,
-        font: 'bold',
-        color: '#1a1a1a',
-        align: 'center'
-      }
     }
   };
 
@@ -454,33 +350,22 @@ async function generateGauravRatan() {
   ctx.drawImage(img, 0, 0);
 
   // 1. Clean Top Left Ref area
-  cleanCornerBox(ctx, 65, 90, 265, 165, 275);
+  cleanCornerBox(ctx, 50, 75, 290, 165, 300);
 
   // 2. Clean Top Right QR area
-  cleanCornerBox(ctx, 525, 90, 625, 180, 515);
+  cleanCornerBox(ctx, 510, 75, 635, 180, 500);
 
   // 3. Clean inside photo frame
   ctx.save();
   ctx.fillStyle = '#f8f4e6';
   ctx.fillRect(256, 549, 170, 188);
   ctx.strokeStyle = '#2d5a27';
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 2;
   ctx.strokeRect(255.5, 548.5, 171, 189);
   ctx.restore();
 
-  // 4. Clean Recipient Name zone (y=740..780)
-  cleanHorizontalZone(ctx, 740, 780, 115, 565, 130, 550);
-
-  // 5. Clean Citation & Date zone (y=805..895)
-  cleanHorizontalZone(ctx, 805, 895, 115, 565, 115, 565);
-
-  // 6. Re-render crisp static subtitle
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.font = '15px "Times New Roman", serif';
-  ctx.fillStyle = '#222222';
-  ctx.fillText('And is honored with the title', 341, 794);
-  ctx.restore();
+  // 4. Clean ALL text from y=736 down to y=895 across x=115..565!
+  cleanHorizontalZone(ctx, 736, 895, 115, 565, 120, 560);
 
   await saveCanvasAsPngAndPdf(canvas, 'Bhartiye Gaurav Ratan Samman');
 
@@ -496,54 +381,14 @@ async function generateGauravRatan() {
       y: 548,
       width: 172,
       height: 190,
-      radius: 8,
+      radius: 6,
       borderColor: '#2d5a27',
-      borderWidth: 1.5
+      borderWidth: 2
     },
     qrCode: {
       x: 535,
       y: 95,
       size: 72
-    },
-    fields: {
-      refText: {
-        x: 72,
-        y: 110,
-        fontSize: 10,
-        lineHeight: 14,
-        color: '#1a1a1a',
-        font: 'bold',
-        align: 'left'
-      },
-      fullName: {
-        x: 341,
-        y: 765,
-        fontSize: 24,
-        font: 'bold',
-        color: '#111827',
-        align: 'center',
-        maxWidth: 380
-      },
-      category: {
-        x: 341,
-        y: 842,
-        fontSize: 11.5,
-        font: 'normal',
-        color: '#222222',
-        align: 'center',
-        maxWidth: 440,
-        wrap: true,
-        lineHeight: 16
-      },
-      letterIssuedAt: {
-        x: 341,
-        y: 882,
-        fontSize: 11,
-        font: 'normal',
-        color: '#1a1a1a',
-        align: 'center',
-        prefix: 'Date of Issue : '
-      }
     }
   };
 
@@ -561,10 +406,10 @@ async function generateBestBusinessIcon() {
   ctx.drawImage(img, 0, 0);
 
   // 1. Clean Top Left Ref area
-  cleanCornerBox(ctx, 65, 70, 265, 155, 275);
+  cleanCornerBox(ctx, 50, 60, 280, 160, 290);
 
   // 2. Clean Top Right QR area
-  cleanCornerBox(ctx, 550, 70, 650, 160, 540);
+  cleanCornerBox(ctx, 545, 60, 660, 165, 535);
 
   // 3. Clean inside circular golden laurel frame
   ctx.save();
@@ -607,7 +452,7 @@ async function generateBestBusinessIcon() {
       type: 'circle',
       centerX: 356,
       centerY: 490,
-      radius: 108,
+      radius: 106,
       borderColor: '#c49a45',
       borderWidth: 3
     },
@@ -615,26 +460,6 @@ async function generateBestBusinessIcon() {
       x: 560,
       y: 80,
       size: 72
-    },
-    fields: {
-      refText: {
-        x: 68,
-        y: 96,
-        fontSize: 10,
-        lineHeight: 14,
-        color: '#1a1a1a',
-        font: 'bold',
-        align: 'left'
-      },
-      fullName: {
-        x: 356,
-        y: 628,
-        fontSize: 24,
-        font: 'bold',
-        color: '#f6e58d',
-        align: 'center',
-        maxWidth: 310
-      }
     }
   };
 
@@ -645,7 +470,7 @@ async function generateBestBusinessIcon() {
 // Run all generators
 // ─────────────────────────────────────────────────────────────────────────────
 async function main() {
-  console.log('--- Generating 100% Spotless Blank Certificate Templates ---');
+  console.log('--- Generating 100% Reference-Matched Blank Certificate Templates ---');
   await generateAshokSamman();
   await generateInternationalBusinessExcellence();
   await generatePadmaBhushan();

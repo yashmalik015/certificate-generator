@@ -10,7 +10,7 @@
     "y": 362,
     "width": 110,
     "height": 120,
-    "radius": 8,
+    "radius": 6,
     "borderColor": "#333333",
     "borderWidth": 1.5
   },
@@ -18,34 +18,5 @@
     "x": 580,
     "y": 80,
     "size": 72
-  },
-  "fields": {
-    "refText": {
-      "x": 88,
-      "y": 95,
-      "fontSize": 10,
-      "lineHeight": 14,
-      "color": "#1a1a1a",
-      "font": "bold",
-      "align": "left"
-    },
-    "fullName": {
-      "x": 416,
-      "y": 534,
-      "fontSize": 23,
-      "font": "italic bold",
-      "color": "#2b1b17",
-      "align": "center",
-      "maxWidth": 360
-    },
-    "letterIssuedAt": {
-      "x": 367,
-      "y": 849,
-      "fontSize": 11,
-      "font": "normal",
-      "color": "#1a1a1a",
-      "align": "center",
-      "prefix": "Date of Issue : "
-    }
   }
 }

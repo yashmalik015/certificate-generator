@@ -8,7 +8,7 @@
     "type": "circle",
     "centerX": 356,
     "centerY": 490,
-    "radius": 108,
+    "radius": 106,
     "borderColor": "#c49a45",
     "borderWidth": 3
   },
@@ -16,25 +16,5 @@
     "x": 560,
     "y": 80,
     "size": 72
-  },
-  "fields": {
-    "refText": {
-      "x": 68,
-      "y": 96,
-      "fontSize": 10,
-      "lineHeight": 14,
-      "color": "#1a1a1a",
-      "font": "bold",
-      "align": "left"
-    },
-    "fullName": {
-      "x": 356,
-      "y": 628,
-      "fontSize": 24,
-      "font": "bold",
-      "color": "#f6e58d",
-      "align": "center",
-      "maxWidth": 310
-    }
   }
 }
