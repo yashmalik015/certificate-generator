@@ -1,0 +1,51 @@
+{
+  "id": "INTERNATIONAL BUSINESS EXCELLENCE AWARD",
+  "title": "International Business Excellence Award",
+  "category": "Business & Excellence",
+  "width": 734,
+  "height": 1024,
+  "photo": {
+    "type": "rect",
+    "x": 312,
+    "y": 362,
+    "width": 110,
+    "height": 120,
+    "radius": 8,
+    "borderColor": "#333333",
+    "borderWidth": 2
+  },
+  "qrCode": {
+    "x": 588,
+    "y": 84,
+    "size": 72
+  },
+  "fields": {
+    "refText": {
+      "x": 94,
+      "y": 95,
+      "fontSize": 10,
+      "lineHeight": 14,
+      "color": "#1a1a1a",
+      "font": "normal",
+      "align": "left"
+    },
+    "fullName": {
+      "x": 416,
+      "y": 534,
+      "fontSize": 24,
+      "font": "italic bold",
+      "color": "#2b1b17",
+      "align": "center",
+      "maxWidth": 360
+    },
+    "letterIssuedAt": {
+      "x": 367,
+      "y": 849,
+      "fontSize": 12,
+      "font": "normal",
+      "color": "#1a1a1a",
+      "align": "center",
+      "prefix": "Date of Issue : "
+    }
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "id": "Bhartiye Gaurav Ratan Samman",
+  "title": "Bhartiye Gaurav Ratan Samman",
+  "category": "National Honors",
+  "width": 681,
+  "height": 1024,
+  "photo": {
+    "type": "rect",
+    "x": 255,
+    "y": 548,
+    "width": 172,
+    "height": 190,
+    "radius": 8,
+    "borderColor": "#2d5a27",
+    "borderWidth": 2
+  },
+  "qrCode": {
+    "x": 540,
+    "y": 100,
+    "size": 72
+  },
+  "fields": {
+    "refText": {
+      "x": 74,
+      "y": 110,
+      "fontSize": 10,
+      "lineHeight": 14,
+      "color": "#1a1a1a",
+      "font": "normal",
+      "align": "left"
+    },
+    "fullName": {
+      "x": 341,
+      "y": 765,
+      "fontSize": 24,
+      "font": "bold",
+      "color": "#1a1a1a",
+      "align": "center",
+      "maxWidth": 380
+    },
+    "category": {
+      "x": 341,
+      "y": 842,
+      "fontSize": 12,
+      "font": "normal",
+      "color": "#2a2a2a",
+      "align": "center",
+      "maxWidth": 440,
+      "wrap": true,
+      "lineHeight": 16
+    },
+    "letterIssuedAt": {
+      "x": 341,
+      "y": 882,
+      "fontSize": 12,
+      "font": "normal",
+      "color": "#1a1a1a",
+      "align": "center",
+      "prefix": "Date of Issue : "
+    }
+  }
+}

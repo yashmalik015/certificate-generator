@@ -97,19 +97,22 @@ const StudentsList = () => {
 
   // Format short button label for award template name
   const getShortTemplateLabel = (templateId) => {
-    const lower = templateId.toLowerCase();
-    if (lower.includes('padm') || lower.includes('padam')) return 'Padam';
-    if (lower.includes('samaj') || lower.includes('seva')) return 'Samaj Seva';
+    const lower = String(templateId || '').toLowerCase();
+    if (lower.includes('ashok')) return 'Ashok Samman';
+    if (lower.includes('gaurav') || lower.includes('ratan')) return 'Gaurav Ratan';
+    if (lower.includes('icon') && lower.includes('business')) return 'Business Icon';
+    if (lower.includes('business') && lower.includes('excellence')) return "Int'l Business";
+    if (lower.includes('padm') || lower.includes('bhushan')) return 'Padma Bhushan';
     if (lower.includes('doctorate')) return 'Doctorate';
-    if (lower.includes('business')) return 'Business';
-    if (lower.includes('entrepreneur')) return 'Enterpreneur';
-    if (lower.includes('literary')) return 'Literary';
-    if (lower.includes('sahitya')) return 'Sahitya';
-    if (lower.includes('shiksha') || lower.includes('principal')) return 'Shiksha';
-    if (lower.includes('bibhuti')) return 'Bibhuti';
-    if (lower.includes('laureate')) return 'Laureate';
+    if (lower.includes('samaj') || lower.includes('seva')) return 'Samaj Seva';
+    if (lower.includes('entrepreneur') || lower.includes('enterpreneur')) return 'Entrepreneur';
+    if (lower.includes('literary') || lower.includes('lifetime')) return 'Literary Award';
+    if (lower.includes('sahitya')) return 'Sahitya Sewa';
+    if (lower.includes('shiksha') || lower.includes('principal')) return 'Shiksha Ratna';
+    if (lower.includes('bibhuti')) return 'Bibhuti Puraskar';
+    if (lower.includes('laureate')) return 'Laureate Award';
     if (lower.includes('women') || lower.includes('icon')) return 'Women Icon';
-    return templateId.substring(0, 10);
+    return templateId.substring(0, 14);
   };
 
   const startRecord = (pagination.page - 1) * pagination.perPage + 1;

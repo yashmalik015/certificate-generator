@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Upload, Check, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Upload, Check, AlertCircle, Eye, Search, Sparkles, X, CheckSquare, Square } from 'lucide-react';
 import api from '../api/axiosClient';
 
 const StudentForm = () => {
@@ -38,8 +38,16 @@ const StudentForm = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Template Picker State
+  const [selectedCategoryTab, setSelectedCategoryTab] = useState('All');
+  const [templateSearch, setTemplateSearch] = useState('');
+  const [previewingTemplate, setPreviewingTemplate] = useState(null);
+  const previewCanvasRef = useRef(null);
+
   const bloodGroupOptions = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   const commonCountries = ['Indian', 'American', 'British', 'Canadian', 'Australian', 'German', 'French', 'Emirati', 'Nepalese'];
+
+  const categoryTabs = ['All', 'National Honors', 'Business & Excellence', 'Academic & Honorary', 'Literary & Cultural'];
 
   useEffect(() => {
     loadOptions();
@@ -71,7 +79,9 @@ const StudentForm = () => {
           ...prev,
           eventId: prev.eventId || (eventsRes.data[0]?._id || ''),
           subjectId: prev.subjectId || (subjectsRes.data[0]?._id || ''),
-          certificateTemplateIds: prev.certificateTemplateIds.length > 0 ? prev.certificateTemplateIds : (templateList.length > 0 ? [templateList[0].id] : [])
+          certificateTemplateIds: prev.certificateTemplateIds.length > 0
+            ? prev.certificateTemplateIds
+            : (templateList.length > 0 ? [templateList[0].id] : [])
         }));
       }
     } catch (err) {
@@ -126,6 +136,29 @@ const StudentForm = () => {
     });
   };
 
+  const handleSelectAllTemplates = () => {
+    const allIds = templates.map((t) => t.id);
+    setFormData((prev) => ({ ...prev, certificateTemplateIds: allIds }));
+  };
+
+  const handleClearTemplates = () => {
+    setFormData((prev) => ({ ...prev, certificateTemplateIds: [] }));
+  };
+
+  const handleSelectNewDesigns = () => {
+    const newDesignIds = [
+      'Bhartiye Ashok Samman',
+      'Best Business Icon Award',
+      'rashtriya padma bhushan samman',
+      'Bhartiye Gaurav Ratan Samman',
+      'INTERNATIONAL BUSINESS EXCELLENCE AWARD'
+    ];
+    setFormData((prev) => ({
+      ...prev,
+      certificateTemplateIds: Array.from(new Set([...prev.certificateTemplateIds, ...newDesignIds]))
+    }));
+  };
+
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -143,16 +176,12 @@ const StudentForm = () => {
       const base64Url = reader.result;
       setFormData((prev) => ({ ...prev, photoUrl: base64Url }));
 
-      // Also attempt server upload for file endpoint
       try {
         const data = new FormData();
         data.append('photo', file);
-        const res = await api.post('/uploads/photo', data, {
+        await api.post('/uploads/photo', data, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        if (res.data && res.data.photoUrl) {
-          // If server photoUrl is relative, keep base64 or server URL
-        }
       } catch (uploadErr) {
         console.warn('Server photo upload backup warning:', uploadErr.message);
       } finally {
@@ -165,6 +194,94 @@ const StudentForm = () => {
     };
     reader.readAsDataURL(file);
   };
+
+  // Live Canvas Rendering inside Preview Modal
+  useEffect(() => {
+    if (!previewingTemplate || !previewCanvasRef.current) return;
+    const canvas = previewCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const bgImg = new Image();
+    bgImg.crossOrigin = 'anonymous';
+    bgImg.src = previewingTemplate.previewUrl || `/assets/certificate-templates/${encodeURIComponent(previewingTemplate.id)}.png`;
+
+    bgImg.onload = () => {
+      canvas.width = bgImg.width || 700;
+      canvas.height = bgImg.height || 1000;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+
+      const tid = previewingTemplate.id.toLowerCase();
+      const pW = canvas.width;
+      const pH = canvas.height;
+
+      // Draw Photo
+      if (formData.photoUrl) {
+        const pImg = new Image();
+        pImg.onload = () => {
+          if (tid.includes('padm') || tid.includes('bhushan')) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(361, 340, 70, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+            ctx.drawImage(pImg, 361 - 70, 340 - 70, 140, 140);
+            ctx.restore();
+          } else if (tid.includes('icon') && tid.includes('business')) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(356, 490, 106, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+            ctx.drawImage(pImg, 356 - 106, 490 - 106, 212, 212);
+            ctx.restore();
+          } else if (tid.includes('ashok')) {
+            ctx.drawImage(pImg, 280, 563, 122, 137);
+          } else if (tid.includes('gaurav')) {
+            ctx.drawImage(pImg, 255, 548, 172, 190);
+          } else if (tid.includes('business')) {
+            ctx.drawImage(pImg, 312, 362, 110, 120);
+          } else {
+            ctx.drawImage(pImg, 253, 377, 88, 95);
+          }
+        };
+        pImg.src = formData.photoUrl;
+      }
+
+      // Draw Recipient Name
+      const name = formData.fullName || 'Sample Recipient Name';
+      ctx.textAlign = 'center';
+
+      if (tid.includes('padm') || tid.includes('bhushan')) {
+        ctx.font = 'bold 15px "Times New Roman", serif';
+        ctx.fillStyle = '#2a1a08';
+        ctx.fillText(name, 361, 434);
+
+        ctx.font = 'bold 26px "Times New Roman", serif';
+        ctx.fillStyle = '#111827';
+        ctx.fillText(name, 361, 612);
+      } else if (tid.includes('icon') && tid.includes('business')) {
+        ctx.font = 'bold 24px "Times New Roman", serif';
+        ctx.fillStyle = '#f6e58d';
+        ctx.fillText(name, 356, 630);
+      } else if (tid.includes('ashok')) {
+        ctx.font = 'bold 22px "Times New Roman", serif';
+        ctx.fillStyle = '#111827';
+        ctx.fillText(name, 341, 726);
+      } else if (tid.includes('gaurav')) {
+        ctx.font = 'bold 24px "Times New Roman", serif';
+        ctx.fillStyle = '#111827';
+        ctx.fillText(name, 341, 765);
+      } else if (tid.includes('business')) {
+        ctx.font = 'italic bold 23px "Times New Roman", serif';
+        ctx.fillStyle = '#2b1b17';
+        ctx.fillText(name, 416, 534);
+      } else {
+        ctx.font = 'bold 18px "Times New Roman", serif';
+        ctx.fillStyle = '#111827';
+        ctx.fillText(name, pW / 2, 280);
+      }
+    };
+  }, [previewingTemplate, formData]);
 
   const saveStudent = async (createAnother = false) => {
     setError('');
@@ -183,14 +300,13 @@ const StudentForm = () => {
     try {
       if (isEdit) {
         await api.put(`/students/${id}`, formData);
-        setSuccess('Student record updated and certificates regenerated.');
+        setSuccess('Student record updated and certificates regenerated successfully!');
         setTimeout(() => navigate('/superpanel/students'), 1200);
       } else {
         await api.post('/students', formData);
         setSuccess('Student record created and certificates generated successfully!');
 
         if (createAnother) {
-          // Reset form for next entry
           await loadAutoNumbers();
           setFormData((prev) => ({
             ...prev,
@@ -199,56 +315,103 @@ const StudentForm = () => {
             address: '',
             email: '',
             phoneNumber: '',
+            dateOfBirth: '',
             category: '',
             photoUrl: ''
           }));
-          setSuccess('Record created! Ready for next entry.');
         } else {
           setTimeout(() => navigate('/superpanel/students'), 1200);
         }
       }
     } catch (err) {
-      const data = err.response?.data;
-      const msg = typeof data === 'string' ? data : (typeof data?.error === 'string' ? data.error : (typeof data?.message === 'string' ? data.message : 'Failed to save student record.'));
-      setError(msg);
+      setError(err.response?.data?.error || 'Failed to save student record.');
     } finally {
       setLoading(false);
     }
   };
 
+  // Filter templates based on category tab & search query
+  const filteredTemplates = templates.filter((tpl) => {
+    const matchesCategory = selectedCategoryTab === 'All' || tpl.category === selectedCategoryTab;
+    const matchesSearch = !templateSearch || tpl.label.toLowerCase().includes(templateSearch.toLowerCase()) || tpl.id.toLowerCase().includes(templateSearch.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  const getBadgeClass = (category) => {
+    switch (category) {
+      case 'National Honors': return 'badge-national';
+      case 'Business & Excellence': return 'badge-business';
+      case 'Academic & Honorary': return 'badge-academic';
+      case 'Literary & Cultural': return 'badge-literary';
+      default: return 'badge-general';
+    }
+  };
+
   return (
     <div>
-      <div style={{ marginBottom: '20px' }}>
-        <Link to="/superpanel/students" className="btn btn-outline btn-sm">
-          <ArrowLeft size={14} /> Back to Students List
-        </Link>
+      {/* Header */}
+      <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <Link
+            to="/superpanel/students"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '13px', marginBottom: '6px' }}
+          >
+            <ArrowLeft size={16} /> Back to recipients list
+          </Link>
+          <h1 style={{ fontSize: '24px', fontWeight: 700 }}>
+            {isEdit ? `Edit Recipient: ${formData.fullName || formData.refno}` : 'Create New Recipient Record'}
+          </h1>
+        </div>
       </div>
 
-      <div className="card">
-        <div className="card-header">
-          <h3 className="card-title">{isEdit ? 'Edit Student Record' : 'Create New Student & Issue Certificates'}</h3>
+      {/* Notifications */}
+      {error && (
+        <div style={{
+          padding: '14px 18px',
+          borderRadius: '8px',
+          marginBottom: '24px',
+          fontSize: '14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          background: 'rgba(239, 68, 68, 0.15)',
+          color: 'var(--danger)',
+          border: '1px solid rgba(239, 68, 68, 0.3)'
+        }}>
+          <AlertCircle size={18} />
+          <span>{error}</span>
         </div>
+      )}
 
-        {error && (
-          <div style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.15)', color: 'var(--danger)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px', fontSize: '13px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <AlertCircle size={16} /> {error}
-          </div>
-        )}
+      {success && (
+        <div style={{
+          padding: '14px 18px',
+          borderRadius: '8px',
+          marginBottom: '24px',
+          fontSize: '14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          background: 'rgba(16, 185, 129, 0.15)',
+          color: 'var(--success)',
+          border: '1px solid rgba(16, 185, 129, 0.3)'
+        }}>
+          <Check size={18} />
+          <span>{success}</span>
+        </div>
+      )}
 
-        {success && (
-          <div style={{ padding: '12px', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--success)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px', fontSize: '13px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Check size={16} /> {success}
-          </div>
-        )}
-
+      {/* Form Card */}
+      <div className="card" style={{ padding: '28px' }}>
         <div className="form-grid">
-          {/* Reference Number */}
+          {/* Refno */}
           <div className="form-group">
-            <label className="form-label">Reference Number <span className="required">*</span></label>
+            <label className="form-label">Ref. Serial No. <span className="required">*</span></label>
             <input
               type="text"
               name="refno"
               className="form-control"
+              placeholder="e.g. IHREO/2026/002"
               value={formData.refno}
               onChange={handleChange}
               required
@@ -257,11 +420,12 @@ const StudentForm = () => {
 
           {/* Certificate Number */}
           <div className="form-group">
-            <label className="form-label">Certificate Number <span className="required">*</span></label>
+            <label className="form-label">Certificate Unique Number <span className="required">*</span></label>
             <input
               type="text"
               name="certificateNumber"
               className="form-control"
+              placeholder="e.g. IHREO/CERT/2026/0002"
               value={formData.certificateNumber}
               onChange={handleChange}
               required
@@ -270,12 +434,12 @@ const StudentForm = () => {
 
           {/* Full Name */}
           <div className="form-group">
-            <label className="form-label">Full Name <span className="required">*</span></label>
+            <label className="form-label">Recipient Full Name <span className="required">*</span></label>
             <input
               type="text"
               name="fullName"
               className="form-control"
-              placeholder="e.g. Dr. Rajesh Sharma"
+              placeholder="e.g. Dr. Jojo Koruth James"
               value={formData.fullName}
               onChange={handleChange}
               required
@@ -284,28 +448,14 @@ const StudentForm = () => {
 
           {/* Father / Husband Name */}
           <div className="form-group">
-            <label className="form-label">Fathers / Husband Name</label>
+            <label className="form-label">Father / Husband Name</label>
             <input
               type="text"
               name="fathersHusbandName"
               className="form-control"
-              placeholder="e.g. Shri S. P. Sharma"
+              placeholder="Enter father or husband name"
               value={formData.fathersHusbandName}
               onChange={handleChange}
-            />
-          </div>
-
-          {/* Category */}
-          <div className="form-group">
-            <label className="form-label">Category <span className="required">*</span></label>
-            <input
-              type="text"
-              name="category"
-              className="form-control"
-              placeholder="e.g. Social Work & Higher Education"
-              value={formData.category}
-              onChange={handleChange}
-              required
             />
           </div>
 
@@ -324,14 +474,28 @@ const StudentForm = () => {
 
           {/* Phone Number */}
           <div className="form-group">
-            <label className="form-label">Number (Phone)</label>
+            <label className="form-label">Phone Number</label>
             <input
               type="text"
               name="phoneNumber"
               className="form-control"
-              placeholder="+91 98765 43210"
+              placeholder="+91 9876543210"
               value={formData.phoneNumber}
               onChange={handleChange}
+            />
+          </div>
+
+          {/* Category / Award Subject */}
+          <div className="form-group">
+            <label className="form-label">Category / Award Subject <span className="required">*</span></label>
+            <input
+              type="text"
+              name="category"
+              className="form-control"
+              placeholder="e.g. Social Work, Wild Life Expert, Business Leadership"
+              value={formData.category}
+              onChange={handleChange}
+              required
             />
           </div>
 
@@ -349,7 +513,7 @@ const StudentForm = () => {
 
           {/* Letter Issued At */}
           <div className="form-group">
-            <label className="form-label">Letter Issued At <span className="required">*</span></label>
+            <label className="form-label">Letter / Certificate Issue Date <span className="required">*</span></label>
             <input
               type="date"
               name="letterIssuedAt"
@@ -468,28 +632,6 @@ const StudentForm = () => {
             />
           </div>
 
-          {/* Dynamic Certificates Selection (Multi-select) */}
-          <div className="form-group full-width">
-            <label className="form-label">
-              Certificates (Templates dynamically scanned from template folder) <span className="required">*</span>
-            </label>
-            <div className="template-checkbox-grid">
-              {templates.map((tpl) => {
-                const isChecked = formData.certificateTemplateIds?.includes(tpl.id);
-                return (
-                  <label key={tpl.id} className="template-checkbox-item">
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => handleTemplateToggle(tpl.id)}
-                    />
-                    <span>{tpl.label}</span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Photo Upload */}
           <div className="form-group full-width">
             <label className="form-label">Recipient Photo <span className="required">*</span></label>
@@ -508,9 +650,124 @@ const StudentForm = () => {
               {formData.photoUrl && (
                 <div>
                   <img src={formData.photoUrl} alt="Recipient Preview" className="photo-preview" />
-                  <div style={{ fontSize: '12px', color: 'var(--success)', marginTop: '4px' }}>✓ Photo Uploaded</div>
+                  <div style={{ fontSize: '12px', color: 'var(--success)', marginTop: '4px' }}>✓ Photo Uploaded & Ready for Embedding</div>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Dynamic Certificate Template Picker Gallery */}
+          <div className="form-group full-width">
+            <div className="template-picker-container">
+              {/* Toolbar */}
+              <div className="template-picker-toolbar">
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Sparkles size={18} style={{ color: 'var(--primary-accent)' }} />
+                    <label className="form-label" style={{ fontSize: '15px', fontWeight: 700, margin: 0 }}>
+                      Certificate Templates Selection ({formData.certificateTemplateIds.length} Selected)
+                    </label>
+                    <span className="required">*</span>
+                  </div>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    Select which certificate designs to generate for this recipient. You can choose one or multiple designs.
+                  </p>
+                </div>
+
+                <div className="template-quick-actions">
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={handleSelectNewDesigns}
+                    style={{ color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.4)' }}
+                  >
+                    ✨ Select 5 New Designs
+                  </button>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={handleSelectAllTemplates}>
+                    Select All
+                  </button>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={handleClearTemplates}>
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              {/* Filter Tabs & Search */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                <div className="template-filter-tabs">
+                  {categoryTabs.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      className={`template-tab-btn ${selectedCategoryTab === cat ? 'active' : ''}`}
+                      onClick={() => setSelectedCategoryTab(cat)}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="search-box" style={{ maxWidth: '240px' }}>
+                  <Search size={14} />
+                  <input
+                    type="text"
+                    placeholder="Search template designs..."
+                    value={templateSearch}
+                    onChange={(e) => setTemplateSearch(e.target.value)}
+                    style={{ padding: '6px 10px 6px 32px', fontSize: '12.5px' }}
+                  />
+                </div>
+              </div>
+
+              {/* Template Cards Grid */}
+              <div className="template-cards-grid">
+                {filteredTemplates.map((tpl) => {
+                  const isChecked = formData.certificateTemplateIds?.includes(tpl.id);
+                  return (
+                    <div
+                      key={tpl.id}
+                      className={`template-card ${isChecked ? 'selected' : ''}`}
+                      onClick={() => handleTemplateToggle(tpl.id)}
+                    >
+                      <div className="template-card-media">
+                        <img
+                          src={tpl.previewUrl || `/assets/certificate-templates/${encodeURIComponent(tpl.id)}.png`}
+                          alt={tpl.label}
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = '/ihreo-logo.png';
+                          }}
+                        />
+                        <span className={`template-card-category-badge ${getBadgeClass(tpl.category)}`}>
+                          {tpl.category}
+                        </span>
+                        <div className="template-card-check">
+                          {isChecked ? <Check size={16} /> : null}
+                        </div>
+                        <button
+                          type="button"
+                          className="template-card-preview-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPreviewingTemplate(tpl);
+                          }}
+                        >
+                          <Eye size={13} /> Preview
+                        </button>
+                      </div>
+
+                      <div className="template-card-body">
+                        <div className="template-card-title" title={tpl.label}>
+                          {tpl.label}
+                        </div>
+                        <div className="template-card-desc">
+                          {isChecked ? '✓ Selected for generation' : 'Click to select template'}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
@@ -543,10 +800,61 @@ const StudentForm = () => {
             onClick={() => saveStudent(false)}
             disabled={loading}
           >
-            {loading ? 'Processing...' : (isEdit ? 'Save Changes' : 'Create')}
+            {loading ? 'Processing...' : (isEdit ? 'Save Changes & Regenerate' : 'Create & Generate Certificates')}
           </button>
         </div>
       </div>
+
+      {/* Live Certificate Preview Modal */}
+      {previewingTemplate && (
+        <div className="cert-preview-modal-overlay" onClick={() => setPreviewingTemplate(null)}>
+          <div className="cert-preview-modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="cert-preview-modal-header">
+              <div>
+                <h3 style={{ fontSize: '17px', fontWeight: 700, margin: 0 }}>
+                  Certificate Preview: {previewingTemplate.label}
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
+                  Live simulation showing recipient data mapped to this template
+                </p>
+              </div>
+              <button
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                onClick={() => setPreviewingTemplate(null)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="cert-preview-modal-body">
+              <canvas ref={previewCanvasRef} className="cert-preview-canvas" />
+            </div>
+
+            <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button
+                type="button"
+                className={`btn ${formData.certificateTemplateIds.includes(previewingTemplate.id) ? 'btn-secondary' : 'btn-primary'}`}
+                onClick={() => {
+                  handleTemplateToggle(previewingTemplate.id);
+                  setPreviewingTemplate(null);
+                }}
+              >
+                {formData.certificateTemplateIds.includes(previewingTemplate.id)
+                  ? 'Remove from selected templates'
+                  : '✓ Add to selected templates'}
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => setPreviewingTemplate(null)}
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

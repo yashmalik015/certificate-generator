@@ -1,0 +1,49 @@
+{
+  "id": "rashtriya padma bhushan samman",
+  "alias": "Bhartiya Padma Bhushan Samman",
+  "title": "Bhartiya Padma Bhushan Samman",
+  "category": "National Honors",
+  "width": 723,
+  "height": 1024,
+  "photo": {
+    "type": "circle",
+    "centerX": 361,
+    "centerY": 340,
+    "radius": 72,
+    "borderColor": "#c49a45",
+    "borderWidth": 3
+  },
+  "qrCode": {
+    "x": 560,
+    "y": 95,
+    "size": 68
+  },
+  "fields": {
+    "ribbonName": {
+      "x": 361,
+      "y": 435,
+      "fontSize": 15,
+      "font": "bold",
+      "color": "#2a1a08",
+      "align": "center",
+      "maxWidth": 180
+    },
+    "fullName": {
+      "x": 361,
+      "y": 610,
+      "fontSize": 28,
+      "font": "bold",
+      "color": "#111827",
+      "align": "center",
+      "maxWidth": 420
+    },
+    "letterIssuedAt": {
+      "x": 361,
+      "y": 715,
+      "fontSize": 14,
+      "font": "bold",
+      "color": "#1a1a1a",
+      "align": "center"
+    }
+  }
+}

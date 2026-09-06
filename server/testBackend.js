@@ -2,7 +2,7 @@ import http from 'http';
 
 const request = (path, method = 'GET', body = null, token = null) => {
   return new Promise((resolve, reject) => {
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
     const req = http.request({
@@ -61,7 +61,14 @@ async function runTests() {
     nationality: 'Indian',
     eventId: eventsRes.body[0]._id,
     subjectId: subjectsRes.body[0]._id,
-    certificateTemplateIds: ['Bhartiya Samaj Seva award', 'Doctorate IHREO'],
+    certificateTemplateIds: [
+      'Bhartiye Ashok Samman',
+      'Best Business Icon Award',
+      'rashtriya padma bhushan samman',
+      'Bhartiye Gaurav Ratan Samman',
+      'INTERNATIONAL BUSINESS EXCELLENCE AWARD',
+      'Doctorate IHREO'
+    ],
     photoUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
     status: 'Active'
   };

@@ -299,6 +299,13 @@ const PublicVerify = () => {
                     </div>
                   )}
 
+                  {/* Conferred Award(s) */}
+                  {student?.certificateTemplateIds && student.certificateTemplateIds.length > 0 && (
+                    <div style={{ marginTop: '4px', fontSize: '15.5px', color: '#0f172a', fontWeight: 600 }}>
+                      Award Conferred - {student.certificateTemplateIds.map((t) => t.replace(/[-_]/g, ' ')).join(', ')}
+                    </div>
+                  )}
+
                   {/* Address */}
                   {student?.address && (
                     <div style={{ marginTop: '2px', padding: '0 10px', wordBreak: 'break-word' }}>
