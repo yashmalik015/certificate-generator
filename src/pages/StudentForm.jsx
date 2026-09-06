@@ -289,7 +289,7 @@ const StudentForm = () => {
             ctx.strokeStyle = '#cda250';
             ctx.stroke();
           } else if (tid.includes('business')) {
-            const px = 312, py = 362, pw = 110, ph = 120, radius = 6;
+            const px = 312, py = 356, pw = 110, ph = 130, radius = 6;
             ctx.save();
             ctx.beginPath();
             if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, radius);
@@ -424,13 +424,13 @@ const StudentForm = () => {
         ctx.textAlign = 'center';
         ctx.font = 'italic bold 25px "Times New Roman", serif';
         ctx.fillStyle = '#2b1b17';
-        ctx.fillText(name, 412, 550);
+        ctx.fillText(name, 412, 549);
 
         // Date of Issue
         const intlDate = formData.letterIssuedAt || '18/02/26';
         ctx.font = '10.5px Helvetica, Arial, sans-serif';
         ctx.fillStyle = '#1a1a1a';
-        ctx.fillText(`Date of Issue : ${intlDate}`, 366, 870);
+        ctx.fillText(`Date of Issue : ${intlDate}`, 366, 860);
       } else {
         ctx.font = 'bold 18px "Times New Roman", serif';
         ctx.fillStyle = '#111827';

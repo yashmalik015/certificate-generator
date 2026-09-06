@@ -186,12 +186,12 @@ async function generateAshokSamman() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2. International Business Excellence Award
+// 2. International Business Excellence Award (Flawless Reference Matching)
 // ─────────────────────────────────────────────────────────────────────────────
 async function generateInternationalBusinessExcellence() {
   const candidatePaths = [
-    path.join(userDir, 'media_1788682950639.png'),
-    path.join(userDir, 'media_1788675039747.jpg')
+    path.join(userDir, 'media_1788675039747.jpg'),
+    path.join(userDir, 'media_1788682950639.png')
   ];
   const imgPath = candidatePaths.find((p) => fs.existsSync(p)) || candidatePaths[0];
   const img = await loadImage(imgPath);
@@ -203,81 +203,82 @@ async function generateInternationalBusinessExcellence() {
   const imgData = ctx.getImageData(0, 0, cW, canvas.height);
   const data = imgData.data;
 
-  // 1. Clean Top Left Ref area (from x=60 to x=290, y=85 to y=165)
-  for (let y = 85; y <= 165; y++) {
-    const srcIdx = (y * cW + 300) * 4;
-    const r = data[srcIdx], g = data[srcIdx+1], b = data[srcIdx+2];
+  function getPixel(x, y) {
+    const idx = (y * cW + x) * 4;
+    return [data[idx], data[idx+1], data[idx+2]];
+  }
+  function setPixel(x, y, rgb) {
+    const idx = (y * cW + x) * 4;
+    data[idx] = rgb[0]; data[idx+1] = rgb[1]; data[idx+2] = rgb[2];
+  }
+
+  // 1. Clean Top Left Ref area (from x=60 to x=290, y=80 to y=165)
+  for (let y = 80; y <= 165; y++) {
+    const src = getPixel(300, y);
     for (let x = 60; x <= 290; x++) {
-      const idx = (y * cW + x) * 4;
-      data[idx] = r; data[idx+1] = g; data[idx+2] = b;
+      setPixel(x, y, src);
     }
   }
 
-  // 2. Clean Top Right QR area (from x=565 to x=660, y=85 to y=165)
-  for (let y = 85; y <= 165; y++) {
-    const srcIdx = (y * cW + 555) * 4;
-    const r = data[srcIdx], g = data[srcIdx+1], b = data[srcIdx+2];
-    for (let x = 565; x <= 660; x++) {
-      const idx = (y * cW + x) * 4;
-      data[idx] = r; data[idx+1] = g; data[idx+2] = b;
+  // 2. Clean Top Right QR area (from x=565 to x=646, y=80 to y=165)
+  for (let y = 80; y <= 165; y++) {
+    const src = getPixel(560, y);
+    for (let x = 565; x <= 646; x++) {
+      setPixel(x, y, src);
     }
   }
 
-  // 3. Clean Name area above Underline: y=520..553, x=205..612
-  for (let y = 520; y <= 553; y++) {
-    const leftIdx = (y * cW + 195) * 4;
-    const rightIdx = (y * cW + 620) * 4;
-    const lr = data[leftIdx], lg = data[leftIdx+1], lb = data[leftIdx+2];
-    const rr = data[rightIdx], rg = data[rightIdx+1], rb = data[rightIdx+2];
-
-    for (let x = 205; x <= 612; x++) {
-      const t = (x - 195) / (620 - 195);
-      const idx = (y * cW + x) * 4;
-      data[idx] = Math.round(lr * (1 - t) + rr * t);
-      data[idx+1] = Math.round(lg * (1 - t) + rg * t);
-      data[idx+2] = Math.round(lb * (1 - t) + rb * t);
+  // 3. Clean Name area using vertical interpolation between y=522 and y=551
+  for (let x = 218; x <= 610; x++) {
+    const topColor = getPixel(x, 522);
+    const bottomColor = getPixel(x, 551);
+    for (let y = 523; y <= 550; y++) {
+      const t = (y - 522) / (551 - 522);
+      setPixel(x, y, [
+        Math.round(topColor[0] * (1 - t) + bottomColor[0] * t),
+        Math.round(topColor[1] * (1 - t) + bottomColor[1] * t),
+        Math.round(topColor[2] * (1 - t) + bottomColor[2] * t)
+      ]);
     }
   }
 
-  // 4. Clean Date of Issue area: y=855..885, x=245..485
-  for (let y = 855; y <= 885; y++) {
-    const leftIdx = (y * cW + 240) * 4;
-    const rightIdx = (y * cW + 490) * 4;
-    const lr = data[leftIdx], lg = data[leftIdx+1], lb = data[leftIdx+2];
-    const rr = data[rightIdx], rg = data[rightIdx+1], rb = data[rightIdx+2];
-
-    for (let x = 245; x <= 485; x++) {
-      const t = (x - 240) / (490 - 240);
-      const idx = (y * cW + x) * 4;
-      data[idx] = Math.round(lr * (1 - t) + rr * t);
-      data[idx+1] = Math.round(lg * (1 - t) + rg * t);
-      data[idx+2] = Math.round(lb * (1 - t) + rb * t);
+  // 4. Clean Date of Issue completely: x=280..460, y=840..872
+  for (let y = 840; y <= 872; y++) {
+    const leftColor = getPixel(275, y);
+    const rightColor = getPixel(465, y);
+    for (let x = 280; x <= 460; x++) {
+      const t = (x - 275) / (465 - 275);
+      setPixel(x, y, [
+        Math.round(leftColor[0] * (1 - t) + rightColor[0] * t),
+        Math.round(leftColor[1] * (1 - t) + rightColor[1] * t),
+        Math.round(leftColor[2] * (1 - t) + rightColor[2] * t)
+      ]);
     }
   }
 
   ctx.putImageData(imgData, 0, 0);
 
-  // 5. Clean inside photo frame with neutral slot and gray border
-  const px = 312, py = 362, pw = 110, ph = 120, radius = 6;
+  // 5. Clean photo slot with pristine light gray background & gray border
+  const px = 312, py = 356, pw = 110, ph = 130, radius = 6;
   ctx.save();
   ctx.beginPath();
   if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, radius);
   else ctx.rect(px, py, pw, ph);
   ctx.closePath();
-  ctx.fillStyle = '#eef3f7';
+  ctx.fillStyle = '#edf2f7';
   ctx.fill();
   ctx.strokeStyle = '#444444';
   ctx.lineWidth = 1.5;
   ctx.stroke();
   ctx.restore();
 
-  // 6. Re-draw crisp golden-brown underline from x=200 to x=612 at y=556
+  // 6. Re-draw crisp golden-brown underline from x=218 to x=610 at y=555
   ctx.save();
   ctx.strokeStyle = '#8b6f52';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(200, 556);
-  ctx.lineTo(612, 556);
+  ctx.moveTo(218, 555);
+  ctx.lineTo(610, 555);
   ctx.stroke();
   ctx.restore();
 
@@ -301,8 +302,8 @@ async function generateInternationalBusinessExcellence() {
     },
     qrCode: {
       x: 575,
-      y: 90,
-      size: 72
+      y: 87,
+      size: 70
     }
   };
 

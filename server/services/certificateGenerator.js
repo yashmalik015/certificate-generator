@@ -204,6 +204,7 @@ const getPhotoBuffer = async (photoUrl) => {
   // 4. Local filesystem paths
   const relPath = trimmed.replace(/^\//, '');
   const candidatePaths = [
+    trimmed,
     path.join('/tmp', relPath),
     path.resolve(__dirname, '..', relPath),
     path.resolve(__dirname, '../uploads/photos', path.basename(trimmed)),
@@ -780,7 +781,7 @@ const renderBusinessIconDoc = async (baseDoc, page, studentData, customDomain) =
 const renderInternationalBusinessDoc = async (baseDoc, page, studentData, customDomain) => {
   const { width: pW, height: pH } = page.getSize();
   const fontTimesBold = await baseDoc.embedFont(StandardFonts.TimesRomanBold);
-  const fontTimesItalic = await baseDoc.embedFont(StandardFonts.TimesRomanItalic);
+  const fontTimesBoldItalic = await baseDoc.embedFont(StandardFonts.TimesRomanBoldItalic);
   const fontHelv = await baseDoc.embedFont(StandardFonts.Helvetica);
   const fontHelvBold = await baseDoc.embedFont(StandardFonts.HelveticaBold);
 
@@ -802,42 +803,42 @@ const renderInternationalBusinessDoc = async (baseDoc, page, studentData, custom
   try {
     const domain = resolveAppDomain(customDomain);
     const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(cleanCertNo)}`;
-    const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 150 });
+    const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 140 });
     const qrImg = await baseDoc.embedPng(qrBuf);
     page.drawImage(qrImg, {
       x: 575,
-      y: pH - (90 + 72),
-      width: 72,
-      height: 72
+      y: pH - (87 + 70),
+      width: 70,
+      height: 70
     });
   } catch (qrErr) {
     console.warn('QR Code generation error:', qrErr.message);
   }
 
-  // 3. Recipient Photo inside Slot
+  // 3. Recipient Photo inside Slot (Cover fitted with rounded corners)
   const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#444444', 1.5);
   if (pImg) {
     page.drawImage(pImg, {
       x: 312,
-      y: pH - (362 + 120),
+      y: pH - (356 + 130),
       width: 110,
-      height: 120
+      height: 130
     });
   }
 
-  // 4. Recipient Name on Underline (Centered over underline at x=412)
+  // 4. Recipient Name on Underline (Dr. Mahendran G in bold italic serif)
   const nameStr = studentData.fullName || 'Recipient Name';
-  let nameSize = 24;
-  while (nameSize > 12 && fontTimesBold.widthOfTextAtSize(nameStr, nameSize) > 360) {
+  let nameSize = 25;
+  while (nameSize > 12 && fontTimesBoldItalic.widthOfTextAtSize(nameStr, nameSize) > 360) {
     nameSize -= 0.5;
   }
-  const nw = fontTimesBold.widthOfTextAtSize(nameStr, nameSize);
+  const nw = fontTimesBoldItalic.widthOfTextAtSize(nameStr, nameSize);
   page.drawText(nameStr, {
     x: 412 - (nw / 2),
-    y: pH - 551,
+    y: pH - 549,
     size: nameSize,
-    font: fontTimesBold,
-    color: rgb(0.17, 0.11, 0.09) // Warm dark brown
+    font: fontTimesBoldItalic,
+    color: rgb(0.17, 0.11, 0.09) // Warm rich dark brown #2b1b17
   });
 
   // 5. Date of Issue (Single crisp line centered at x=366)
@@ -846,7 +847,7 @@ const renderInternationalBusinessDoc = async (baseDoc, page, studentData, custom
   const dw = fontHelv.widthOfTextAtSize(dateStr, 10.5);
   page.drawText(dateStr, {
     x: 366 - (dw / 2),
-    y: pH - 871,
+    y: pH - 860,
     size: 10.5,
     font: fontHelv,
     color: rgb(0.1, 0.1, 0.1)
@@ -1083,7 +1084,6 @@ export const generateCertificate = async (studentData, templateId, customDomain)
               else ctx.rect(px, py, pw, ph);
               ctx.closePath();
               ctx.clip();
-              const scale = Math.max(pw / pw, ph / ph);
               const scaleFit = Math.max(pw / pImg.width, ph / pImg.height);
               const dw = pImg.width * scaleFit, dh = pImg.height * scaleFit;
               ctx.drawImage(pImg, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh);
@@ -1096,7 +1096,7 @@ export const generateCertificate = async (studentData, templateId, customDomain)
               ctx.strokeStyle = '#cda250';
               ctx.stroke();
             } else if (lowerId.includes('business')) {
-              const px = 312, py = 362, pw = 110, ph = 120, radius = 6;
+              const px = 312, py = 356, pw = 110, ph = 130, radius = 6;
               ctx.save();
               ctx.beginPath();
               if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, radius);
@@ -1154,7 +1154,7 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           ctx.fillStyle = '#111827';
           ctx.fillText(recipientName, 361, 672);
 
-          ctx.font = 'bold 12.5px Helvetica, sans-serif';
+          ctx.font = 'bold 13px Helvetica, sans-serif';
           ctx.fillStyle = '#1a1a1a';
           ctx.fillText(studentData.letterIssuedAt || '26-Dec-2025', 361, 728);
         } else if (lowerId.includes('ashok')) {
@@ -1226,14 +1226,14 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           ctx.textAlign = 'center';
           ctx.font = 'italic bold 25px "Times New Roman", serif';
           ctx.fillStyle = '#2b1b17';
-          ctx.fillText(recipientName, 412, 550);
+          ctx.fillText(recipientName, 412, 549);
 
           // Date of Issue
           const dateFormatted = formatIssueDate(studentData.letterIssuedAt, 'DD/MM/YY');
           const dateStr = `Date of Issue : ${dateFormatted}`;
           ctx.font = '10.5px Helvetica, Arial, sans-serif';
           ctx.fillStyle = '#1a1a1a';
-          ctx.fillText(dateStr, 366, 870);
+          ctx.fillText(dateStr, 366, 860);
         }
 
         // 3. Render QR Code on canvas
@@ -1250,7 +1250,7 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           } else if (lowerId.includes('icon')) {
             ctx.drawImage(qrImg, 560, 80, 72, 72);
           } else if (lowerId.includes('business')) {
-            ctx.drawImage(qrImg, 575, 90, 72, 72);
+            ctx.drawImage(qrImg, 575, 87, 70, 70);
           }
         } catch {}
 
