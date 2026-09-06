@@ -2,7 +2,7 @@
   "id": "INTERNATIONAL BUSINESS EXCELLENCE AWARD",
   "title": "International Business Excellence Award",
   "category": "Business & Excellence",
-  "width": 734,
+  "width": 732,
   "height": 1024,
   "photo": {
     "type": "rect",
@@ -11,12 +11,12 @@
     "width": 110,
     "height": 120,
     "radius": 6,
-    "borderColor": "#333333",
+    "borderColor": "#444444",
     "borderWidth": 1.5
   },
   "qrCode": {
-    "x": 580,
-    "y": 80,
+    "x": 575,
+    "y": 90,
     "size": 72
   }
 }

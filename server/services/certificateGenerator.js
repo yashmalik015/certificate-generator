@@ -779,7 +779,6 @@ const renderBusinessIconDoc = async (baseDoc, page, studentData, customDomain) =
 // 5. International Business Excellence Award Render (Globe & Underline)
 const renderInternationalBusinessDoc = async (baseDoc, page, studentData, customDomain) => {
   const { width: pW, height: pH } = page.getSize();
-  const fontTimes = await baseDoc.embedFont(StandardFonts.TimesRoman);
   const fontTimesBold = await baseDoc.embedFont(StandardFonts.TimesRomanBold);
   const fontTimesItalic = await baseDoc.embedFont(StandardFonts.TimesRomanItalic);
   const fontHelv = await baseDoc.embedFont(StandardFonts.Helvetica);
@@ -789,14 +788,14 @@ const renderInternationalBusinessDoc = async (baseDoc, page, studentData, custom
   const cleanCertNo = String(studentData.certificateNumber || cleanRefno.replace('IHREO/', 'IHREO/CERT/') || 'IHREO/CERT/2026/0002').replace(/WCAEO/gi, 'IHREO');
 
   // 1. Top Left Registration details
-  const refText = `CIN NO. : U85499DL2025NPL459383\nLicence No. : 765686\nSL No. : ${cleanRefno}\nReg No. : 459383`;
+  const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${cleanRefno}\nReg No. 459383`;
   page.drawText(refText, {
-    x: 82,
-    y: pH - 96,
+    x: 95,
+    y: pH - 118,
     size: 7.5,
     font: fontHelvBold,
     color: rgb(0.12, 0.12, 0.12),
-    lineHeight: 11
+    lineHeight: 12
   });
 
   // 2. Top Right QR Code
@@ -806,8 +805,8 @@ const renderInternationalBusinessDoc = async (baseDoc, page, studentData, custom
     const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 150 });
     const qrImg = await baseDoc.embedPng(qrBuf);
     page.drawImage(qrImg, {
-      x: 580,
-      y: pH - (80 + 72),
+      x: 575,
+      y: pH - (90 + 72),
       width: 72,
       height: 72
     });
@@ -816,7 +815,7 @@ const renderInternationalBusinessDoc = async (baseDoc, page, studentData, custom
   }
 
   // 3. Recipient Photo inside Slot
-  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#333333', 1.5);
+  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#444444', 1.5);
   if (pImg) {
     page.drawImage(pImg, {
       x: 312,
@@ -826,28 +825,28 @@ const renderInternationalBusinessDoc = async (baseDoc, page, studentData, custom
     });
   }
 
-  // 4. Recipient Name on Underline
+  // 4. Recipient Name on Underline (Centered over underline at x=412)
   const nameStr = studentData.fullName || 'Recipient Name';
-  let nameSize = 23;
+  let nameSize = 24;
   while (nameSize > 12 && fontTimesBold.widthOfTextAtSize(nameStr, nameSize) > 360) {
     nameSize -= 0.5;
   }
   const nw = fontTimesBold.widthOfTextAtSize(nameStr, nameSize);
   page.drawText(nameStr, {
-    x: 416 - (nw / 2),
-    y: pH - 534,
+    x: 412 - (nw / 2),
+    y: pH - 551,
     size: nameSize,
     font: fontTimesBold,
-    color: rgb(0.15, 0.08, 0.05)
+    color: rgb(0.17, 0.11, 0.09) // Warm dark brown
   });
 
-  // 5. Date of Issue
+  // 5. Date of Issue (Single crisp line centered at x=366)
   const dateFormatted = formatIssueDate(studentData.letterIssuedAt, 'DD/MM/YY');
   const dateStr = `Date of Issue : ${dateFormatted}`;
   const dw = fontHelv.widthOfTextAtSize(dateStr, 10.5);
   page.drawText(dateStr, {
-    x: 367 - (dw / 2),
-    y: pH - 849,
+    x: 366 - (dw / 2),
+    y: pH - 871,
     size: 10.5,
     font: fontHelv,
     color: rgb(0.1, 0.1, 0.1)
@@ -1097,7 +1096,24 @@ export const generateCertificate = async (studentData, templateId, customDomain)
               ctx.strokeStyle = '#cda250';
               ctx.stroke();
             } else if (lowerId.includes('business')) {
-              ctx.drawImage(pImg, 312, 362, 110, 120);
+              const px = 312, py = 362, pw = 110, ph = 120, radius = 6;
+              ctx.save();
+              ctx.beginPath();
+              if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, radius);
+              else ctx.rect(px, py, pw, ph);
+              ctx.closePath();
+              ctx.clip();
+              const scaleFit = Math.max(pw / pImg.width, ph / pImg.height);
+              const dw = pImg.width * scaleFit, dh = pImg.height * scaleFit;
+              ctx.drawImage(pImg, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh);
+              ctx.restore();
+
+              ctx.beginPath();
+              if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, radius);
+              else ctx.rect(px, py, pw, ph);
+              ctx.lineWidth = 1.5;
+              ctx.strokeStyle = '#444444';
+              ctx.stroke();
             }
           }
         }
@@ -1197,14 +1213,27 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           ctx.fillStyle = '#1a1a1a';
           ctx.fillText(dateStr, 341, 905);
         } else if (lowerId.includes('business')) {
-          ctx.font = 'bold 23px "Times New Roman", serif';
-          ctx.fillStyle = '#2b1b17';
-          ctx.fillText(recipientName, 416, 534);
+          // Top Left Registration info
+          ctx.textAlign = 'left';
+          ctx.font = 'bold 7.5px Helvetica, Arial, sans-serif';
+          ctx.fillStyle = '#1f2937';
+          ctx.fillText('CIN NO:- U85499DL2025NPL459383', 95, 118);
+          ctx.fillText('Licence No:- 176566', 95, 130);
+          ctx.fillText(`Sl. No. ${cleanRef}`, 95, 142);
+          ctx.fillText('Reg No. 459383', 95, 154);
 
-          const dateStr = `Date of Issue : ${studentData.letterIssuedAt || '26/12/25'}`;
-          ctx.font = '10.5px Helvetica, sans-serif';
+          // Recipient Name on Underline
+          ctx.textAlign = 'center';
+          ctx.font = 'italic bold 25px "Times New Roman", serif';
+          ctx.fillStyle = '#2b1b17';
+          ctx.fillText(recipientName, 412, 550);
+
+          // Date of Issue
+          const dateFormatted = formatIssueDate(studentData.letterIssuedAt, 'DD/MM/YY');
+          const dateStr = `Date of Issue : ${dateFormatted}`;
+          ctx.font = '10.5px Helvetica, Arial, sans-serif';
           ctx.fillStyle = '#1a1a1a';
-          ctx.fillText(dateStr, 367, 849);
+          ctx.fillText(dateStr, 366, 870);
         }
 
         // 3. Render QR Code on canvas
@@ -1221,7 +1250,7 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           } else if (lowerId.includes('icon')) {
             ctx.drawImage(qrImg, 560, 80, 72, 72);
           } else if (lowerId.includes('business')) {
-            ctx.drawImage(qrImg, 580, 80, 72, 72);
+            ctx.drawImage(qrImg, 575, 90, 72, 72);
           }
         } catch {}
 

@@ -189,42 +189,97 @@ async function generateAshokSamman() {
 // 2. International Business Excellence Award
 // ─────────────────────────────────────────────────────────────────────────────
 async function generateInternationalBusinessExcellence() {
-  const imgPath = path.join(userDir, 'media_1788675039747.jpg');
+  const candidatePaths = [
+    path.join(userDir, 'media_1788682950639.png'),
+    path.join(userDir, 'media_1788675039747.jpg')
+  ];
+  const imgPath = candidatePaths.find((p) => fs.existsSync(p)) || candidatePaths[0];
   const img = await loadImage(imgPath);
   const canvas = createCanvas(img.width, img.height);
   const ctx = canvas.getContext('2d');
   ctx.drawImage(img, 0, 0);
 
-  // 1. Clean Top Left Ref area
-  cleanCornerBox(ctx, 75, 60, 290, 155, 300);
+  const cW = canvas.width;
+  const imgData = ctx.getImageData(0, 0, cW, canvas.height);
+  const data = imgData.data;
 
-  // 2. Clean Top Right QR area
-  cleanCornerBox(ctx, 565, 60, 670, 165, 555);
+  // 1. Clean Top Left Ref area (from x=60 to x=290, y=85 to y=165)
+  for (let y = 85; y <= 165; y++) {
+    const srcIdx = (y * cW + 300) * 4;
+    const r = data[srcIdx], g = data[srcIdx+1], b = data[srcIdx+2];
+    for (let x = 60; x <= 290; x++) {
+      const idx = (y * cW + x) * 4;
+      data[idx] = r; data[idx+1] = g; data[idx+2] = b;
+    }
+  }
 
-  // 3. Clean inside photo frame
+  // 2. Clean Top Right QR area (from x=565 to x=660, y=85 to y=165)
+  for (let y = 85; y <= 165; y++) {
+    const srcIdx = (y * cW + 555) * 4;
+    const r = data[srcIdx], g = data[srcIdx+1], b = data[srcIdx+2];
+    for (let x = 565; x <= 660; x++) {
+      const idx = (y * cW + x) * 4;
+      data[idx] = r; data[idx+1] = g; data[idx+2] = b;
+    }
+  }
+
+  // 3. Clean Name area above Underline: y=520..553, x=205..612
+  for (let y = 520; y <= 553; y++) {
+    const leftIdx = (y * cW + 195) * 4;
+    const rightIdx = (y * cW + 620) * 4;
+    const lr = data[leftIdx], lg = data[leftIdx+1], lb = data[leftIdx+2];
+    const rr = data[rightIdx], rg = data[rightIdx+1], rb = data[rightIdx+2];
+
+    for (let x = 205; x <= 612; x++) {
+      const t = (x - 195) / (620 - 195);
+      const idx = (y * cW + x) * 4;
+      data[idx] = Math.round(lr * (1 - t) + rr * t);
+      data[idx+1] = Math.round(lg * (1 - t) + rg * t);
+      data[idx+2] = Math.round(lb * (1 - t) + rb * t);
+    }
+  }
+
+  // 4. Clean Date of Issue area: y=855..885, x=245..485
+  for (let y = 855; y <= 885; y++) {
+    const leftIdx = (y * cW + 240) * 4;
+    const rightIdx = (y * cW + 490) * 4;
+    const lr = data[leftIdx], lg = data[leftIdx+1], lb = data[leftIdx+2];
+    const rr = data[rightIdx], rg = data[rightIdx+1], rb = data[rightIdx+2];
+
+    for (let x = 245; x <= 485; x++) {
+      const t = (x - 240) / (490 - 240);
+      const idx = (y * cW + x) * 4;
+      data[idx] = Math.round(lr * (1 - t) + rr * t);
+      data[idx+1] = Math.round(lg * (1 - t) + rg * t);
+      data[idx+2] = Math.round(lb * (1 - t) + rb * t);
+    }
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+
+  // 5. Clean inside photo frame with neutral slot and gray border
+  const px = 312, py = 362, pw = 110, ph = 120, radius = 6;
   ctx.save();
-  ctx.fillStyle = '#eef3f7';
-  ctx.fillRect(312, 362, 110, 120);
-  ctx.strokeStyle = '#555555';
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(311.5, 361.5, 111, 121);
-  ctx.restore();
-
-  // 4. Clean Recipient Name on underline (y=498..540, x=220..610)
-  cleanHorizontalZone(ctx, 498, 540, 150, 650, 220, 610);
-
-  // 5. Re-render crisp golden-brown underline
-  ctx.save();
-  ctx.strokeStyle = '#8b6f52';
-  ctx.lineWidth = 1.4;
   ctx.beginPath();
-  ctx.moveTo(225, 542);
-  ctx.lineTo(608, 542);
+  if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, radius);
+  else ctx.rect(px, py, pw, ph);
+  ctx.closePath();
+  ctx.fillStyle = '#eef3f7';
+  ctx.fill();
+  ctx.strokeStyle = '#444444';
+  ctx.lineWidth = 1.5;
   ctx.stroke();
   ctx.restore();
 
-  // 6. Clean Date of Issue area (y=830..865, x=270..540)
-  cleanHorizontalZone(ctx, 830, 865, 180, 580, 270, 540);
+  // 6. Re-draw crisp golden-brown underline from x=200 to x=612 at y=556
+  ctx.save();
+  ctx.strokeStyle = '#8b6f52';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(200, 556);
+  ctx.lineTo(612, 556);
+  ctx.stroke();
+  ctx.restore();
 
   await saveCanvasAsPngAndPdf(canvas, 'INTERNATIONAL BUSINESS EXCELLENCE AWARD');
 
@@ -236,17 +291,17 @@ async function generateInternationalBusinessExcellence() {
     height: img.height,
     photo: {
       type: 'rect',
-      x: 312,
-      y: 362,
-      width: 110,
-      height: 120,
-      radius: 6,
-      borderColor: '#333333',
+      x: px,
+      y: py,
+      width: pw,
+      height: ph,
+      radius: radius,
+      borderColor: '#444444',
       borderWidth: 1.5
     },
     qrCode: {
-      x: 580,
-      y: 80,
+      x: 575,
+      y: 90,
       size: 72
     }
   };

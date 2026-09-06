@@ -289,7 +289,24 @@ const StudentForm = () => {
             ctx.strokeStyle = '#cda250';
             ctx.stroke();
           } else if (tid.includes('business')) {
-            ctx.drawImage(pImg, 312, 362, 110, 120);
+            const px = 312, py = 362, pw = 110, ph = 120, radius = 6;
+            ctx.save();
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, radius);
+            else ctx.rect(px, py, pw, ph);
+            ctx.closePath();
+            ctx.clip();
+            const scaleFit = Math.max(pw / pImg.width, ph / pImg.height);
+            const dw = pImg.width * scaleFit, dh = pImg.height * scaleFit;
+            ctx.drawImage(pImg, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh);
+            ctx.restore();
+
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, radius);
+            else ctx.rect(px, py, pw, ph);
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = '#444444';
+            ctx.stroke();
           } else {
             ctx.drawImage(pImg, 253, 377, 88, 95);
           }
@@ -394,13 +411,26 @@ const StudentForm = () => {
         ctx.fillStyle = '#1a1a1a';
         ctx.fillText(dateStr, 341, 905);
       } else if (tid.includes('business')) {
-        ctx.font = 'italic bold 23px "Times New Roman", serif';
-        ctx.fillStyle = '#2b1b17';
-        ctx.fillText(name, 416, 534);
+        // Top-left registration info
+        ctx.textAlign = 'left';
+        ctx.font = 'bold 7.5px Helvetica, Arial, sans-serif';
+        ctx.fillStyle = '#1f2937';
+        ctx.fillText('CIN NO:- U85499DL2025NPL459383', 95, 118);
+        ctx.fillText('Licence No:- 176566', 95, 130);
+        ctx.fillText(`Sl. No. ${formData.refno || '459383/IHREO028'}`, 95, 142);
+        ctx.fillText('Reg No. 459383', 95, 154);
 
-        ctx.font = '11px "Helvetica", sans-serif';
+        // Recipient Name on Underline
+        ctx.textAlign = 'center';
+        ctx.font = 'italic bold 25px "Times New Roman", serif';
+        ctx.fillStyle = '#2b1b17';
+        ctx.fillText(name, 412, 550);
+
+        // Date of Issue
+        const intlDate = formData.letterIssuedAt || '18/02/26';
+        ctx.font = '10.5px Helvetica, Arial, sans-serif';
         ctx.fillStyle = '#1a1a1a';
-        ctx.fillText(dateStr, 367, 849);
+        ctx.fillText(`Date of Issue : ${intlDate}`, 366, 870);
       } else {
         ctx.font = 'bold 18px "Times New Roman", serif';
         ctx.fillStyle = '#111827';
