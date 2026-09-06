@@ -257,34 +257,66 @@ const StudentForm = () => {
         pImg.src = formData.photoUrl;
       }
 
-      // Draw Recipient Name
+      // Draw Recipient Name, Category & Date
       const name = formData.fullName || 'Recipient Full Name';
+      const category = formData.category || 'For Outstanding Distinction & Excellence';
+      const dateStr = formData.letterIssuedAt ? `Date of Issue : ${formData.letterIssuedAt}` : 'Date of Issue : 2026-09-06';
       ctx.textAlign = 'center';
 
       if (tid.includes('padm') || tid.includes('bhushan')) {
-        ctx.font = 'bold 15px "Times New Roman", serif';
+        ctx.font = 'bold 14px "Times New Roman", serif';
         ctx.fillStyle = '#2a1a08';
         ctx.fillText(name, 361, 434);
 
+        ctx.font = 'bold 14px "Times New Roman", serif';
+        ctx.fillStyle = '#b45309';
+        ctx.fillText(category, 361, 612);
+
         ctx.font = 'bold 26px "Times New Roman", serif';
         ctx.fillStyle = '#111827';
-        ctx.fillText(name, 361, 612);
+        ctx.fillText(name, 361, 672);
+
+        ctx.font = 'bold 13px "Helvetica", sans-serif';
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillText(formData.letterIssuedAt || '26-Dec-2025', 361, 728);
       } else if (tid.includes('icon') && tid.includes('business')) {
         ctx.font = 'bold 24px "Times New Roman", serif';
         ctx.fillStyle = '#f6e58d';
-        ctx.fillText(name, 356, 630);
+        ctx.fillText(name, 356, 628);
       } else if (tid.includes('ashok')) {
         ctx.font = 'bold 22px "Times New Roman", serif';
         ctx.fillStyle = '#111827';
         ctx.fillText(name, 341, 726);
+
+        ctx.font = '11.5px "Times New Roman", serif';
+        ctx.fillStyle = '#222222';
+        ctx.fillText(`For his exceptional work in ${category}, notable accomplishments, and significant contributions towards`, 341, 788);
+        ctx.fillText('the progress of the nation.', 341, 804);
+
+        ctx.font = '11px "Helvetica", sans-serif';
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillText(dateStr, 341, 838);
       } else if (tid.includes('gaurav')) {
         ctx.font = 'bold 24px "Times New Roman", serif';
         ctx.fillStyle = '#111827';
         ctx.fillText(name, 341, 765);
+
+        ctx.font = '11.5px "Times New Roman", serif';
+        ctx.fillStyle = '#222222';
+        ctx.fillText(`For his exceptional work as a ${category}, notable accomplishments, and significant contributions towards`, 341, 838);
+        ctx.fillText('the progress of the nation.', 341, 854);
+
+        ctx.font = '11px "Helvetica", sans-serif';
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillText(dateStr, 341, 882);
       } else if (tid.includes('business')) {
         ctx.font = 'italic bold 23px "Times New Roman", serif';
         ctx.fillStyle = '#2b1b17';
         ctx.fillText(name, 416, 534);
+
+        ctx.font = '11px "Helvetica", sans-serif';
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillText(dateStr, 367, 849);
       } else {
         ctx.font = 'bold 18px "Times New Roman", serif';
         ctx.fillStyle = '#111827';

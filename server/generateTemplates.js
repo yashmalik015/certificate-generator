@@ -19,76 +19,77 @@ const configDir = path.join(targetDir, 'config');
 });
 
 /**
- * High-quality seamless bilateral inpainter.
- * Blends surrounding parchment / background texture smoothly across any bounding box
- * so there are ZERO white bars, rectangles, or seams.
+ * Clean a rectangular zone on the canvas by horizontally interpolating
+ * from clean left and right background margins at every Y line.
+ * This completely erases old ghost text, old dates, and sample names
+ * while preserving the natural vertical parchment gradients.
  */
-function seamlessInpaint(ctx, x, y, w, h, pad = 6) {
+function cleanHorizontalZone(ctx, startY, endY, leftCleanX, rightCleanX, startCleanX, endCleanX) {
   const cW = ctx.canvas.width;
-  const cH = ctx.canvas.height;
-  const imgData = ctx.getImageData(0, 0, cW, cH);
+  const imgData = ctx.getImageData(0, 0, cW, ctx.canvas.height);
   const data = imgData.data;
 
-  function getPixel(px, py) {
-    px = Math.max(0, Math.min(cW - 1, Math.round(px)));
-    py = Math.max(0, Math.min(cH - 1, Math.round(py)));
-    const idx = (py * cW + px) * 4;
-    return [data[idx], data[idx + 1], data[idx + 2], data[idx + 3]];
+  function getPixel(x, y) {
+    x = Math.max(0, Math.min(cW - 1, Math.round(x)));
+    const idx = (y * cW + x) * 4;
+    return [data[idx], data[idx + 1], data[idx + 2]];
   }
 
-  for (let py = y; py < y + h; py++) {
-    const ty = (py - y) / Math.max(1, h - 1);
-    for (let px = x; px < x + w; px++) {
-      const tx = (px - x) / Math.max(1, w - 1);
+  function setPixel(x, y, rgb) {
+    const idx = (y * cW + x) * 4;
+    data[idx] = rgb[0];
+    data[idx + 1] = rgb[1];
+    data[idx + 2] = rgb[2];
+  }
 
-      // Average pad pixels from each edge
-      let top = [0, 0, 0], btm = [0, 0, 0], lft = [0, 0, 0], rgt = [0, 0, 0];
-      for (let i = 1; i <= pad; i++) {
-        const t = getPixel(px, y - i);
-        const b = getPixel(px, y + h - 1 + i);
-        const l = getPixel(x - i, py);
-        const r = getPixel(x + w - 1 + i, py);
-        for (let c = 0; c < 3; c++) {
-          top[c] += t[c] / pad;
-          btm[c] += b[c] / pad;
-          lft[c] += l[c] / pad;
-          rgt[c] += r[c] / pad;
-        }
+  for (let y = startY; y <= endY; y++) {
+    let leftColor = [0, 0, 0], rightColor = [0, 0, 0];
+    for (let d = -2; d <= 2; d++) {
+      const l = getPixel(leftCleanX + d, y);
+      const r = getPixel(rightCleanX + d, y);
+      for (let c = 0; c < 3; c++) {
+        leftColor[c] += l[c] / 5;
+        rightColor[c] += r[c] / 5;
       }
+    }
 
-      // Vertical and horizontal color blends
-      const cv = [
-        top[0] * (1 - ty) + btm[0] * ty,
-        top[1] * (1 - ty) + btm[1] * ty,
-        top[2] * (1 - ty) + btm[2] * ty
+    for (let x = startCleanX; x <= endCleanX; x++) {
+      const t = (x - leftCleanX) / Math.max(1, (rightCleanX - leftCleanX));
+      const interpolated = [
+        Math.round(leftColor[0] * (1 - t) + rightColor[0] * t),
+        Math.round(leftColor[1] * (1 - t) + rightColor[1] * t),
+        Math.round(leftColor[2] * (1 - t) + rightColor[2] * t)
       ];
-      const ch = [
-        lft[0] * (1 - tx) + rgt[0] * tx,
-        lft[1] * (1 - tx) + rgt[1] * tx,
-        lft[2] * (1 - tx) + rgt[2] * tx
-      ];
-
-      // Distance weight
-      const distTop = ty;
-      const distBtm = 1 - ty;
-      const distLft = tx;
-      const distRgt = 1 - tx;
-      const minH = Math.min(distLft, distRgt);
-      const minV = Math.min(distTop, distBtm);
-      const total = minH + minV || 1;
-      const weightH = minV / total;
-      const weightV = minH / total;
-
-      const idx = (py * cW + px) * 4;
-      data[idx] = Math.round(ch[0] * weightH + cv[0] * weightV);
-      data[idx + 1] = Math.round(ch[1] * weightH + cv[1] * weightV);
-      data[idx + 2] = Math.round(ch[2] * weightH + cv[2] * weightV);
+      setPixel(x, y, interpolated);
     }
   }
+
   ctx.putImageData(imgData, 0, 0);
 }
 
-// Save clean PNG and PDF into all required static/server paths
+/**
+ * Clean a top corner box (QR or Ref info) by copying adjacent clean parchment background.
+ */
+function cleanCornerBox(ctx, x1, y1, x2, y2, sourceX) {
+  const cW = ctx.canvas.width;
+  const imgData = ctx.getImageData(0, 0, cW, ctx.canvas.height);
+  const data = imgData.data;
+
+  for (let y = y1; y <= y2; y++) {
+    const idxSrc = (y * cW + sourceX) * 4;
+    const r = data[idxSrc], g = data[idxSrc + 1], b = data[idxSrc + 2];
+    for (let x = x1; x <= x2; x++) {
+      const idx = (y * cW + x) * 4;
+      data[idx] = r;
+      data[idx + 1] = g;
+      data[idx + 2] = b;
+    }
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+}
+
+// Save clean PNG and PDF into all required paths
 async function saveCanvasAsPngAndPdf(canvas, baseName) {
   const pngBuf = canvas.toBuffer('image/png');
 
@@ -124,36 +125,35 @@ async function generateAshokSamman() {
   const ctx = canvas.getContext('2d');
   ctx.drawImage(img, 0, 0);
 
-  // 1. Inpaint QR Code box (Top Right)
-  seamlessInpaint(ctx, 528, 65, 95, 90, 8);
+  // 1. Clean Top Left Ref area
+  cleanCornerBox(ctx, 65, 65, 265, 142, 275);
 
-  // 2. Inpaint Top Left Sl No
-  seamlessInpaint(ctx, 65, 65, 215, 75, 8);
+  // 2. Clean Top Right QR area
+  cleanCornerBox(ctx, 525, 65, 625, 155, 515);
 
-  // 3. Clean Photo inside rounded border - blend softly with parchment inner
+  // 3. Clean inside photo frame with neutral parchment
   ctx.save();
-  ctx.beginPath();
-  if (ctx.roundRect) {
-    ctx.roundRect(280, 563, 122, 137, 6);
-  } else {
-    ctx.rect(280, 563, 122, 137);
-  }
-  ctx.closePath();
-  ctx.clip();
-  seamlessInpaint(ctx, 280, 563, 122, 137, 8);
+  ctx.fillStyle = '#f8f4e6';
+  ctx.fillRect(281, 564, 120, 135);
   ctx.strokeStyle = '#d4af37';
   ctx.lineWidth = 1.5;
-  ctx.stroke();
+  ctx.strokeRect(280.5, 563.5, 121, 136);
   ctx.restore();
 
-  // 4. Inpaint Recipient Name seamlessly (NO white bar!)
-  seamlessInpaint(ctx, 150, 700, 380, 40, 8);
+  // 4. Clean Recipient Name zone (y=704..740)
+  cleanHorizontalZone(ctx, 704, 740, 115, 565, 130, 550);
 
-  // 5. Inpaint Category & Citation details seamlessly
-  seamlessInpaint(ctx, 110, 775, 460, 50, 8);
+  // 5. Clean Citation & Date of Issue zone (y=760..855)
+  // This removes all old ghost citation text AND old "Date of Issue : 26-12-2025" completely!
+  cleanHorizontalZone(ctx, 760, 855, 115, 565, 115, 565);
 
-  // 6. Inpaint Date of Issue seamlessly
-  seamlessInpaint(ctx, 330, 822, 130, 28, 8);
+  // 6. Re-render crisp static subtitle "And is honored with the title"
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.font = '15px "Times New Roman", serif';
+  ctx.fillStyle = '#222222';
+  ctx.fillText('And is honored with the title', 341, 752);
+  ctx.restore();
 
   await saveCanvasAsPngAndPdf(canvas, 'Bhartiye Ashok Samman');
 
@@ -233,31 +233,25 @@ async function generateInternationalBusinessExcellence() {
   const ctx = canvas.getContext('2d');
   ctx.drawImage(img, 0, 0);
 
-  // 1. Inpaint QR Code box (Top Right)
-  seamlessInpaint(ctx, 575, 75, 95, 90, 8);
+  // 1. Clean Top Left Ref area
+  cleanCornerBox(ctx, 80, 70, 280, 150, 290);
 
-  // 2. Inpaint Top Left Ref info
-  seamlessInpaint(ctx, 85, 75, 215, 75, 8);
+  // 2. Clean Top Right QR area
+  cleanCornerBox(ctx, 570, 70, 665, 160, 560);
 
-  // 3. Clean Photo inside rounded border
+  // 3. Clean inside photo frame
   ctx.save();
-  ctx.beginPath();
-  if (ctx.roundRect) {
-    ctx.roundRect(312, 362, 110, 120, 8);
-  } else {
-    ctx.rect(312, 362, 110, 120);
-  }
-  ctx.closePath();
-  ctx.clip();
-  seamlessInpaint(ctx, 312, 362, 110, 120, 8);
+  ctx.fillStyle = '#e8eff5';
+  ctx.fillRect(313, 363, 108, 118);
   ctx.strokeStyle = '#555555';
   ctx.lineWidth = 1;
-  ctx.stroke();
+  ctx.strokeRect(312, 362, 110, 120);
   ctx.restore();
 
-  // 4. Inpaint Recipient Name seamlessly without removing clean background
-  seamlessInpaint(ctx, 220, 502, 395, 38, 8);
-  // Redraw clean golden underline
+  // 4. Clean Recipient Name on underline
+  cleanHorizontalZone(ctx, 502, 540, 150, 650, 220, 610);
+
+  // 5. Re-render crisp golden-brown underline
   ctx.save();
   ctx.strokeStyle = '#8b6f52';
   ctx.lineWidth = 1.2;
@@ -267,8 +261,8 @@ async function generateInternationalBusinessExcellence() {
   ctx.stroke();
   ctx.restore();
 
-  // 5. Inpaint Date of Issue seamlessly
-  seamlessInpaint(ctx, 380, 830, 130, 30, 8);
+  // 6. Clean Date of Issue area (y=830..865)
+  cleanHorizontalZone(ctx, 830, 865, 180, 580, 280, 530);
 
   await saveCanvasAsPngAndPdf(canvas, 'INTERNATIONAL BUSINESS EXCELLENCE AWARD');
 
@@ -337,22 +331,23 @@ async function generatePadmaBhushan() {
   const ctx = canvas.getContext('2d');
   ctx.drawImage(img, 0, 0);
 
-  // 1. Inpaint QR Code box (Top Right)
-  seamlessInpaint(ctx, 550, 85, 90, 90, 8);
+  // 1. Clean Top Right QR area
+  cleanCornerBox(ctx, 545, 80, 645, 170, 535);
 
-  // 2. Clean Photo inside circular golden laurel frame (center 361, y: 340, radius: 72)
+  // 2. Clean inside circular laurel frame
   ctx.save();
   ctx.beginPath();
-  ctx.arc(361, 340, 72, 0, Math.PI * 2);
+  ctx.arc(361, 340, 71, 0, Math.PI * 2);
   ctx.closePath();
   ctx.clip();
-  seamlessInpaint(ctx, 280, 260, 160, 160, 8);
+  ctx.fillStyle = '#f4efe4';
+  ctx.fillRect(280, 260, 160, 160);
   ctx.strokeStyle = '#c49a45';
   ctx.lineWidth = 2.5;
   ctx.stroke();
   ctx.restore();
 
-  // 3. Clean Golden Ribbon Banner text across bottom of circle using continuous metallic gradient
+  // 3. Re-render 3D metallic golden ribbon banner across bottom of circle
   const ribbonGrad = ctx.createLinearGradient(250, 420, 470, 440);
   ribbonGrad.addColorStop(0, '#cda250');
   ribbonGrad.addColorStop(0.2, '#dfbc6e');
@@ -368,11 +363,20 @@ async function generatePadmaBhushan() {
   ctx.fillRect(265, 415, 192, 28);
   ctx.restore();
 
-  // 4. Inpaint Citation & Recipient Name seamlessly (NO white bars!)
-  seamlessInpaint(ctx, 150, 524, 420, 32, 8);
-  seamlessInpaint(ctx, 140, 575, 440, 52, 8);
-  seamlessInpaint(ctx, 140, 630, 440, 52, 8);
-  seamlessInpaint(ctx, 280, 695, 160, 30, 8);
+  // 4. Clean Body Citation, Name, and Date zones (y=518..735)
+  // This completely removes all old ghost text, double names, and double dates!
+  cleanHorizontalZone(ctx, 518, 735, 115, 605, 130, 590);
+
+  // 5. Re-render crisp static boilerplate in body
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#222222';
+  ctx.font = '14px "Times New Roman", serif';
+  ctx.fillText('In recognition of outstanding', 361, 574);
+  ctx.fillText('contributions and dedication in the field of', 361, 592);
+  ctx.fillText('this award of honour and recognition is presented to', 361, 638);
+  ctx.fillText('for betterment of society', 361, 706);
+  ctx.restore();
 
   await saveCanvasAsPngAndPdf(canvas, 'rashtriya padma bhushan samman');
   await saveCanvasAsPngAndPdf(canvas, 'Bhartiya Padma Bhushan Samman');
@@ -407,9 +411,17 @@ async function generatePadmaBhushan() {
         align: 'center',
         maxWidth: 180
       },
+      category: {
+        x: 361,
+        y: 610,
+        fontSize: 14,
+        font: 'bold',
+        color: '#b45309',
+        align: 'center'
+      },
       fullName: {
         x: 361,
-        y: 612,
+        y: 676,
         fontSize: 26,
         font: 'bold',
         color: '#111827',
@@ -418,7 +430,7 @@ async function generatePadmaBhushan() {
       },
       letterIssuedAt: {
         x: 361,
-        y: 716,
+        y: 728,
         fontSize: 13,
         font: 'bold',
         color: '#1a1a1a',
@@ -441,36 +453,34 @@ async function generateGauravRatan() {
   const ctx = canvas.getContext('2d');
   ctx.drawImage(img, 0, 0);
 
-  // 1. Inpaint QR Code box (Top Right)
-  seamlessInpaint(ctx, 525, 90, 95, 90, 8);
+  // 1. Clean Top Left Ref area
+  cleanCornerBox(ctx, 65, 90, 265, 165, 275);
 
-  // 2. Inpaint Top Left Ref info
-  seamlessInpaint(ctx, 65, 90, 215, 75, 8);
+  // 2. Clean Top Right QR area
+  cleanCornerBox(ctx, 525, 90, 625, 180, 515);
 
-  // 3. Clean Photo inside rounded green border
+  // 3. Clean inside photo frame
   ctx.save();
-  ctx.beginPath();
-  if (ctx.roundRect) {
-    ctx.roundRect(255, 548, 172, 190, 8);
-  } else {
-    ctx.rect(255, 548, 172, 190);
-  }
-  ctx.closePath();
-  ctx.clip();
-  seamlessInpaint(ctx, 255, 548, 172, 190, 8);
+  ctx.fillStyle = '#f8f4e6';
+  ctx.fillRect(256, 549, 170, 188);
   ctx.strokeStyle = '#2d5a27';
   ctx.lineWidth = 1.5;
-  ctx.stroke();
+  ctx.strokeRect(255.5, 548.5, 171, 189);
   ctx.restore();
 
-  // 4. Inpaint Recipient Name seamlessly (NO white bar!)
-  seamlessInpaint(ctx, 150, 738, 380, 40, 8);
+  // 4. Clean Recipient Name zone (y=740..780)
+  cleanHorizontalZone(ctx, 740, 780, 115, 565, 130, 550);
 
-  // 5. Inpaint Category & Citation details seamlessly
-  seamlessInpaint(ctx, 110, 820, 460, 50, 8);
+  // 5. Clean Citation & Date zone (y=805..895)
+  cleanHorizontalZone(ctx, 805, 895, 115, 565, 115, 565);
 
-  // 6. Inpaint Date of Issue seamlessly
-  seamlessInpaint(ctx, 330, 866, 130, 28, 8);
+  // 6. Re-render crisp static subtitle
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.font = '15px "Times New Roman", serif';
+  ctx.fillStyle = '#222222';
+  ctx.fillText('And is honored with the title', 341, 794);
+  ctx.restore();
 
   await saveCanvasAsPngAndPdf(canvas, 'Bhartiye Gaurav Ratan Samman');
 
@@ -550,25 +560,26 @@ async function generateBestBusinessIcon() {
   const ctx = canvas.getContext('2d');
   ctx.drawImage(img, 0, 0);
 
-  // 1. Inpaint QR Code box (Top Right)
-  seamlessInpaint(ctx, 555, 75, 95, 90, 8);
+  // 1. Clean Top Left Ref area
+  cleanCornerBox(ctx, 65, 70, 265, 155, 275);
 
-  // 2. Inpaint Top Left Ref info
-  seamlessInpaint(ctx, 65, 75, 215, 75, 8);
+  // 2. Clean Top Right QR area
+  cleanCornerBox(ctx, 550, 70, 650, 160, 540);
 
-  // 3. Clean Photo inside circular golden laurel frame (center 356, y: 490, radius: 108)
+  // 3. Clean inside circular golden laurel frame
   ctx.save();
   ctx.beginPath();
-  ctx.arc(356, 490, 108, 0, Math.PI * 2);
+  ctx.arc(356, 490, 107, 0, Math.PI * 2);
   ctx.closePath();
   ctx.clip();
-  seamlessInpaint(ctx, 240, 370, 240, 240, 8);
+  ctx.fillStyle = '#f0f4f8';
+  ctx.fillRect(240, 370, 240, 240);
   ctx.strokeStyle = '#c49a45';
   ctx.lineWidth = 3;
   ctx.stroke();
   ctx.restore();
 
-  // 4. Clean Navy Blue 3D Ribbon Banner text across bottom of laurel wreath (seamless silk gradient)
+  // 4. Clean Navy Blue 3D Ribbon Banner text using smooth silk gradient
   const ribbonGrad = ctx.createLinearGradient(180, 600, 530, 640);
   ribbonGrad.addColorStop(0, '#0c2461');
   ribbonGrad.addColorStop(0.2, '#183184');
@@ -634,13 +645,13 @@ async function generateBestBusinessIcon() {
 // Run all generators
 // ─────────────────────────────────────────────────────────────────────────────
 async function main() {
-  console.log('--- Generating 100% Pristine Seamless Blank Certificate Templates ---');
+  console.log('--- Generating 100% Spotless Blank Certificate Templates ---');
   await generateAshokSamman();
   await generateInternationalBusinessExcellence();
   await generatePadmaBhushan();
   await generateGauravRatan();
   await generateBestBusinessIcon();
-  console.log('=== All 5 Blank Certificate Templates & Configs Successfully Generated with ZERO White Bars! ===');
+  console.log('=== All 5 Blank Certificate Templates Successfully Reconstructed! ===');
 }
 
 main().catch((err) => {

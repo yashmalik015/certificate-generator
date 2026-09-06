@@ -616,17 +616,18 @@ const renderPadmaBhushanDoc = async (baseDoc, page, studentData, customDomain) =
     color: rgb(0.18, 0.1, 0.04)
   });
 
-  // 4. Category in Citation
+  // 4. Category in Citation (Under "contributions and dedication in the field of")
   const cat = studentData.category || 'Social Work';
-  page.drawText(`field of ${cat}, this award of honour and recognition`, {
-    x: 361 - fontTimes.widthOfTextAtSize(`field of ${cat}, this award of honour and recognition`, 13) / 2,
-    y: pH - 542,
-    size: 13,
-    font: fontTimes,
-    color: rgb(0.15, 0.15, 0.15)
+  const cw = fontTimesBold.widthOfTextAtSize(cat, 14.5);
+  page.drawText(cat, {
+    x: 361 - (cw / 2),
+    y: pH - 612,
+    size: 14.5,
+    font: fontTimesBold,
+    color: rgb(0.7, 0.35, 0.05)
   });
 
-  // 5. Large Recipient Name in body
+  // 5. Large Recipient Name in body (Under "this award of honour and recognition is presented to")
   let bodyNameSize = 25;
   while (bodyNameSize > 14 && fontTimesBold.widthOfTextAtSize(nameStr, bodyNameSize) > 380) {
     bodyNameSize -= 0.5;
@@ -634,30 +635,21 @@ const renderPadmaBhushanDoc = async (baseDoc, page, studentData, customDomain) =
   const bw = fontTimesBold.widthOfTextAtSize(nameStr, bodyNameSize);
   page.drawText(nameStr, {
     x: (pW - bw) / 2,
-    y: pH - 612,
+    y: pH - 672,
     size: bodyNameSize,
     font: fontTimesBold,
     color: rgb(0.08, 0.08, 0.08)
   });
 
-  // 6. Citation field
-  page.drawText(`${cat} for betterment of society`, {
-    x: 361 - fontTimes.widthOfTextAtSize(`${cat} for betterment of society`, 13) / 2,
-    y: pH - 672,
-    size: 13,
-    font: fontTimes,
-    color: rgb(0.15, 0.15, 0.15)
-  });
-
-  // 7. Date formatted
+  // 6. Date formatted (Under "for betterment of society")
   const dateFormatted = formatIssueDate(studentData.letterIssuedAt, 'DD-MMM-YYYY');
-  const dw = fontHelv.widthOfTextAtSize(dateFormatted, 13);
+  const dw = fontHelv.widthOfTextAtSize(dateFormatted, 12.5);
   page.drawText(dateFormatted, {
     x: (pW - dw) / 2,
-    y: pH - 716,
-    size: 13,
+    y: pH - 728,
+    size: 12.5,
     font: fontHelv,
-    color: rgb(0.1, 0.1, 0.1)
+    color: rgb(0.12, 0.12, 0.12)
   });
 };
 

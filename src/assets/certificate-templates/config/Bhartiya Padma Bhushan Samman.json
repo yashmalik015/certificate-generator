@@ -28,9 +28,17 @@
       "align": "center",
       "maxWidth": 180
     },
+    "category": {
+      "x": 361,
+      "y": 610,
+      "fontSize": 14,
+      "font": "bold",
+      "color": "#b45309",
+      "align": "center"
+    },
     "fullName": {
       "x": 361,
-      "y": 612,
+      "y": 676,
       "fontSize": 26,
       "font": "bold",
       "color": "#111827",
@@ -39,7 +47,7 @@
     },
     "letterIssuedAt": {
       "x": 361,
-      "y": 716,
+      "y": 728,
       "fontSize": 13,
       "font": "bold",
       "color": "#1a1a1a",
