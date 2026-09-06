@@ -399,45 +399,72 @@ async function generateGauravRatan() {
 // 5. Best Business Icon Award
 // ─────────────────────────────────────────────────────────────────────────────
 async function generateBestBusinessIcon() {
-  const imgPath = path.join(userDir, 'media_1788675039947.jpg');
+  const candidatePaths = [
+    path.join(userDir, 'media_1788681904663.jpg'),
+    path.join(userDir, 'media_1788675039947.jpg')
+  ];
+  const imgPath = candidatePaths.find((p) => fs.existsSync(p)) || candidatePaths[0];
   const img = await loadImage(imgPath);
   const canvas = createCanvas(img.width, img.height);
   const ctx = canvas.getContext('2d');
   ctx.drawImage(img, 0, 0);
 
-  // 1. Clean Top Left Ref area
-  cleanCornerBox(ctx, 50, 60, 280, 160, 290);
+  // 1. Clean Top Left Ref area (from x=45 to x=280, y=65 to y=165)
+  cleanCornerBox(ctx, 45, 65, 280, 165, 285);
 
-  // 2. Clean Top Right QR area
-  cleanCornerBox(ctx, 545, 60, 660, 165, 535);
+  // 2. Clean Top Right QR area (from x=540 to x=660, y=65 to y=165)
+  cleanCornerBox(ctx, 540, 65, 660, 165, 535);
 
   // 3. Clean inside circular golden laurel frame
+  const cx = Math.round(img.width / 2); // 348 for 696w, 356 for 713w
+  const cy = 500;
+  const r = 101;
+
   ctx.save();
   ctx.beginPath();
-  ctx.arc(356, 490, 107, 0, Math.PI * 2);
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.closePath();
   ctx.clip();
-  ctx.fillStyle = '#f0f4f8';
-  ctx.fillRect(240, 370, 240, 240);
+  ctx.fillStyle = '#f6f8fb';
+  ctx.fillRect(cx - r - 5, cy - r - 5, (r + 5) * 2, (r + 5) * 2);
+  ctx.restore();
+
+  // Draw delicate gold inner circle rim
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.strokeStyle = '#c49a45';
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 2.5;
   ctx.stroke();
   ctx.restore();
 
   // 4. Clean Navy Blue 3D Ribbon Banner text using smooth silk gradient
-  const ribbonGrad = ctx.createLinearGradient(180, 600, 530, 640);
-  ribbonGrad.addColorStop(0, '#0c2461');
-  ribbonGrad.addColorStop(0.2, '#183184');
-  ribbonGrad.addColorStop(0.5, '#2243a8');
-  ribbonGrad.addColorStop(0.8, '#183184');
-  ribbonGrad.addColorStop(1, '#0c2461');
+  const ribGrad = ctx.createLinearGradient(170, 0, 526, 0);
+  ribGrad.addColorStop(0, '#0a215a');
+  ribGrad.addColorStop(0.15, '#12307d');
+  ribGrad.addColorStop(0.5, '#1e439e');
+  ribGrad.addColorStop(0.85, '#12307d');
+  ribGrad.addColorStop(1, '#0a215a');
 
   ctx.save();
   ctx.beginPath();
-  ctx.rect(195, 595, 322, 48);
+  ctx.moveTo(175, 600);
+  ctx.lineTo(521, 600);
+  ctx.lineTo(521, 658);
+  ctx.lineTo(175, 658);
   ctx.closePath();
-  ctx.fillStyle = ribbonGrad;
-  ctx.fillRect(195, 595, 322, 48);
+  ctx.fillStyle = ribGrad;
+  ctx.fill();
+
+  // Draw gold border on top and bottom edge of ribbon
+  ctx.strokeStyle = '#e0be6c';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(175, 600);
+  ctx.lineTo(521, 600);
+  ctx.moveTo(175, 658);
+  ctx.lineTo(521, 658);
+  ctx.stroke();
   ctx.restore();
 
   await saveCanvasAsPngAndPdf(canvas, 'Best Business Icon Award');
@@ -450,11 +477,11 @@ async function generateBestBusinessIcon() {
     height: img.height,
     photo: {
       type: 'circle',
-      centerX: 356,
-      centerY: 490,
-      radius: 106,
+      centerX: cx,
+      centerY: cy,
+      radius: r,
       borderColor: '#c49a45',
-      borderWidth: 3
+      borderWidth: 2.5
     },
     qrCode: {
       x: 560,

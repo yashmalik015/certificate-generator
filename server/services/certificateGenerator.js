@@ -249,18 +249,22 @@ const embedPhotoWithShape = async (pdfDoc, studentData, shape = 'rect', borderCo
         const cx = size / 2;
         const cy = size / 2;
         const radius = Math.max(10, size / 2 - Math.max(1, borderWidth));
+        ctx.clearRect(0, 0, size, size);
+        ctx.save();
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, Math.PI * 2);
         ctx.closePath();
-        ctx.save();
         ctx.clip();
-        const scale = Math.max(size / w, size / h);
+
+        const scale = Math.max((radius * 2) / w, (radius * 2) / h);
         const dw = w * scale;
         const dh = h * scale;
-        ctx.drawImage(img, (size - dw) / 2, (size - dh) / 2, dw, dh);
+        ctx.drawImage(img, cx - dw / 2, cy - dh / 2, dw, dh);
         ctx.restore();
 
         if (borderWidth > 0) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, radius, 0, Math.PI * 2);
           ctx.lineWidth = borderWidth * 2;
           ctx.strokeStyle = borderColor;
           ctx.stroke();
@@ -708,18 +712,20 @@ const renderPadmaBhushanDoc = async (baseDoc, page, studentData, customDomain) =
 // 4. Best Business Icon Award Render (Circular Laurel & Navy Ribbon)
 const renderBusinessIconDoc = async (baseDoc, page, studentData, customDomain) => {
   const { width: pW, height: pH } = page.getSize();
-  const fontTimes = await baseDoc.embedFont(StandardFonts.TimesRoman);
   const fontTimesBold = await baseDoc.embedFont(StandardFonts.TimesRomanBold);
-  const fontHelv = await baseDoc.embedFont(StandardFonts.Helvetica);
   const fontHelvBold = await baseDoc.embedFont(StandardFonts.HelveticaBold);
 
   const cleanRefno = String(studentData.refno || 'IHREO/2026/002').replace(/WCAEO/gi, 'IHREO');
   const cleanCertNo = String(studentData.certificateNumber || cleanRefno.replace('IHREO/', 'IHREO/CERT/') || 'IHREO/CERT/2026/0002').replace(/WCAEO/gi, 'IHREO');
 
+  const cx = Math.round(pW / 2); // 348 for 696w, 356 for 713w
+  const cy = 500;
+  const r = 101;
+
   // 1. Top Left Registration details
   const refText = `CIN NO. : U85499DL2025NPL459383\nLicence No. : 765686\nSL No. : ${cleanRefno}\nReg No. : 459383`;
   page.drawText(refText, {
-    x: 68,
+    x: 52,
     y: pH - 96,
     size: 7.2,
     font: fontHelvBold,
@@ -744,12 +750,11 @@ const renderBusinessIconDoc = async (baseDoc, page, studentData, customDomain) =
   }
 
   // 3. Circular Photo inside Large Laurel Wreath
-  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'circle', '#c49a45', 3);
+  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'circle', '#c49a45', 2.5);
   if (pImg) {
-    const r = 106;
     page.drawImage(pImg, {
-      x: 356 - r,
-      y: pH - (490 + r),
+      x: cx - r,
+      y: pH - (cy + r),
       width: r * 2,
       height: r * 2
     });
@@ -757,17 +762,17 @@ const renderBusinessIconDoc = async (baseDoc, page, studentData, customDomain) =
 
   // 4. Navy Blue 3D Ribbon Banner Recipient Name
   const nameStr = studentData.fullName || 'Recipient Name';
-  let ribSize = 24;
-  while (ribSize > 12 && fontTimesBold.widthOfTextAtSize(nameStr, ribSize) > 280) {
+  let ribSize = 28;
+  while (ribSize > 12 && fontTimesBold.widthOfTextAtSize(nameStr, ribSize) > 310) {
     ribSize -= 0.5;
   }
   const nw = fontTimesBold.widthOfTextAtSize(nameStr, ribSize);
   page.drawText(nameStr, {
-    x: 356 - (nw / 2),
-    y: pH - 628,
+    x: cx - (nw / 2),
+    y: pH - 639,
     size: ribSize,
     font: fontTimesBold,
-    color: rgb(0.96, 0.9, 0.6) // Luxurious gold/cream text on navy banner
+    color: rgb(0.97, 0.9, 0.62) // Luxurious gold/cream text on navy banner
   });
 };
 
@@ -784,11 +789,11 @@ const renderInternationalBusinessDoc = async (baseDoc, page, studentData, custom
   const cleanCertNo = String(studentData.certificateNumber || cleanRefno.replace('IHREO/', 'IHREO/CERT/') || 'IHREO/CERT/2026/0002').replace(/WCAEO/gi, 'IHREO');
 
   // 1. Top Left Registration details
-  const refText = `CIN NO. : U85499DL2025NPL459383\nLicence No. : 176566\nSL No. : ${cleanRefno}\nReg No. : 459383`;
+  const refText = `CIN NO. : U85499DL2025NPL459383\nLicence No. : 765686\nSL No. : ${cleanRefno}\nReg No. : 459383`;
   page.drawText(refText, {
-    x: 88,
-    y: pH - 100,
-    size: 7.2,
+    x: 82,
+    y: pH - 96,
+    size: 7.5,
     font: fontHelvBold,
     color: rgb(0.12, 0.12, 0.12),
     lineHeight: 11
@@ -810,7 +815,7 @@ const renderInternationalBusinessDoc = async (baseDoc, page, studentData, custom
     console.warn('QR Code generation error:', qrErr.message);
   }
 
-  // 3. Center Photo
+  // 3. Recipient Photo inside Slot
   const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#333333', 1.5);
   if (pImg) {
     page.drawImage(pImg, {
@@ -824,7 +829,7 @@ const renderInternationalBusinessDoc = async (baseDoc, page, studentData, custom
   // 4. Recipient Name on Underline
   const nameStr = studentData.fullName || 'Recipient Name';
   let nameSize = 23;
-  while (nameSize > 12 && fontTimesBold.widthOfTextAtSize(nameStr, nameSize) > 310) {
+  while (nameSize > 12 && fontTimesBold.widthOfTextAtSize(nameStr, nameSize) > 360) {
     nameSize -= 0.5;
   }
   const nw = fontTimesBold.widthOfTextAtSize(nameStr, nameSize);
@@ -1022,29 +1027,53 @@ export const generateCertificate = async (studentData, templateId, customDomain)
         const ctx = canvas.getContext('2d');
         ctx.drawImage(bgImg, 0, 0);
 
-        // Render recipient photo
+        const lowerId = templateId.toLowerCase();
+        const recipientName = studentData.fullName || 'Recipient Name';
+        const category = studentData.category || 'For Outstanding Distinction & Excellence';
+
+        // 1. Render Recipient Photo
         if (studentData.photoUrl) {
           const rawBuf = await getPhotoBuffer(studentData.photoUrl);
           if (rawBuf) {
             const pImg = await loadImage(rawBuf);
-            const lowerId = templateId.toLowerCase();
+            const pw = pImg.width || 400;
+            const ph = pImg.height || 480;
 
             if (lowerId.includes('padm') || lowerId.includes('bhushan')) {
+              const cx = 361, cy = 340, r = 70;
               ctx.save();
               ctx.beginPath();
-              ctx.arc(361, 340, 70, 0, Math.PI * 2);
+              ctx.arc(cx, cy, r, 0, Math.PI * 2);
               ctx.closePath();
               ctx.clip();
-              ctx.drawImage(pImg, 361 - 70, 340 - 70, 140, 140);
+              const scale = Math.max((r * 2) / pw, (r * 2) / ph);
+              const dw = pw * scale, dh = ph * scale;
+              ctx.drawImage(pImg, cx - dw / 2, cy - dh / 2, dw, dh);
               ctx.restore();
+
+              ctx.beginPath();
+              ctx.arc(cx, cy, r, 0, Math.PI * 2);
+              ctx.lineWidth = 2.5;
+              ctx.strokeStyle = '#c49a45';
+              ctx.stroke();
             } else if (lowerId.includes('icon') && lowerId.includes('business')) {
+              const cx = Math.round(canvas.width / 2);
+              const cy = 500, r = 101;
               ctx.save();
               ctx.beginPath();
-              ctx.arc(356, 490, 106, 0, Math.PI * 2);
+              ctx.arc(cx, cy, r, 0, Math.PI * 2);
               ctx.closePath();
               ctx.clip();
-              ctx.drawImage(pImg, 356 - 106, 490 - 106, 212, 212);
+              const scale = Math.max((r * 2) / pw, (r * 2) / ph);
+              const dw = pw * scale, dh = ph * scale;
+              ctx.drawImage(pImg, cx - dw / 2, cy - dh / 2, dw, dh);
               ctx.restore();
+
+              ctx.beginPath();
+              ctx.arc(cx, cy, r, 0, Math.PI * 2);
+              ctx.lineWidth = 3;
+              ctx.strokeStyle = '#c49a45';
+              ctx.stroke();
             } else if (lowerId.includes('ashok')) {
               ctx.drawImage(pImg, 280, 563, 122, 137);
             } else if (lowerId.includes('gaurav')) {
@@ -1055,14 +1084,107 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           }
         }
 
-        // Render QR Code on canvas
+        // 2. Render Text Overlays
+        ctx.textAlign = 'center';
+        if (lowerId.includes('icon') && lowerId.includes('business')) {
+          const cx = Math.round(canvas.width / 2);
+          // Top Left CIN text
+          ctx.textAlign = 'left';
+          ctx.font = 'bold 7.2px Helvetica, Arial, sans-serif';
+          ctx.fillStyle = '#1f2937';
+          ctx.fillText('CIN NO. : U85499DL2025NPL459383', 52, 92);
+          ctx.fillText('Licence No. : 765686', 52, 103);
+          ctx.fillText(`SL No. : ${cleanRef}`, 52, 114);
+          ctx.fillText('Reg No. : 459383', 52, 125);
+
+          // Name on ribbon
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.font = 'bold 28px "Times New Roman", serif';
+          ctx.fillStyle = '#f8e6a0';
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+          ctx.shadowBlur = 3;
+          ctx.shadowOffsetY = 1;
+          ctx.fillText(recipientName, cx, 630);
+          ctx.shadowColor = 'transparent';
+        } else if (lowerId.includes('padm') || lowerId.includes('bhushan')) {
+          ctx.font = 'bold 14px "Times New Roman", serif';
+          ctx.fillStyle = '#2a1a08';
+          ctx.fillText(recipientName, 361, 434);
+
+          ctx.font = 'bold 14.5px "Times New Roman", serif';
+          ctx.fillStyle = '#b45309';
+          ctx.fillText(category, 361, 612);
+
+          ctx.font = 'bold 26px "Times New Roman", serif';
+          ctx.fillStyle = '#111827';
+          ctx.fillText(recipientName, 361, 672);
+
+          ctx.font = 'bold 12.5px Helvetica, sans-serif';
+          ctx.fillStyle = '#1a1a1a';
+          ctx.fillText(studentData.letterIssuedAt || '26-Dec-2025', 361, 728);
+        } else if (lowerId.includes('ashok')) {
+          ctx.font = 'bold 22px "Times New Roman", serif';
+          ctx.fillStyle = '#111827';
+          ctx.fillText(recipientName, 341, 724);
+
+          ctx.font = '13px "Times New Roman", serif';
+          ctx.fillStyle = '#222222';
+          ctx.fillText('And is honored with the title', 341, 748);
+
+          ctx.font = 'bold 17px "Times New Roman", serif';
+          ctx.fillStyle = '#8B1E0F';
+          ctx.fillText('“Bhartiye Ashok Samman”', 341, 772);
+
+          ctx.font = '11px "Times New Roman", serif';
+          ctx.fillStyle = '#222222';
+          ctx.fillText(`For his exceptional ${category.toLowerCase().startsWith('social') ? category : 'work in ' + category}, notable accomplishments,`, 341, 796);
+          ctx.fillText('and significant contributions towards the progress of the nation.', 341, 812);
+
+          const dateStr = `Date of Issue : ${studentData.letterIssuedAt || '26-12-2025'}`;
+          ctx.font = '10.5px Helvetica, sans-serif';
+          ctx.fillStyle = '#1a1a1a';
+          ctx.fillText(dateStr, 341, 840);
+        } else if (lowerId.includes('gaurav')) {
+          ctx.font = 'bold 22px "Times New Roman", serif';
+          ctx.fillStyle = '#111827';
+          ctx.fillText(recipientName, 341, 765);
+
+          ctx.font = '13px "Times New Roman", serif';
+          ctx.fillStyle = '#222222';
+          ctx.fillText('And is honored with the title', 341, 790);
+
+          ctx.font = 'bold 17px "Times New Roman", serif';
+          ctx.fillStyle = '#1e5422';
+          ctx.fillText('“Bhartiye Gaurav Ratan Samman”', 341, 814);
+
+          ctx.font = '11px "Times New Roman", serif';
+          ctx.fillStyle = '#222222';
+          ctx.fillText(`For his exceptional work as a ${category}, notable accomplishments,`, 341, 838);
+          ctx.fillText('and significant contributions towards the progress of the nation.', 341, 854);
+
+          const dateStr = `Date of Issue : ${studentData.letterIssuedAt || '26-12-2025'}`;
+          ctx.font = '10.5px Helvetica, sans-serif';
+          ctx.fillStyle = '#1a1a1a';
+          ctx.fillText(dateStr, 341, 882);
+        } else if (lowerId.includes('business')) {
+          ctx.font = 'bold 23px "Times New Roman", serif';
+          ctx.fillStyle = '#2b1b17';
+          ctx.fillText(recipientName, 416, 534);
+
+          const dateStr = `Date of Issue : ${studentData.letterIssuedAt || '26/12/25'}`;
+          ctx.font = '10.5px Helvetica, sans-serif';
+          ctx.fillStyle = '#1a1a1a';
+          ctx.fillText(dateStr, 367, 849);
+        }
+
+        // 3. Render QR Code on canvas
         try {
           const domain = resolveAppDomain(customDomain);
           const cleanCertNo = String(studentData.certificateNumber || cleanRef.replace('IHREO/', 'IHREO/CERT/') || 'IHREO/CERT/2026/0002').replace(/WCAEO/gi, 'IHREO');
           const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(cleanCertNo)}`;
           const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 140 });
           const qrImg = await loadImage(qrBuf);
-          const lowerId = templateId.toLowerCase();
           if (lowerId.includes('ashok') || lowerId.includes('gaurav')) {
             ctx.drawImage(qrImg, 535, 75, 72, 72);
           } else if (lowerId.includes('padm')) {

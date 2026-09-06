@@ -228,22 +228,44 @@ const StudentForm = () => {
       if (formData.photoUrl) {
         const pImg = new Image();
         pImg.onload = () => {
+          const pw = pImg.width || 400;
+          const ph = pImg.height || 480;
+
           if (tid.includes('padm') || tid.includes('bhushan')) {
+            const cx = 361, cy = 340, r = 70;
             ctx.save();
             ctx.beginPath();
-            ctx.arc(361, 340, 70, 0, Math.PI * 2);
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
             ctx.closePath();
             ctx.clip();
-            ctx.drawImage(pImg, 361 - 70, 340 - 70, 140, 140);
+            const scale = Math.max((r * 2) / pw, (r * 2) / ph);
+            const dw = pw * scale, dh = ph * scale;
+            ctx.drawImage(pImg, cx - dw / 2, cy - dh / 2, dw, dh);
             ctx.restore();
+
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = '#c49a45';
+            ctx.stroke();
           } else if (tid.includes('icon') && tid.includes('business')) {
+            const cx = Math.round(canvas.width / 2);
+            const cy = 500, r = 101;
             ctx.save();
             ctx.beginPath();
-            ctx.arc(356, 490, 106, 0, Math.PI * 2);
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
             ctx.closePath();
             ctx.clip();
-            ctx.drawImage(pImg, 356 - 106, 490 - 106, 212, 212);
+            const scale = Math.max((r * 2) / pw, (r * 2) / ph);
+            const dw = pw * scale, dh = ph * scale;
+            ctx.drawImage(pImg, cx - dw / 2, cy - dh / 2, dw, dh);
             ctx.restore();
+
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#c49a45';
+            ctx.stroke();
           } else if (tid.includes('ashok')) {
             ctx.drawImage(pImg, 280, 563, 122, 137);
           } else if (tid.includes('gaurav')) {
@@ -268,7 +290,7 @@ const StudentForm = () => {
         ctx.fillStyle = '#2a1a08';
         ctx.fillText(name, 361, 434);
 
-        ctx.font = 'bold 14px "Times New Roman", serif';
+        ctx.font = 'bold 14.5px "Times New Roman", serif';
         ctx.fillStyle = '#b45309';
         ctx.fillText(category, 361, 612);
 
@@ -280,9 +302,26 @@ const StudentForm = () => {
         ctx.fillStyle = '#1a1a1a';
         ctx.fillText(formData.letterIssuedAt || '26-Dec-2025', 361, 728);
       } else if (tid.includes('icon') && tid.includes('business')) {
-        ctx.font = 'bold 24px "Times New Roman", serif';
-        ctx.fillStyle = '#f6e58d';
-        ctx.fillText(name, 356, 628);
+        const cx = Math.round(canvas.width / 2);
+        // Top-left registration info
+        ctx.textAlign = 'left';
+        ctx.font = 'bold 7.2px Helvetica, Arial, sans-serif';
+        ctx.fillStyle = '#1f2937';
+        ctx.fillText('CIN NO. : U85499DL2025NPL459383', 52, 92);
+        ctx.fillText('Licence No. : 765686', 52, 103);
+        ctx.fillText(`SL No. : ${formData.refno || 'IHREO/2026/038'}`, 52, 114);
+        ctx.fillText('Reg No. : 459383', 52, 125);
+
+        // Name on Ribbon
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = 'bold 28px "Times New Roman", serif';
+        ctx.fillStyle = '#f8e6a0';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 3;
+        ctx.shadowOffsetY = 1;
+        ctx.fillText(name, cx, 630);
+        ctx.shadowColor = 'transparent';
       } else if (tid.includes('ashok')) {
         ctx.font = 'bold 22px "Times New Roman", serif';
         ctx.fillStyle = '#111827';
