@@ -66,19 +66,21 @@ const setupDatabase = async () => {
     const isVercel = Boolean(process.env.VERCEL || process.env.NOW_REGION);
 
     try {
-      console.log('Connecting to MongoDB Atlas...');
-      await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 10000 });
+      await mongoose.connect(mongoUri, {
+        serverSelectionTimeoutMS: 2500,
+        connectTimeoutMS: 2500,
+        bufferCommands: false
+      });
       console.log('Successfully connected to MongoDB Atlas.');
     } catch (err) {
       console.warn('MongoDB connection warning:', err.message);
-      dbPromise = null;
       if (!isVercel) {
         try {
           console.log('Initializing embedded MongoMemoryServer fallback...');
           const { MongoMemoryServer } = await import('mongodb-memory-server');
           const mongod = await MongoMemoryServer.create();
           const uri = mongod.getUri();
-          await mongoose.connect(uri);
+          await mongoose.connect(uri, { serverSelectionTimeoutMS: 2500, connectTimeoutMS: 2500 });
           console.log(`Connected to MongoMemoryServer at ${uri}`);
         } catch (memErr) {
           console.warn('MongoMemoryServer fallback warning:', memErr.message);

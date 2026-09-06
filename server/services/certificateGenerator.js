@@ -3,7 +3,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import QRCode from 'qrcode';
-import { createCanvas, loadImage } from 'canvas';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -235,7 +234,9 @@ const embedPhotoWithShape = async (pdfDoc, studentData, shape = 'rect', borderCo
     const rawBuf = await getPhotoBuffer(studentData.photoUrl);
     if (!rawBuf || !rawBuf.length) return null;
 
+    // Strategy 1: Dynamic Canvas import if available (local development with native bindings)
     try {
+      const { createCanvas, loadImage } = await import('canvas');
       const img = await loadImage(rawBuf);
       const w = img.width || 400;
       const h = img.height || 480;
@@ -971,6 +972,7 @@ export const generateCertificate = async (studentData, templateId, customDomain)
     try {
       const basePngPath = findTemplateFile(templateId, ['.png']);
       if (basePngPath && fs.existsSync(basePngPath)) {
+        const { createCanvas, loadImage } = await import('canvas');
         const bgImg = await loadImage(basePngPath);
         const canvas = createCanvas(bgImg.width, bgImg.height);
         const ctx = canvas.getContext('2d');
