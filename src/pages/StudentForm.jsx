@@ -269,7 +269,25 @@ const StudentForm = () => {
           } else if (tid.includes('ashok')) {
             ctx.drawImage(pImg, 280, 563, 122, 137);
           } else if (tid.includes('gaurav')) {
-            ctx.drawImage(pImg, 255, 548, 172, 190);
+            const px = 255, py = 560, pw = 172, ph = 196, radius = 10;
+            ctx.save();
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, radius);
+            else ctx.rect(px, py, pw, ph);
+            ctx.closePath();
+            ctx.clip();
+            const scale = Math.max(pw / pw, ph / ph);
+            const scaleFit = Math.max(pw / pImg.width, ph / pImg.height);
+            const dw = pImg.width * scaleFit, dh = pImg.height * scaleFit;
+            ctx.drawImage(pImg, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh);
+            ctx.restore();
+
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, radius);
+            else ctx.rect(px, py, pw, ph);
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = '#cda250';
+            ctx.stroke();
           } else if (tid.includes('business')) {
             ctx.drawImage(pImg, 312, 362, 110, 120);
           } else {
@@ -282,7 +300,7 @@ const StudentForm = () => {
       // Draw Recipient Name, Category & Date
       const name = formData.fullName || 'Recipient Full Name';
       const category = formData.category || 'For Outstanding Distinction & Excellence';
-      const dateStr = formData.letterIssuedAt ? `Date of Issue : ${formData.letterIssuedAt}` : 'Date of Issue : 2026-09-06';
+      const dateStr = formData.letterIssuedAt ? `Date of Issue : ${formData.letterIssuedAt}` : 'Date of Issue : 26-12-2025';
       ctx.textAlign = 'center';
 
       if (tid.includes('padm') || tid.includes('bhushan')) {
@@ -344,26 +362,37 @@ const StudentForm = () => {
         ctx.fillStyle = '#1a1a1a';
         ctx.fillText(dateStr, 341, 840);
       } else if (tid.includes('gaurav')) {
+        // Top-left registration info
+        ctx.textAlign = 'left';
+        ctx.font = 'bold 7.5px Helvetica, Arial, sans-serif';
+        ctx.fillStyle = '#1f2937';
+        ctx.fillText('CIN NO:- U85499DL2025NPL459383', 75, 122);
+        ctx.fillText('Licence No. : 176556', 75, 134);
+        ctx.fillText(`Sl. No. ${formData.refno || '459383/HRE0001'}`, 75, 146);
+        ctx.fillText('Reg No. 459383', 75, 158);
+
+        // Center text
+        ctx.textAlign = 'center';
         ctx.font = 'bold 22px "Times New Roman", serif';
         ctx.fillStyle = '#111827';
-        ctx.fillText(name, 341, 765);
+        ctx.fillText(name, 341, 783);
 
         ctx.font = '13px "Times New Roman", serif';
         ctx.fillStyle = '#222222';
-        ctx.fillText('And is honored with the title', 341, 790);
+        ctx.fillText('And is honored with the title', 341, 810);
 
         ctx.font = 'bold 17px "Times New Roman", serif';
         ctx.fillStyle = '#1e5422';
-        ctx.fillText('“Bhartiye Gaurav Ratan Samman”', 341, 814);
+        ctx.fillText('“Bhartiye Gaurav Ratan Samman”', 341, 836);
 
-        ctx.font = '11px "Times New Roman", serif';
+        ctx.font = '11.5px "Times New Roman", serif';
         ctx.fillStyle = '#222222';
-        ctx.fillText(`For his exceptional work as a ${category}, notable accomplishments,`, 341, 838);
-        ctx.fillText('and significant contributions towards the progress of the nation.', 341, 854);
+        ctx.fillText(`For his exceptional work as a ${category}, notable accomplishments,`, 341, 863);
+        ctx.fillText('and significant contributions towards the progress of the nation.', 341, 881);
 
         ctx.font = '10.5px "Helvetica", sans-serif';
         ctx.fillStyle = '#1a1a1a';
-        ctx.fillText(dateStr, 341, 882);
+        ctx.fillText(dateStr, 341, 905);
       } else if (tid.includes('business')) {
         ctx.font = 'italic bold 23px "Times New Roman", serif';
         ctx.fillStyle = '#2b1b17';

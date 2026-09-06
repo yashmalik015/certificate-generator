@@ -509,14 +509,14 @@ const renderGauravRatanDoc = async (baseDoc, page, studentData, customDomain) =>
   const cleanCertNo = String(studentData.certificateNumber || cleanRefno.replace('IHREO/', 'IHREO/CERT/') || 'IHREO/CERT/2026/0002').replace(/WCAEO/gi, 'IHREO');
 
   // 1. Top Left Registration details
-  const refText = `CIN NO. : U85499DL2025NPL459383\nLicence No. : 176566\nSL No. : ${cleanRefno}\nReg No. : 459383`;
+  const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No. : 176556\nSl. No. ${cleanRefno}\nReg No. 459383`;
   page.drawText(refText, {
-    x: 72,
-    y: pH - 110,
-    size: 7.2,
+    x: 75,
+    y: pH - 122,
+    size: 7.5,
     font: fontHelvBold,
     color: rgb(0.12, 0.12, 0.12),
-    lineHeight: 11
+    lineHeight: 12
   });
 
   // 2. Top Right QR Code
@@ -526,8 +526,8 @@ const renderGauravRatanDoc = async (baseDoc, page, studentData, customDomain) =>
     const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 150 });
     const qrImg = await baseDoc.embedPng(qrBuf);
     page.drawImage(qrImg, {
-      x: 535,
-      y: pH - (95 + 72),
+      x: 525,
+      y: pH - (100 + 72),
       width: 72,
       height: 72
     });
@@ -535,14 +535,14 @@ const renderGauravRatanDoc = async (baseDoc, page, studentData, customDomain) =>
     console.warn('QR Code generation error:', qrErr.message);
   }
 
-  // 3. Center Recipient Photo (Inside green/gold frame)
-  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#2d5a27', 2);
+  // 3. Center Recipient Photo (Inside rounded gold frame)
+  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#cda250', 2.5);
   if (pImg) {
     page.drawImage(pImg, {
       x: 255,
-      y: pH - (548 + 190),
+      y: pH - (560 + 196),
       width: 172,
-      height: 190
+      height: 196
     });
   }
 
@@ -555,10 +555,10 @@ const renderGauravRatanDoc = async (baseDoc, page, studentData, customDomain) =>
   const nw = fontTimesBold.widthOfTextAtSize(nameStr, nameSize);
   page.drawText(nameStr, {
     x: (pW - nw) / 2,
-    y: pH - 765,
+    y: pH - 783,
     size: nameSize,
     font: fontTimesBold,
-    color: rgb(0.1, 0.1, 0.1)
+    color: rgb(0.08, 0.08, 0.08)
   });
 
   // 5. Subtitle: "And is honored with the title"
@@ -566,7 +566,7 @@ const renderGauravRatanDoc = async (baseDoc, page, studentData, customDomain) =>
   const subW = fontTimes.widthOfTextAtSize(subText, 13);
   page.drawText(subText, {
     x: (pW - subW) / 2,
-    y: pH - 790,
+    y: pH - 810,
     size: 13,
     font: fontTimes,
     color: rgb(0.15, 0.15, 0.15)
@@ -577,7 +577,7 @@ const renderGauravRatanDoc = async (baseDoc, page, studentData, customDomain) =>
   const thW = fontTimesBold.widthOfTextAtSize(titleHighlight, 17);
   page.drawText(titleHighlight, {
     x: (pW - thW) / 2,
-    y: pH - 814,
+    y: pH - 836,
     size: 17,
     font: fontTimesBold,
     color: rgb(0.12, 0.35, 0.15) // Rich forest green #1e5422
@@ -587,32 +587,32 @@ const renderGauravRatanDoc = async (baseDoc, page, studentData, customDomain) =>
   const catField = studentData.category || 'Wild Life Expert';
   const line1 = `For his exceptional work as a ${catField}, notable accomplishments,`;
   const line2 = 'and significant contributions towards the progress of the nation.';
-  const l1w = fontTimes.widthOfTextAtSize(line1, 11);
+  const l1w = fontTimes.widthOfTextAtSize(line1, 11.5);
   page.drawText(line1, {
     x: (pW - l1w) / 2,
-    y: pH - 838,
-    size: 11,
+    y: pH - 863,
+    size: 11.5,
     font: fontTimes,
     color: rgb(0.18, 0.18, 0.18)
   });
   if (line2) {
-    const l2w = fontTimes.widthOfTextAtSize(line2, 11);
+    const l2w = fontTimes.widthOfTextAtSize(line2, 11.5);
     page.drawText(line2, {
       x: (pW - l2w) / 2,
-      y: pH - 854,
-      size: 11,
+      y: pH - 881,
+      size: 11.5,
       font: fontTimes,
       color: rgb(0.18, 0.18, 0.18)
     });
   }
 
-  // 8. Date of Issue
+  // 8. Date of Issue (Single crisp line)
   const dateFormatted = formatIssueDate(studentData.letterIssuedAt, 'DD-MM-YYYY');
   const dateStr = `Date of Issue : ${dateFormatted}`;
   const dw = fontHelv.widthOfTextAtSize(dateStr, 10.5);
   page.drawText(dateStr, {
     x: (pW - dw) / 2,
-    y: pH - 882,
+    y: pH - 905,
     size: 10.5,
     font: fontHelv,
     color: rgb(0.1, 0.1, 0.1)
@@ -1077,7 +1077,25 @@ export const generateCertificate = async (studentData, templateId, customDomain)
             } else if (lowerId.includes('ashok')) {
               ctx.drawImage(pImg, 280, 563, 122, 137);
             } else if (lowerId.includes('gaurav')) {
-              ctx.drawImage(pImg, 255, 548, 172, 190);
+              const px = 255, py = 560, pw = 172, ph = 196, radius = 10;
+              ctx.save();
+              ctx.beginPath();
+              if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, radius);
+              else ctx.rect(px, py, pw, ph);
+              ctx.closePath();
+              ctx.clip();
+              const scale = Math.max(pw / pw, ph / ph);
+              const scaleFit = Math.max(pw / pImg.width, ph / pImg.height);
+              const dw = pImg.width * scaleFit, dh = pImg.height * scaleFit;
+              ctx.drawImage(pImg, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh);
+              ctx.restore();
+
+              ctx.beginPath();
+              if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, radius);
+              else ctx.rect(px, py, pw, ph);
+              ctx.lineWidth = 2.5;
+              ctx.strokeStyle = '#cda250';
+              ctx.stroke();
             } else if (lowerId.includes('business')) {
               ctx.drawImage(pImg, 312, 362, 110, 120);
             }
@@ -1146,27 +1164,38 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           ctx.fillStyle = '#1a1a1a';
           ctx.fillText(dateStr, 341, 840);
         } else if (lowerId.includes('gaurav')) {
+          // Top Left Registration info
+          ctx.textAlign = 'left';
+          ctx.font = 'bold 7.5px Helvetica, Arial, sans-serif';
+          ctx.fillStyle = '#1f2937';
+          ctx.fillText('CIN NO:- U85499DL2025NPL459383', 75, 122);
+          ctx.fillText('Licence No. : 176556', 75, 134);
+          ctx.fillText(`Sl. No. ${cleanRef}`, 75, 146);
+          ctx.fillText('Reg No. 459383', 75, 158);
+
+          // Center Text
+          ctx.textAlign = 'center';
           ctx.font = 'bold 22px "Times New Roman", serif';
           ctx.fillStyle = '#111827';
-          ctx.fillText(recipientName, 341, 765);
+          ctx.fillText(recipientName, 341, 783);
 
           ctx.font = '13px "Times New Roman", serif';
           ctx.fillStyle = '#222222';
-          ctx.fillText('And is honored with the title', 341, 790);
+          ctx.fillText('And is honored with the title', 341, 810);
 
           ctx.font = 'bold 17px "Times New Roman", serif';
           ctx.fillStyle = '#1e5422';
-          ctx.fillText('“Bhartiye Gaurav Ratan Samman”', 341, 814);
+          ctx.fillText('“Bhartiye Gaurav Ratan Samman”', 341, 836);
 
-          ctx.font = '11px "Times New Roman", serif';
+          ctx.font = '11.5px "Times New Roman", serif';
           ctx.fillStyle = '#222222';
-          ctx.fillText(`For his exceptional work as a ${category}, notable accomplishments,`, 341, 838);
-          ctx.fillText('and significant contributions towards the progress of the nation.', 341, 854);
+          ctx.fillText(`For his exceptional work as a ${category}, notable accomplishments,`, 341, 863);
+          ctx.fillText('and significant contributions towards the progress of the nation.', 341, 881);
 
           const dateStr = `Date of Issue : ${studentData.letterIssuedAt || '26-12-2025'}`;
           ctx.font = '10.5px Helvetica, sans-serif';
           ctx.fillStyle = '#1a1a1a';
-          ctx.fillText(dateStr, 341, 882);
+          ctx.fillText(dateStr, 341, 905);
         } else if (lowerId.includes('business')) {
           ctx.font = 'bold 23px "Times New Roman", serif';
           ctx.fillStyle = '#2b1b17';

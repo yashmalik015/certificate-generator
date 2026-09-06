@@ -343,29 +343,87 @@ async function generatePadmaBhushan() {
 // 4. Bhartiye Gaurav Ratan Samman
 // ─────────────────────────────────────────────────────────────────────────────
 async function generateGauravRatan() {
-  const imgPath = path.join(userDir, 'media_1788675039781.jpg');
+  const candidatePaths = [
+    path.join(userDir, 'media_1788682520265.jpg'),
+    path.join(userDir, 'media_1788675039781.jpg')
+  ];
+  const imgPath = candidatePaths.find((p) => fs.existsSync(p)) || candidatePaths[0];
   const img = await loadImage(imgPath);
   const canvas = createCanvas(img.width, img.height);
   const ctx = canvas.getContext('2d');
   ctx.drawImage(img, 0, 0);
 
-  // 1. Clean Top Left Ref area
-  cleanCornerBox(ctx, 50, 75, 290, 165, 300);
+  const cW = canvas.width;
+  const imgData = ctx.getImageData(0, 0, cW, canvas.height);
+  const data = imgData.data;
 
-  // 2. Clean Top Right QR area
-  cleanCornerBox(ctx, 510, 75, 635, 180, 500);
+  // 1. Clean Top Left Ref area (from x=50 to x=285, y=95 to y=175)
+  for (let y = 95; y <= 175; y++) {
+    const srcIdx = (y * cW + 295) * 4;
+    const r = data[srcIdx], g = data[srcIdx+1], b = data[srcIdx+2];
+    for (let x = 50; x <= 285; x++) {
+      const idx = (y * cW + x) * 4;
+      data[idx] = r; data[idx+1] = g; data[idx+2] = b;
+    }
+  }
 
-  // 3. Clean inside photo frame
+  // 2. Clean Top Right QR area (from x=515 to x=610, y=95 to y=175)
+  for (let y = 95; y <= 175; y++) {
+    const srcIdx = (y * cW + 508) * 4;
+    const r = data[srcIdx], g = data[srcIdx+1], b = data[srcIdx+2];
+    for (let x = 515; x <= 610; x++) {
+      const idx = (y * cW + x) * 4;
+      data[idx] = r; data[idx+1] = g; data[idx+2] = b;
+    }
+  }
+
+  // 3. Clean Text below Photo: y=760 to y=915, x=120..562
+  for (let y = 760; y <= 915; y++) {
+    const leftIdx = (y * cW + 115) * 4;
+    const rightIdx = (y * cW + 567) * 4;
+    const lr = data[leftIdx], lg = data[leftIdx+1], lb = data[leftIdx+2];
+    const rr = data[rightIdx], rg = data[rightIdx+1], rb = data[rightIdx+2];
+
+    for (let x = 120; x <= 562; x++) {
+      const t = (x - 115) / (567 - 115);
+      const idx = (y * cW + x) * 4;
+      data[idx] = Math.round(lr * (1 - t) + rr * t);
+      data[idx+1] = Math.round(lg * (1 - t) + rg * t);
+      data[idx+2] = Math.round(lb * (1 - t) + rb * t);
+    }
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+
+  // 4. Clean inside Photo Frame with rounded rectangle & crisp gold border
+  const px = 255, py = 560, pw = 172, ph = 196, radius = 10;
   ctx.save();
-  ctx.fillStyle = '#f8f4e6';
-  ctx.fillRect(256, 549, 170, 188);
-  ctx.strokeStyle = '#2d5a27';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(255.5, 548.5, 171, 189);
-  ctx.restore();
+  ctx.beginPath();
+  if (ctx.roundRect) {
+    ctx.roundRect(px, py, pw, ph, radius);
+  } else {
+    ctx.rect(px, py, pw, ph);
+  }
+  ctx.closePath();
+  ctx.fillStyle = '#fcf9f2';
+  ctx.fill();
 
-  // 4. Clean ALL text from y=736 down to y=895 across x=115..565!
-  cleanHorizontalZone(ctx, 736, 895, 115, 565, 120, 560);
+  // Draw elegant gold outer border
+  ctx.strokeStyle = '#cda250';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // Subtle inner border
+  ctx.beginPath();
+  if (ctx.roundRect) {
+    ctx.roundRect(px + 2, py + 2, pw - 4, ph - 4, radius - 2);
+  } else {
+    ctx.rect(px + 2, py + 2, pw - 4, ph - 4);
+  }
+  ctx.strokeStyle = '#e8d18a';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
 
   await saveCanvasAsPngAndPdf(canvas, 'Bhartiye Gaurav Ratan Samman');
 
@@ -377,17 +435,17 @@ async function generateGauravRatan() {
     height: img.height,
     photo: {
       type: 'rect',
-      x: 255,
-      y: 548,
-      width: 172,
-      height: 190,
-      radius: 6,
-      borderColor: '#2d5a27',
-      borderWidth: 2
+      x: px,
+      y: py,
+      width: pw,
+      height: ph,
+      radius: radius,
+      borderColor: '#cda250',
+      borderWidth: 2.5
     },
     qrCode: {
-      x: 535,
-      y: 95,
+      x: 525,
+      y: 100,
       size: 72
     }
   };
