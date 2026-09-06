@@ -10,39 +10,31 @@
     "centerY": 490,
     "radius": 108,
     "borderColor": "#c49a45",
-    "borderWidth": 4
+    "borderWidth": 3
   },
   "qrCode": {
-    "x": 568,
-    "y": 86,
+    "x": 560,
+    "y": 80,
     "size": 72
   },
   "fields": {
     "refText": {
-      "x": 74,
-      "y": 95,
+      "x": 68,
+      "y": 96,
       "fontSize": 10,
       "lineHeight": 14,
       "color": "#1a1a1a",
-      "font": "normal",
+      "font": "bold",
       "align": "left"
     },
     "fullName": {
       "x": 356,
-      "y": 630,
-      "fontSize": 26,
+      "y": 628,
+      "fontSize": 24,
       "font": "bold",
       "color": "#f6e58d",
       "align": "center",
       "maxWidth": 310
-    },
-    "awardTitle": {
-      "x": 356,
-      "y": 740,
-      "fontSize": 22,
-      "font": "bold",
-      "color": "#0c2461",
-      "align": "center"
     }
   }
 }

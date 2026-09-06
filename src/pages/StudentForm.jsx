@@ -732,21 +732,20 @@ const StudentForm = () => {
             </div>
           </div>
 
-          {/* Dynamic Certificate Template Picker Gallery */}
+          {/* Dynamic Certificate Template Picker Checkbox Grid (As requested in Image 1) */}
           <div className="form-group full-width">
             <div className="template-picker-container">
-              {/* Toolbar */}
-              <div className="template-picker-toolbar">
+              {/* Header & Quick Action Toolbar */}
+              <div className="template-picker-header-row">
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Sparkles size={18} style={{ color: 'var(--primary-accent)' }} />
                     <label className="form-label" style={{ fontSize: '15px', fontWeight: 700, margin: 0 }}>
-                      Certificate Templates Selection ({formData.certificateTemplateIds.length} Selected)
+                      Certificates (Templates dynamically scanned from template folder) <span className="required">*</span>
                     </label>
-                    <span className="required">*</span>
                   </div>
-                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    Select which certificate designs to generate for this recipient. You can choose one or multiple designs.
+                  <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '3px' }}>
+                    {formData.certificateTemplateIds.length} of {templates.length} certificate designs selected for this recipient.
                   </p>
                 </div>
 
@@ -787,7 +786,7 @@ const StudentForm = () => {
                   <Search size={14} />
                   <input
                     type="text"
-                    placeholder="Search template designs..."
+                    placeholder="Filter certificates..."
                     value={templateSearch}
                     onChange={(e) => setTemplateSearch(e.target.value)}
                     style={{ padding: '6px 10px 6px 32px', fontSize: '12.5px' }}
@@ -795,60 +794,39 @@ const StudentForm = () => {
                 </div>
               </div>
 
-              {/* Template Cards Grid */}
-              <div className="template-cards-grid">
+              {/* 4-Column Checkbox Grid (Exact Layout from Image 1) */}
+              <div className="cert-checkbox-grid">
                 {filteredTemplates.map((tpl) => {
                   const isChecked = formData.certificateTemplateIds?.includes(tpl.id);
                   return (
                     <div
                       key={tpl.id}
-                      className={`template-card ${isChecked ? 'selected' : ''}`}
+                      className={`cert-checkbox-tile ${isChecked ? 'checked' : ''}`}
                       onClick={() => handleTemplateToggle(tpl.id)}
                     >
-                      <div className="template-card-media">
-                        <img
-                          src={`/assets/certificate-templates/${encodeURIComponent(tpl.id)}.png`}
-                          alt={tpl.label}
-                          onError={(e) => {
-                            const tried = e.currentTarget.dataset.fallbackStep || '0';
-                            if (tried === '0') {
-                              e.currentTarget.dataset.fallbackStep = '1';
-                              e.currentTarget.src = `/certificate-templates/${encodeURIComponent(tpl.id)}.png`;
-                            } else if (tried === '1') {
-                              e.currentTarget.dataset.fallbackStep = '2';
-                              e.currentTarget.src = `/api/certificate-templates/${encodeURIComponent(tpl.id)}/preview`;
-                            } else if (tried === '2') {
-                              e.currentTarget.dataset.fallbackStep = '3';
-                              e.currentTarget.src = '/ihreo-logo.png';
-                            }
-                          }}
+                      <div className="cert-checkbox-left">
+                        <input
+                          type="checkbox"
+                          className="cert-checkbox-input"
+                          checked={isChecked}
+                          onChange={() => {}} // Handled by parent div onClick
                         />
-                        <span className={`template-card-category-badge ${getBadgeClass(tpl.category)}`}>
-                          {tpl.category}
+                        <span className="cert-checkbox-label" title={tpl.label}>
+                          {tpl.label}
                         </span>
-                        <div className="template-card-check">
-                          {isChecked ? <Check size={16} /> : null}
-                        </div>
-                        <button
-                          type="button"
-                          className="template-card-preview-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPreviewingTemplate(tpl);
-                          }}
-                        >
-                          <Eye size={13} /> Preview
-                        </button>
                       </div>
 
-                      <div className="template-card-body">
-                        <div className="template-card-title" title={tpl.label}>
-                          {tpl.label}
-                        </div>
-                        <div className="template-card-desc">
-                          {isChecked ? '✓ Selected for generation' : 'Click to select template'}
-                        </div>
-                      </div>
+                      <button
+                        type="button"
+                        className="cert-tile-preview-btn"
+                        title="Live Certificate Preview"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPreviewingTemplate(tpl);
+                        }}
+                      >
+                        <Eye size={12} /> Preview
+                      </button>
                     </div>
                   );
                 })}

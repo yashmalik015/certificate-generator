@@ -11,18 +11,18 @@
     "centerY": 340,
     "radius": 72,
     "borderColor": "#c49a45",
-    "borderWidth": 3
+    "borderWidth": 2.5
   },
   "qrCode": {
-    "x": 560,
-    "y": 95,
-    "size": 68
+    "x": 558,
+    "y": 90,
+    "size": 70
   },
   "fields": {
     "ribbonName": {
       "x": 361,
-      "y": 435,
-      "fontSize": 15,
+      "y": 434,
+      "fontSize": 14,
       "font": "bold",
       "color": "#2a1a08",
       "align": "center",
@@ -30,8 +30,8 @@
     },
     "fullName": {
       "x": 361,
-      "y": 610,
-      "fontSize": 28,
+      "y": 612,
+      "fontSize": 26,
       "font": "bold",
       "color": "#111827",
       "align": "center",
@@ -39,8 +39,8 @@
     },
     "letterIssuedAt": {
       "x": 361,
-      "y": 715,
-      "fontSize": 14,
+      "y": 716,
+      "fontSize": 13,
       "font": "bold",
       "color": "#1a1a1a",
       "align": "center"

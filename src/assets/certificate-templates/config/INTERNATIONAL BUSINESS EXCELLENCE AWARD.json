@@ -12,27 +12,27 @@
     "height": 120,
     "radius": 8,
     "borderColor": "#333333",
-    "borderWidth": 2
+    "borderWidth": 1.5
   },
   "qrCode": {
-    "x": 588,
-    "y": 84,
+    "x": 580,
+    "y": 80,
     "size": 72
   },
   "fields": {
     "refText": {
-      "x": 94,
+      "x": 88,
       "y": 95,
       "fontSize": 10,
       "lineHeight": 14,
       "color": "#1a1a1a",
-      "font": "normal",
+      "font": "bold",
       "align": "left"
     },
     "fullName": {
       "x": 416,
       "y": 534,
-      "fontSize": 24,
+      "fontSize": 23,
       "font": "italic bold",
       "color": "#2b1b17",
       "align": "center",
@@ -41,7 +41,7 @@
     "letterIssuedAt": {
       "x": 367,
       "y": 849,
-      "fontSize": 12,
+      "fontSize": 11,
       "font": "normal",
       "color": "#1a1a1a",
       "align": "center",

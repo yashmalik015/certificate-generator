@@ -12,21 +12,21 @@
     "height": 190,
     "radius": 8,
     "borderColor": "#2d5a27",
-    "borderWidth": 2
+    "borderWidth": 1.5
   },
   "qrCode": {
-    "x": 540,
-    "y": 100,
+    "x": 535,
+    "y": 95,
     "size": 72
   },
   "fields": {
     "refText": {
-      "x": 74,
+      "x": 72,
       "y": 110,
       "fontSize": 10,
       "lineHeight": 14,
       "color": "#1a1a1a",
-      "font": "normal",
+      "font": "bold",
       "align": "left"
     },
     "fullName": {
@@ -34,16 +34,16 @@
       "y": 765,
       "fontSize": 24,
       "font": "bold",
-      "color": "#1a1a1a",
+      "color": "#111827",
       "align": "center",
       "maxWidth": 380
     },
     "category": {
       "x": 341,
       "y": 842,
-      "fontSize": 12,
+      "fontSize": 11.5,
       "font": "normal",
-      "color": "#2a2a2a",
+      "color": "#222222",
       "align": "center",
       "maxWidth": 440,
       "wrap": true,
@@ -52,7 +52,7 @@
     "letterIssuedAt": {
       "x": 341,
       "y": 882,
-      "fontSize": 12,
+      "fontSize": 11,
       "font": "normal",
       "color": "#1a1a1a",
       "align": "center",
