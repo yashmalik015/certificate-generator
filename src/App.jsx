@@ -10,31 +10,34 @@ import Subjects from './pages/Subjects';
 import Designations from './pages/Designations';
 import TemplateCalibratorPage from './pages/TemplateCalibratorPage';
 import PublicVerify from './pages/PublicVerify';
+import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/verify" element={<PublicVerify />} />
-        <Route path="/verify/*" element={<PublicVerify />} />
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/verify" element={<PublicVerify />} />
+          <Route path="/verify/*" element={<PublicVerify />} />
 
-        <Route path="/superpanel" element={<Layout />}>
-          <Route index element={<Navigate to="/superpanel/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="students" element={<StudentsList />} />
-          <Route path="students/create" element={<StudentForm />} />
-          <Route path="students/:id/edit" element={<StudentForm />} />
-          <Route path="events" element={<Events />} />
-          <Route path="subjects" element={<Subjects />} />
-          <Route path="designations" element={<Designations />} />
-          <Route path="template-calibrator" element={<TemplateCalibratorPage />} />
-        </Route>
+          <Route path="/superpanel" element={<Layout />}>
+            <Route index element={<Navigate to="/superpanel/dashboard" replace />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="students" element={<StudentsList />} />
+            <Route path="students/create" element={<StudentForm />} />
+            <Route path="students/:id/edit" element={<StudentForm />} />
+            <Route path="events" element={<Events />} />
+            <Route path="subjects" element={<Subjects />} />
+            <Route path="designations" element={<Designations />} />
+            <Route path="template-calibrator" element={<TemplateCalibratorPage />} />
+          </Route>
 
-        <Route path="*" element={<Navigate to="/superpanel/dashboard" replace />} />
-      </Routes>
-    </BrowserRouter>
+          <Route path="*" element={<Navigate to="/superpanel/dashboard" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

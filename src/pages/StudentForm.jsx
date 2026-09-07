@@ -60,28 +60,32 @@ const StudentForm = () => {
 
   const loadOptions = async () => {
     try {
-      const [eventsRes, subjectsRes, templatesRes, designationsRes] = await Promise.all([
+      const [eventsRes, subjectsRes, templatesRes, designationsRes] = await Promise.allSettled([
         api.get('/events'),
         api.get('/subjects'),
         api.get('/certificate-templates'),
         api.get('/designations')
       ]);
 
-      setEvents(eventsRes.data || []);
-      setSubjects(subjectsRes.data || []);
-      const templateList = templatesRes.data || [];
-      setTemplates(templateList);
-      setDesignations(designationsRes.data || []);
+      const eventsData = eventsRes.status === 'fulfilled' && Array.isArray(eventsRes.value?.data) ? eventsRes.value.data : [];
+      const subjectsData = subjectsRes.status === 'fulfilled' && Array.isArray(subjectsRes.value?.data) ? subjectsRes.value.data : [];
+      const templatesData = templatesRes.status === 'fulfilled' && Array.isArray(templatesRes.value?.data) ? templatesRes.value.data : [];
+      const designationsData = designationsRes.status === 'fulfilled' && Array.isArray(designationsRes.value?.data) ? designationsRes.value.data : [];
+
+      setEvents(eventsData);
+      setSubjects(subjectsData);
+      setTemplates(templatesData);
+      setDesignations(designationsData);
 
       // Default select first event, subject, and template if new
       if (!isEdit) {
         setFormData((prev) => ({
           ...prev,
-          eventId: prev.eventId || (eventsRes.data[0]?._id || ''),
-          subjectId: prev.subjectId || (subjectsRes.data[0]?._id || ''),
-          certificateTemplateIds: prev.certificateTemplateIds.length > 0
+          eventId: prev.eventId || (eventsData[0]?._id || ''),
+          subjectId: prev.subjectId || (subjectsData[0]?._id || ''),
+          certificateTemplateIds: (Array.isArray(prev.certificateTemplateIds) && prev.certificateTemplateIds.length > 0)
             ? prev.certificateTemplateIds
-            : (templateList.length > 0 ? [templateList[0].id] : [])
+            : (templatesData.length > 0 ? [templatesData[0].id] : [])
         }));
       }
     } catch (err) {
@@ -92,11 +96,13 @@ const StudentForm = () => {
   const loadAutoNumbers = async () => {
     try {
       const res = await api.get('/students/auto-numbers');
-      setFormData((prev) => ({
-        ...prev,
-        refno: res.data.refno,
-        certificateNumber: res.data.certificateNumber
-      }));
+      if (res.data?.refno && res.data?.certificateNumber) {
+        setFormData((prev) => ({
+          ...prev,
+          refno: prev.refno || res.data.refno,
+          certificateNumber: prev.certificateNumber || res.data.certificateNumber
+        }));
+      }
     } catch (err) {
       console.error('Failed to auto-generate numbers:', err);
     }
@@ -107,13 +113,16 @@ const StudentForm = () => {
     try {
       const res = await api.get(`/students/${id}`);
       const data = res.data;
-      setFormData({
-        ...data,
-        dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth).toISOString().split('T')[0] : '',
-        letterIssuedAt: data.letterIssuedAt ? new Date(data.letterIssuedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        eventId: typeof data.eventId === 'object' ? data.eventId._id : data.eventId,
-        subjectId: typeof data.subjectId === 'object' ? data.subjectId._id : data.subjectId
-      });
+      if (data) {
+        setFormData({
+          ...data,
+          dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth).toISOString().split('T')[0] : '',
+          letterIssuedAt: data.letterIssuedAt ? new Date(data.letterIssuedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          eventId: typeof data.eventId === 'object' && data.eventId ? data.eventId._id : data.eventId,
+          subjectId: typeof data.subjectId === 'object' && data.subjectId ? data.subjectId._id : data.subjectId,
+          certificateTemplateIds: Array.isArray(data.certificateTemplateIds) ? data.certificateTemplateIds : []
+        });
+      }
     } catch (err) {
       setError('Failed to load student details.');
     } finally {
@@ -128,7 +137,7 @@ const StudentForm = () => {
 
   const handleTemplateToggle = (templateId) => {
     setFormData((prev) => {
-      const current = prev.certificateTemplateIds || [];
+      const current = Array.isArray(prev.certificateTemplateIds) ? prev.certificateTemplateIds : [];
       const updated = current.includes(templateId)
         ? current.filter((t) => t !== templateId)
         : [...current, templateId];
@@ -137,7 +146,7 @@ const StudentForm = () => {
   };
 
   const handleSelectAllTemplates = () => {
-    const allIds = templates.map((t) => t.id);
+    const allIds = Array.isArray(templates) ? templates.map((t) => t?.id).filter(Boolean) : [];
     setFormData((prev) => ({ ...prev, certificateTemplateIds: allIds }));
   };
 
@@ -153,18 +162,21 @@ const StudentForm = () => {
       'Bhartiye Gaurav Ratan Samman',
       'INTERNATIONAL BUSINESS EXCELLENCE AWARD'
     ];
-    setFormData((prev) => ({
-      ...prev,
-      certificateTemplateIds: Array.from(new Set([...prev.certificateTemplateIds, ...newDesignIds]))
-    }));
+    setFormData((prev) => {
+      const current = Array.isArray(prev.certificateTemplateIds) ? prev.certificateTemplateIds : [];
+      return {
+        ...prev,
+        certificateTemplateIds: Array.from(new Set([...current, ...newDesignIds]))
+      };
+    });
   };
 
   const handlePhotoUpload = async (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 10 * 1024 * 1024) {
-      setError('Photo size exceeds 10MB limit.');
+    if (file.size > 15 * 1024 * 1024) {
+      setError('Photo size exceeds 15MB limit.');
       return;
     }
 
@@ -172,21 +184,37 @@ const StudentForm = () => {
     setError('');
 
     const reader = new FileReader();
-    reader.onload = async () => {
-      const base64Url = reader.result;
-      setFormData((prev) => ({ ...prev, photoUrl: base64Url }));
-
-      try {
-        const data = new FormData();
-        data.append('photo', file);
-        await api.post('/uploads/photo', data, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-      } catch (uploadErr) {
-        console.warn('Server photo upload backup warning:', uploadErr.message);
-      } finally {
+    reader.onload = () => {
+      const rawBase64 = reader.result;
+      // Client-side image resize to max 900x900 for fast upload and zero-lag rendering
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 900;
+        let w = img.width;
+        let h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.88);
+        setFormData((prev) => ({ ...prev, photoUrl: optimizedBase64 }));
         setUploadingPhoto(false);
-      }
+      };
+      img.onerror = () => {
+        setFormData((prev) => ({ ...prev, photoUrl: rawBase64 }));
+        setUploadingPhoto(false);
+      };
+      img.src = rawBase64;
     };
     reader.onerror = () => {
       setError('Failed to read selected photo file.');
@@ -524,8 +552,8 @@ const StudentForm = () => {
     setError('');
     setSuccess('');
 
-    if (!formData.fullName.trim()) return setError('Full Name is required.');
-    if (!formData.category.trim()) return setError('Category is required.');
+    if (!formData.fullName?.trim()) return setError('Full Name is required.');
+    if (!formData.category?.trim()) return setError('Category is required.');
     if (!formData.photoUrl) return setError('Recipient photo upload is required.');
     if (!formData.eventId) return setError('Event selection is required.');
     if (!formData.subjectId) return setError('Subject selection is required.');
@@ -561,18 +589,23 @@ const StudentForm = () => {
         }
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save student record.');
+      const errMsg = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to save student record.';
+      setError(String(errMsg));
     } finally {
       setLoading(false);
     }
   };
 
-  // Filter templates based on category tab & search query
-  const filteredTemplates = templates.filter((tpl) => {
+  // Filter templates based on category tab & search query safely
+  const filteredTemplates = Array.isArray(templates) ? templates.filter((tpl) => {
+    if (!tpl) return false;
     const matchesCategory = selectedCategoryTab === 'All' || tpl.category === selectedCategoryTab;
-    const matchesSearch = !templateSearch || tpl.label.toLowerCase().includes(templateSearch.toLowerCase()) || tpl.id.toLowerCase().includes(templateSearch.toLowerCase());
+    const label = String(tpl.label || tpl.id || '').toLowerCase();
+    const tid = String(tpl.id || '').toLowerCase();
+    const q = String(templateSearch || '').toLowerCase();
+    const matchesSearch = !q || label.includes(q) || tid.includes(q);
     return matchesCategory && matchesSearch;
-  });
+  }) : [];
 
   const getBadgeClass = (category) => {
     switch (category) {
