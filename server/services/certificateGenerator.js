@@ -854,7 +854,123 @@ const renderInternationalBusinessDoc = async (baseDoc, page, studentData, custom
   });
 };
 
-// 6. Classic Vector Templates Render (Doctorate, Samaj Seva, Women Icon, etc.)
+// 6. Arya Bhushan Samaj Seva Award / Bhartiya Samaj Seva Award Render
+const renderSamajSevaDoc = async (baseDoc, page, studentData, customDomain) => {
+  const { width: pW, height: pH } = page.getSize();
+  const fontTimesBoldItalic = await baseDoc.embedFont(StandardFonts.TimesRomanBoldItalic);
+  const fontHelv = await baseDoc.embedFont(StandardFonts.Helvetica);
+
+  const cleanRefno = String(studentData.refno || 'IHREO/2026/002').replace(/WCAEO/gi, 'IHREO');
+  const cleanCertNo = String(studentData.certificateNumber || cleanRefno.replace('IHREO/', 'IHREO/CERT/') || 'IHREO/CERT/2026/0002').replace(/WCAEO/gi, 'IHREO');
+
+  // 1. Top Right QR Code
+  try {
+    const domain = resolveAppDomain(customDomain);
+    const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(cleanCertNo)}`;
+    const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 140 });
+    const qrImg = await baseDoc.embedPng(qrBuf);
+    page.drawImage(qrImg, {
+      x: 575,
+      y: pH - (85 + 70),
+      width: 70,
+      height: 70
+    });
+  } catch (qrErr) {
+    console.warn('QR Code generation error:', qrErr.message);
+  }
+
+  // 2. Recipient Name on Underline
+  const nameStr = studentData.fullName || 'Recipient Name';
+  let nameSize = 25;
+  while (nameSize > 12 && fontTimesBoldItalic.widthOfTextAtSize(nameStr, nameSize) > 380) {
+    nameSize -= 0.5;
+  }
+  const nw = fontTimesBoldItalic.widthOfTextAtSize(nameStr, nameSize);
+  page.drawText(nameStr, {
+    x: 417 - (nw / 2),
+    y: pH - 540,
+    size: nameSize,
+    font: fontTimesBoldItalic,
+    color: rgb(0.17, 0.11, 0.09) // Warm dark brown
+  });
+
+  // 3. Date of Issue
+  const dateFormatted = formatIssueDate(studentData.letterIssuedAt, 'DD/MM/YYYY');
+  page.drawText(dateFormatted, {
+    x: 460,
+    y: pH - 860,
+    size: 10.5,
+    font: fontHelv,
+    color: rgb(0.1, 0.1, 0.1)
+  });
+};
+
+// 7. Women Icon Award Render (Circular Ornate Frame)
+const renderWomenIconDoc = async (baseDoc, page, studentData, customDomain) => {
+  const { width: pW, height: pH } = page.getSize();
+  const fontTimesBoldItalic = await baseDoc.embedFont(StandardFonts.TimesRomanBoldItalic);
+  const fontHelv = await baseDoc.embedFont(StandardFonts.Helvetica);
+
+  const cleanRefno = String(studentData.refno || 'IHREO/2026/002').replace(/WCAEO/gi, 'IHREO');
+  const cleanCertNo = String(studentData.certificateNumber || cleanRefno.replace('IHREO/', 'IHREO/CERT/') || 'IHREO/CERT/2026/0002').replace(/WCAEO/gi, 'IHREO');
+
+  // 1. Top Right QR Code
+  try {
+    const domain = resolveAppDomain(customDomain);
+    const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(cleanCertNo)}`;
+    const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 140 });
+    const qrImg = await baseDoc.embedPng(qrBuf);
+    page.drawImage(qrImg, {
+      x: 545,
+      y: pH - (75 + 70),
+      width: 70,
+      height: 70
+    });
+  } catch (qrErr) {
+    console.warn('QR Code generation error:', qrErr.message);
+  }
+
+  // 2. Circular Photo inside Ornate Gold Frame
+  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'circle', '#c49a45', 2.5);
+  if (pImg) {
+    const cx = Math.round(pW / 2);
+    const cy = 460;
+    const r = 85;
+    page.drawImage(pImg, {
+      x: cx - r,
+      y: pH - (cy + r),
+      width: r * 2,
+      height: r * 2
+    });
+  }
+
+  // 3. Recipient Name on Underline
+  const nameStr = studentData.fullName || 'Recipient Name';
+  let nameSize = 24;
+  while (nameSize > 12 && fontTimesBoldItalic.widthOfTextAtSize(nameStr, nameSize) > 360) {
+    nameSize -= 0.5;
+  }
+  const nw = fontTimesBoldItalic.widthOfTextAtSize(nameStr, nameSize);
+  page.drawText(nameStr, {
+    x: (pW - nw) / 2,
+    y: pH - 730,
+    size: nameSize,
+    font: fontTimesBoldItalic,
+    color: rgb(0.08, 0.08, 0.08)
+  });
+
+  // 4. Date of Issue
+  const dateFormatted = formatIssueDate(studentData.letterIssuedAt, 'DD/MM/YYYY');
+  page.drawText(dateFormatted, {
+    x: 420,
+    y: pH - 824,
+    size: 10.5,
+    font: fontHelv,
+    color: rgb(0.1, 0.1, 0.1)
+  });
+};
+
+// 8. Classic Vector Templates Render (Doctorate, etc.)
 const renderClassicVectorDoc = async (baseDoc, page, studentData, templateId, customDomain) => {
   const { width: cW } = page.getSize();
   const fontTimes = await baseDoc.embedFont(StandardFonts.TimesRoman);
@@ -998,6 +1114,10 @@ export const renderIhreDocPdf = async (studentData, templateId, customDomain) =>
     await renderBusinessIconDoc(baseDoc, page, studentData, customDomain);
   } else if (lowerId.includes('business') && lowerId.includes('excellence')) {
     await renderInternationalBusinessDoc(baseDoc, page, studentData, customDomain);
+  } else if (lowerId.includes('samaj') || lowerId.includes('arya')) {
+    await renderSamajSevaDoc(baseDoc, page, studentData, customDomain);
+  } else if (lowerId.includes('women') || (lowerId.includes('icon') && !lowerId.includes('business'))) {
+    await renderWomenIconDoc(baseDoc, page, studentData, customDomain);
   } else {
     await renderClassicVectorDoc(baseDoc, page, studentData, templateId, customDomain);
   }
@@ -1040,7 +1160,7 @@ export const generateCertificate = async (studentData, templateId, customDomain)
             const ph = pImg.height || 480;
 
             if (lowerId.includes('padm') || lowerId.includes('bhushan')) {
-              const cx = 361, cy = 340, r = 70;
+              const cx = 362, cy = 340, r = 71;
               ctx.save();
               ctx.beginPath();
               ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -1058,7 +1178,7 @@ export const generateCertificate = async (studentData, templateId, customDomain)
               ctx.stroke();
             } else if (lowerId.includes('icon') && lowerId.includes('business')) {
               const cx = Math.round(canvas.width / 2);
-              const cy = 500, r = 101;
+              const cy = 502, r = 105;
               ctx.save();
               ctx.beginPath();
               ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -1072,6 +1192,24 @@ export const generateCertificate = async (studentData, templateId, customDomain)
               ctx.beginPath();
               ctx.arc(cx, cy, r, 0, Math.PI * 2);
               ctx.lineWidth = 3;
+              ctx.strokeStyle = '#c49a45';
+              ctx.stroke();
+            } else if (lowerId.includes('women') || (lowerId.includes('icon') && !lowerId.includes('business'))) {
+              const cx = Math.round(canvas.width / 2);
+              const cy = 460, r = 85;
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(cx, cy, r, 0, Math.PI * 2);
+              ctx.closePath();
+              ctx.clip();
+              const scale = Math.max((r * 2) / pw, (r * 2) / ph);
+              const dw = pw * scale, dh = ph * scale;
+              ctx.drawImage(pImg, cx - dw / 2, cy - dh / 2, dw, dh);
+              ctx.restore();
+
+              ctx.beginPath();
+              ctx.arc(cx, cy, r, 0, Math.PI * 2);
+              ctx.lineWidth = 2.5;
               ctx.strokeStyle = '#c49a45';
               ctx.stroke();
             } else if (lowerId.includes('ashok')) {
@@ -1122,15 +1260,6 @@ export const generateCertificate = async (studentData, templateId, customDomain)
         ctx.textAlign = 'center';
         if (lowerId.includes('icon') && lowerId.includes('business')) {
           const cx = Math.round(canvas.width / 2);
-          // Top Left CIN text
-          ctx.textAlign = 'left';
-          ctx.font = 'bold 7.2px Helvetica, Arial, sans-serif';
-          ctx.fillStyle = '#1f2937';
-          ctx.fillText('CIN NO. : U85499DL2025NPL459383', 52, 92);
-          ctx.fillText('Licence No. : 765686', 52, 103);
-          ctx.fillText(`SL No. : ${cleanRef}`, 52, 114);
-          ctx.fillText('Reg No. : 459383', 52, 125);
-
           // Name on ribbon
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -1139,24 +1268,48 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
           ctx.shadowBlur = 3;
           ctx.shadowOffsetY = 1;
-          ctx.fillText(recipientName, cx, 630);
+          ctx.fillText(recipientName, cx, 645);
           ctx.shadowColor = 'transparent';
         } else if (lowerId.includes('padm') || lowerId.includes('bhushan')) {
           ctx.font = 'bold 14px "Times New Roman", serif';
           ctx.fillStyle = '#2a1a08';
-          ctx.fillText(recipientName, 361, 434);
+          ctx.fillText(recipientName, 362, 434);
 
           ctx.font = 'bold 14.5px "Times New Roman", serif';
           ctx.fillStyle = '#b45309';
-          ctx.fillText(category, 361, 612);
+          ctx.fillText(category, 362, 612);
 
           ctx.font = 'bold 26px "Times New Roman", serif';
           ctx.fillStyle = '#111827';
-          ctx.fillText(recipientName, 361, 672);
+          ctx.fillText(recipientName, 362, 672);
 
           ctx.font = 'bold 13px Helvetica, sans-serif';
           ctx.fillStyle = '#1a1a1a';
-          ctx.fillText(studentData.letterIssuedAt || '26-Dec-2025', 361, 728);
+          ctx.fillText(studentData.letterIssuedAt || '26-Dec-2025', 362, 728);
+        } else if (lowerId.includes('samaj') || lowerId.includes('arya')) {
+          // Recipient Name on Underline
+          ctx.textAlign = 'center';
+          ctx.font = 'italic bold 25px "Times New Roman", serif';
+          ctx.fillStyle = '#2b1b17';
+          ctx.fillText(recipientName, 417, 540);
+
+          // Date of Issue
+          const sDate = formatIssueDate(studentData.letterIssuedAt, 'DD/MM/YYYY');
+          ctx.font = '10.5px Helvetica, Arial, sans-serif';
+          ctx.fillStyle = '#1a1a1a';
+          ctx.fillText(sDate, 460, 860);
+        } else if (lowerId.includes('women') || (lowerId.includes('icon') && !lowerId.includes('business'))) {
+          // Recipient Name on Underline
+          ctx.textAlign = 'center';
+          ctx.font = 'italic bold 24px "Times New Roman", serif';
+          ctx.fillStyle = '#111827';
+          ctx.fillText(recipientName, 341, 730);
+
+          // Date of Issue
+          const wDate = formatIssueDate(studentData.letterIssuedAt, 'DD/MM/YYYY');
+          ctx.font = '10.5px Helvetica, Arial, sans-serif';
+          ctx.fillStyle = '#1a1a1a';
+          ctx.fillText(wDate, 420, 824);
         } else if (lowerId.includes('ashok')) {
           ctx.font = 'bold 22px "Times New Roman", serif';
           ctx.fillStyle = '#111827';
@@ -1180,15 +1333,6 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           ctx.fillStyle = '#1a1a1a';
           ctx.fillText(dateStr, 341, 840);
         } else if (lowerId.includes('gaurav')) {
-          // Top Left Registration info
-          ctx.textAlign = 'left';
-          ctx.font = 'bold 7.5px Helvetica, Arial, sans-serif';
-          ctx.fillStyle = '#1f2937';
-          ctx.fillText('CIN NO:- U85499DL2025NPL459383', 75, 122);
-          ctx.fillText('Licence No. : 176556', 75, 134);
-          ctx.fillText(`Sl. No. ${cleanRef}`, 75, 146);
-          ctx.fillText('Reg No. 459383', 75, 158);
-
           // Center Text
           ctx.textAlign = 'center';
           ctx.font = 'bold 22px "Times New Roman", serif';
@@ -1211,17 +1355,8 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           const dateStr = `Date of Issue : ${studentData.letterIssuedAt || '26-12-2025'}`;
           ctx.font = '10.5px Helvetica, sans-serif';
           ctx.fillStyle = '#1a1a1a';
-          ctx.fillText(dateStr, 341, 905);
+          ctx.fillText(dateStr, 341, 896);
         } else if (lowerId.includes('business')) {
-          // Top Left Registration info
-          ctx.textAlign = 'left';
-          ctx.font = 'bold 7.5px Helvetica, Arial, sans-serif';
-          ctx.fillStyle = '#1f2937';
-          ctx.fillText('CIN NO:- U85499DL2025NPL459383', 95, 118);
-          ctx.fillText('Licence No:- 176566', 95, 130);
-          ctx.fillText(`Sl. No. ${cleanRef}`, 95, 142);
-          ctx.fillText('Reg No. 459383', 95, 154);
-
           // Recipient Name on Underline
           ctx.textAlign = 'center';
           ctx.font = 'italic bold 25px "Times New Roman", serif';
@@ -1247,10 +1382,14 @@ export const generateCertificate = async (studentData, templateId, customDomain)
             ctx.drawImage(qrImg, 535, 75, 72, 72);
           } else if (lowerId.includes('padm')) {
             ctx.drawImage(qrImg, 558, 90, 70, 70);
-          } else if (lowerId.includes('icon')) {
-            ctx.drawImage(qrImg, 560, 80, 72, 72);
+          } else if (lowerId.includes('icon') && lowerId.includes('business')) {
+            ctx.drawImage(qrImg, 575, 80, 70, 70);
           } else if (lowerId.includes('business')) {
             ctx.drawImage(qrImg, 575, 87, 70, 70);
+          } else if (lowerId.includes('samaj') || lowerId.includes('arya')) {
+            ctx.drawImage(qrImg, 575, 85, 70, 70);
+          } else if (lowerId.includes('women') || lowerId.includes('icon')) {
+            ctx.drawImage(qrImg, 545, 75, 70, 70);
           }
         } catch {}
 

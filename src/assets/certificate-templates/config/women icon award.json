@@ -1,0 +1,29 @@
+{
+  "id": "women icon award",
+  "alias": "Women Icon Award",
+  "title": "Women Icon Award",
+  "category": "Business & Excellence",
+  "width": 682,
+  "height": 1024,
+  "photo": {
+    "type": "circle",
+    "centerX": 341,
+    "centerY": 460,
+    "radius": 85,
+    "borderColor": "#c49a45",
+    "borderWidth": 2.5
+  },
+  "nameLine": {
+    "x": 341,
+    "y": 730
+  },
+  "dateLine": {
+    "x": 420,
+    "y": 824
+  },
+  "qrCode": {
+    "x": 545,
+    "y": 75,
+    "size": 70
+  }
+}

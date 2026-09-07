@@ -1,0 +1,22 @@
+{
+  "id": "Bhartiya Samaj Seva award",
+  "alias": "Arya Bhushan Samaj Seva Award",
+  "title": "Arya Bhushan Samaj Seva Award",
+  "category": "National Honors",
+  "width": 728,
+  "height": 1024,
+  "nameLine": {
+    "x": 417,
+    "y": 540,
+    "width": 400
+  },
+  "dateLine": {
+    "x": 460,
+    "y": 860
+  },
+  "qrCode": {
+    "x": 575,
+    "y": 85,
+    "size": 70
+  }
+}

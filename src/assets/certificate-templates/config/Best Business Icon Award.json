@@ -2,19 +2,19 @@
   "id": "Best Business Icon Award",
   "title": "Best Business Icon Award",
   "category": "Business & Excellence",
-  "width": 696,
+  "width": 714,
   "height": 1024,
   "photo": {
     "type": "circle",
-    "centerX": 348,
-    "centerY": 500,
-    "radius": 101,
+    "centerX": 357,
+    "centerY": 502,
+    "radius": 105,
     "borderColor": "#c49a45",
     "borderWidth": 2.5
   },
   "qrCode": {
-    "x": 560,
+    "x": 575,
     "y": 80,
-    "size": 72
+    "size": 70
   }
 }

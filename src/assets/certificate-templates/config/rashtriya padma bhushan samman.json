@@ -1,15 +1,15 @@
 {
-  "id": "rashtriya padma bhushan samman",
-  "alias": "Bhartiya Padma Bhushan Samman",
+  "id": "Bhartiya Padma Bhushan Samman",
+  "alias": "rashtriya padma bhushan samman",
   "title": "Bhartiya Padma Bhushan Samman",
   "category": "National Honors",
   "width": 723,
   "height": 1024,
   "photo": {
     "type": "circle",
-    "centerX": 361,
+    "centerX": 362,
     "centerY": 340,
-    "radius": 70,
+    "radius": 71,
     "borderColor": "#c49a45",
     "borderWidth": 2.5
   },

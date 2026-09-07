@@ -232,7 +232,7 @@ const StudentForm = () => {
           const ph = pImg.height || 480;
 
           if (tid.includes('padm') || tid.includes('bhushan')) {
-            const cx = 361, cy = 340, r = 70;
+            const cx = 362, cy = 340, r = 71;
             ctx.save();
             ctx.beginPath();
             ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -250,7 +250,7 @@ const StudentForm = () => {
             ctx.stroke();
           } else if (tid.includes('icon') && tid.includes('business')) {
             const cx = Math.round(canvas.width / 2);
-            const cy = 500, r = 101;
+            const cy = 502, r = 105;
             ctx.save();
             ctx.beginPath();
             ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -266,6 +266,24 @@ const StudentForm = () => {
             ctx.lineWidth = 3;
             ctx.strokeStyle = '#c49a45';
             ctx.stroke();
+          } else if (tid.includes('women') || (tid.includes('icon') && !tid.includes('business'))) {
+            const cx = Math.round(canvas.width / 2);
+            const cy = 460, r = 85;
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+            const scale = Math.max((r * 2) / pw, (r * 2) / ph);
+            const dw = pw * scale, dh = ph * scale;
+            ctx.drawImage(pImg, cx - dw / 2, cy - dh / 2, dw, dh);
+            ctx.restore();
+
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = '#c49a45';
+            ctx.stroke();
           } else if (tid.includes('ashok')) {
             ctx.drawImage(pImg, 280, 563, 122, 137);
           } else if (tid.includes('gaurav')) {
@@ -276,7 +294,6 @@ const StudentForm = () => {
             else ctx.rect(px, py, pw, ph);
             ctx.closePath();
             ctx.clip();
-            const scale = Math.max(pw / pw, ph / ph);
             const scaleFit = Math.max(pw / pImg.width, ph / pImg.height);
             const dw = pImg.width * scaleFit, dh = pImg.height * scaleFit;
             ctx.drawImage(pImg, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh);
@@ -288,7 +305,7 @@ const StudentForm = () => {
             ctx.lineWidth = 2.5;
             ctx.strokeStyle = '#cda250';
             ctx.stroke();
-          } else if (tid.includes('business')) {
+          } else if (tid.includes('business') && tid.includes('excellence')) {
             const px = 312, py = 356, pw = 110, ph = 130, radius = 6;
             ctx.save();
             ctx.beginPath();
@@ -307,7 +324,7 @@ const StudentForm = () => {
             ctx.lineWidth = 1.5;
             ctx.strokeStyle = '#444444';
             ctx.stroke();
-          } else {
+          } else if (!tid.includes('samaj') && !tid.includes('arya')) {
             ctx.drawImage(pImg, 253, 377, 88, 95);
           }
         };
@@ -323,31 +340,22 @@ const StudentForm = () => {
       if (tid.includes('padm') || tid.includes('bhushan')) {
         ctx.font = 'bold 14px "Times New Roman", serif';
         ctx.fillStyle = '#2a1a08';
-        ctx.fillText(name, 361, 434);
+        ctx.fillText(name, 362, 434);
 
         ctx.font = 'bold 14.5px "Times New Roman", serif';
         ctx.fillStyle = '#b45309';
-        ctx.fillText(category, 361, 612);
+        ctx.fillText(category, 362, 612);
 
         ctx.font = 'bold 26px "Times New Roman", serif';
         ctx.fillStyle = '#111827';
-        ctx.fillText(name, 361, 672);
+        ctx.fillText(name, 362, 672);
 
         ctx.font = 'bold 13px "Helvetica", sans-serif';
         ctx.fillStyle = '#1a1a1a';
-        ctx.fillText(formData.letterIssuedAt || '26-Dec-2025', 361, 728);
+        ctx.fillText(formData.letterIssuedAt || '26-Dec-2025', 362, 728);
       } else if (tid.includes('icon') && tid.includes('business')) {
         const cx = Math.round(canvas.width / 2);
-        // Top-left registration info
-        ctx.textAlign = 'left';
-        ctx.font = 'bold 7.2px Helvetica, Arial, sans-serif';
-        ctx.fillStyle = '#1f2937';
-        ctx.fillText('CIN NO. : U85499DL2025NPL459383', 52, 92);
-        ctx.fillText('Licence No. : 765686', 52, 103);
-        ctx.fillText(`SL No. : ${formData.refno || 'IHREO/2026/038'}`, 52, 114);
-        ctx.fillText('Reg No. : 459383', 52, 125);
-
-        // Name on Ribbon
+        // Name on Blue Ribbon
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.font = 'bold 28px "Times New Roman", serif';
@@ -355,8 +363,32 @@ const StudentForm = () => {
         ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
         ctx.shadowBlur = 3;
         ctx.shadowOffsetY = 1;
-        ctx.fillText(name, cx, 630);
+        ctx.fillText(name, cx, 645);
         ctx.shadowColor = 'transparent';
+      } else if (tid.includes('samaj') || tid.includes('arya')) {
+        // Recipient Name on Underline
+        ctx.textAlign = 'center';
+        ctx.font = 'italic bold 25px "Times New Roman", serif';
+        ctx.fillStyle = '#2b1b17';
+        ctx.fillText(name, 417, 540);
+
+        // Date of Issue
+        const sDate = formData.letterIssuedAt || '26/12/2025';
+        ctx.font = '10.5px Helvetica, Arial, sans-serif';
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillText(sDate, 460, 860);
+      } else if (tid.includes('women') || (tid.includes('icon') && !tid.includes('business'))) {
+        // Recipient Name on Underline
+        ctx.textAlign = 'center';
+        ctx.font = 'italic bold 24px "Times New Roman", serif';
+        ctx.fillStyle = '#111827';
+        ctx.fillText(name, 341, 730);
+
+        // Date of Issue
+        const wDate = formData.letterIssuedAt || '26/12/2025';
+        ctx.font = '10.5px Helvetica, Arial, sans-serif';
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillText(wDate, 420, 824);
       } else if (tid.includes('ashok')) {
         ctx.font = 'bold 22px "Times New Roman", serif';
         ctx.fillStyle = '#111827';
@@ -379,15 +411,6 @@ const StudentForm = () => {
         ctx.fillStyle = '#1a1a1a';
         ctx.fillText(dateStr, 341, 840);
       } else if (tid.includes('gaurav')) {
-        // Top-left registration info
-        ctx.textAlign = 'left';
-        ctx.font = 'bold 7.5px Helvetica, Arial, sans-serif';
-        ctx.fillStyle = '#1f2937';
-        ctx.fillText('CIN NO:- U85499DL2025NPL459383', 75, 122);
-        ctx.fillText('Licence No. : 176556', 75, 134);
-        ctx.fillText(`Sl. No. ${formData.refno || '459383/HRE0001'}`, 75, 146);
-        ctx.fillText('Reg No. 459383', 75, 158);
-
         // Center text
         ctx.textAlign = 'center';
         ctx.font = 'bold 22px "Times New Roman", serif';
@@ -407,19 +430,11 @@ const StudentForm = () => {
         ctx.fillText(`For his exceptional work as a ${category}, notable accomplishments,`, 341, 863);
         ctx.fillText('and significant contributions towards the progress of the nation.', 341, 881);
 
+        const gDate = formData.letterIssuedAt || '26-12-2025';
         ctx.font = '10.5px "Helvetica", sans-serif';
         ctx.fillStyle = '#1a1a1a';
-        ctx.fillText(dateStr, 341, 905);
+        ctx.fillText(gDate, 440, 896);
       } else if (tid.includes('business')) {
-        // Top-left registration info
-        ctx.textAlign = 'left';
-        ctx.font = 'bold 7.5px Helvetica, Arial, sans-serif';
-        ctx.fillStyle = '#1f2937';
-        ctx.fillText('CIN NO:- U85499DL2025NPL459383', 95, 118);
-        ctx.fillText('Licence No:- 176566', 95, 130);
-        ctx.fillText(`Sl. No. ${formData.refno || '459383/IHREO028'}`, 95, 142);
-        ctx.fillText('Reg No. 459383', 95, 154);
-
         // Recipient Name on Underline
         ctx.textAlign = 'center';
         ctx.font = 'italic bold 25px "Times New Roman", serif';

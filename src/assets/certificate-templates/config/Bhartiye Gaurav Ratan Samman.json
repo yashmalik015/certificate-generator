@@ -2,7 +2,7 @@
   "id": "Bhartiye Gaurav Ratan Samman",
   "title": "Bhartiye Gaurav Ratan Samman",
   "category": "National Honors",
-  "width": 682,
+  "width": 681,
   "height": 1024,
   "photo": {
     "type": "rect",
@@ -15,8 +15,8 @@
     "borderWidth": 2.5
   },
   "qrCode": {
-    "x": 525,
-    "y": 100,
+    "x": 535,
+    "y": 75,
     "size": 72
   }
 }
