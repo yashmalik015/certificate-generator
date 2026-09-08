@@ -756,9 +756,8 @@ export const renderIhreDocPdf = async (studentData, templateId, customDomain) =>
 
 // ── Award Certificate Generator (PDF + PNG) ──────────────────────────────────
 export const generateCertificate = async (studentData, templateId, customDomain) => {
-  const uploadsDir = path.resolve(__dirname, '../uploads/certificates');
   if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
+    try { fs.mkdirSync(uploadsDir, { recursive: true }); } catch (e) {}
   }
 
   const rawCertNo = studentData.refno || studentData.registrationNumber || studentData.enrollmentNumber || 'CERT';
@@ -767,9 +766,10 @@ export const generateCertificate = async (studentData, templateId, customDomain)
   const name = `${certNumber}-${cleanId}`;
   const pdfPath = path.join(uploadsDir, `${name}.pdf`);
   const pngPath = path.join(uploadsDir, `${name}.png`);
+  let pdfBytes = null;
 
   try {
-    const pdfBytes = await renderIhreDocPdf(studentData, templateId, customDomain);
+    pdfBytes = await renderIhreDocPdf(studentData, templateId, customDomain);
     fs.writeFileSync(pdfPath, pdfBytes);
 
     // Also generate PNG representation for instant web preview
@@ -930,7 +930,8 @@ export const generateCertificate = async (studentData, templateId, customDomain)
   return {
     templateId,
     pngUrl: `/uploads/certificates/${name}.png`,
-    pdfUrl: `/uploads/certificates/${name}.pdf`
+    pdfUrl: `/uploads/certificates/${name}.pdf`,
+    pdfBytes
   };
 };
 
@@ -943,6 +944,7 @@ export const generateIdCard = async (studentData, customDomain) => {
   const name = `${sanitize(cleanRef)}-id-card`;
   const pdfPath = path.join(uploadsDir, `${name}.pdf`);
   const pngPath = path.join(uploadsDir, `${name}.png`);
+  let pdfBytes = null;
   try {
     const idTemplatePath = findTemplateFile('universal-id-card', ['.pdf']) || path.join(templatesDir, 'universal-id-card.pdf');
     const baseDoc = await PDFDocument.load(fs.readFileSync(idTemplatePath));
@@ -979,7 +981,7 @@ export const generateIdCard = async (studentData, customDomain) => {
     page.drawText(`: ${studentData.nationality || 'Indian'}`, { x: 114, y: 46, size: 7.5, font: fontBold, color: rgb(0.1, 0.1, 0.1) });
     page.drawText(`: ${dateFormatted}`, { x: 114, y: 35, size: 7.5, font: fontBold, color: rgb(0.1, 0.1, 0.1) });
 
-    const pdfBytes = await baseDoc.save();
+    pdfBytes = await baseDoc.save();
     fs.writeFileSync(pdfPath, pdfBytes);
     if (!fs.existsSync(pngPath)) fs.writeFileSync(pngPath, Buffer.from([]));
   } catch (err) {
@@ -988,7 +990,8 @@ export const generateIdCard = async (studentData, customDomain) => {
   return {
     templateId,
     pngUrl: `/uploads/certificates/${name}.png`,
-    pdfUrl: `/uploads/certificates/${name}.pdf`
+    pdfUrl: `/uploads/certificates/${name}.pdf`,
+    pdfBytes
   };
 };
 
@@ -1001,6 +1004,7 @@ export const generateMembershipCert = async (studentData, customDomain) => {
   const name = `${sanitize(cleanRef)}-membership`;
   const pdfPath = path.join(uploadsDir, `${name}.pdf`);
   const pngPath = path.join(uploadsDir, `${name}.png`);
+  let pdfBytes = null;
   try {
     const memTemplatePath = findTemplateFile('universal-membership-certificate', ['.pdf']) || path.join(templatesDir, 'universal-membership-certificate.pdf');
     const baseDoc = await PDFDocument.load(fs.readFileSync(memTemplatePath));
@@ -1066,7 +1070,7 @@ export const generateMembershipCert = async (studentData, customDomain) => {
       color: rgb(0.12, 0.12, 0.12)
     });
 
-    const pdfBytes = await baseDoc.save();
+    pdfBytes = await baseDoc.save();
     fs.writeFileSync(pdfPath, pdfBytes);
     if (!fs.existsSync(pngPath)) fs.writeFileSync(pngPath, Buffer.from([]));
   } catch (err) {
@@ -1075,6 +1079,7 @@ export const generateMembershipCert = async (studentData, customDomain) => {
   return {
     templateId,
     pngUrl: `/uploads/certificates/${name}.png`,
-    pdfUrl: `/uploads/certificates/${name}.pdf`
+    pdfUrl: `/uploads/certificates/${name}.pdf`,
+    pdfBytes
   };
 };

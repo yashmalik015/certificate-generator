@@ -278,7 +278,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
       if (mongoose.Types.ObjectId.isValid(req.params.id)) {
         student = await Student.findById(req.params.id);
       } else {
-        student = await Student.findOne({ $or: [{ _id: req.params.id }, { refno: req.params.id }, { certificateNumber: req.params.id }] });
+        const idAlt = req.params.id.replace(/_/g, '/');
+        student = await Student.findOne({ $or: [{ refno: req.params.id }, { certificateNumber: req.params.id }, { refno: idAlt }, { certificateNumber: idAlt }] });
       }
 
       if (student) {
@@ -335,7 +336,8 @@ router.delete('/:id', authMiddleware, async (req, res) => {
       if (mongoose.Types.ObjectId.isValid(id)) {
         await Student.findByIdAndDelete(id);
       } else {
-        await Student.deleteOne({ $or: [{ _id: id }, { refno: id }, { certificateNumber: id }] });
+        const idAlt = id.replace(/_/g, '/');
+        await Student.deleteOne({ $or: [{ refno: id }, { certificateNumber: id }, { refno: idAlt }, { certificateNumber: idAlt }] });
       }
     }
     global._mockStudentsStore = global._mockStudentsStore.filter(
@@ -383,9 +385,9 @@ router.get('/:id/certificate/:templateId/download', authMiddleware, async (req, 
     if (mongoose.connection.readyState === 1) {
       if (mongoose.Types.ObjectId.isValid(id)) {
         student = await Student.findById(id);
-      }
-      if (!student) {
-        student = await Student.findOne({ $or: [{ _id: id }, { refno: id }, { certificateNumber: id }] });
+      } else {
+        const idAlt = id.replace(/_/g, '/');
+        student = await Student.findOne({ $or: [{ refno: id }, { certificateNumber: id }, { refno: idAlt }, { certificateNumber: idAlt }] });
       }
     }
 
@@ -421,11 +423,24 @@ router.get('/:id/certificate/:templateId/download', authMiddleware, async (req, 
       ? path.join('/tmp', relativeUrl.replace(/^\//, ''))
       : path.resolve(__dirname, '..', relativeUrl.replace(/^\//, ''));
 
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).send('Certificate file not found on server.');
+    const rawCertNo = student.refno || student.registrationNumber || 'CERT';
+    const cleanCertNo = String(rawCertNo).replace(/[\/\s:\\]/g, '_');
+    const cleanTid = String(templateId || 'Certificate').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const downloadFileName = `${cleanCertNo}-${cleanTid}.${format}`;
+
+    res.setHeader('Content-Type', format === 'png' ? 'image/png' : 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${downloadFileName}"`);
+
+    if (fs.existsSync(filePath)) {
+      const fileBuffer = fs.readFileSync(filePath);
+      return res.send(fileBuffer);
     }
 
-    return res.download(filePath);
+    if (format === 'pdf' && certRes.pdfBytes) {
+      return res.send(Buffer.from(certRes.pdfBytes));
+    }
+
+    return res.status(404).send('Certificate file not found on server.');
   } catch (err) {
     console.error('Download certificate error:', err);
     return res.status(500).send('Error downloading certificate.');

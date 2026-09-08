@@ -40,9 +40,12 @@ export const sendCertificateEmail = async (student, certificateItems) => {
   }
 
   const attachments = [];
+  const isVercel = Boolean(process.env.VERCEL || process.env.NOW_REGION);
   certificateItems.forEach((item) => {
     if (item.pdfUrl) {
-      const pdfPath = path.resolve(__dirname, '..', item.pdfUrl.replace(/^\//, ''));
+      const pdfPath = isVercel
+        ? path.join('/tmp', item.pdfUrl.replace(/^\//, ''))
+        : path.resolve(__dirname, '..', item.pdfUrl.replace(/^\//, ''));
       if (fs.existsSync(pdfPath)) {
         attachments.push({
           filename: `${student.fullName.replace(/\s+/g, '_')}_${item.templateId}.pdf`,
