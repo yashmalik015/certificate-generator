@@ -62,12 +62,10 @@ async function runTests() {
     eventId: eventsRes.body[0]._id,
     subjectId: subjectsRes.body[0]._id,
     certificateTemplateIds: [
-      'Bhartiye Ashok Samman',
-      'Best Business Icon Award',
+      'Doctorate IHREO',
+      'Bhartiya Samaj Seva award',
       'rashtriya padma bhushan samman',
-      'Bhartiye Gaurav Ratan Samman',
-      'INTERNATIONAL BUSINESS EXCELLENCE AWARD',
-      'Doctorate IHREO'
+      'INTERNATIONAL BUSINESS EXCELLENCE AWARD'
     ],
     photoUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
     status: 'Active'

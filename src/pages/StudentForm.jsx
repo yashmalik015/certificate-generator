@@ -154,23 +154,6 @@ const StudentForm = () => {
     setFormData((prev) => ({ ...prev, certificateTemplateIds: [] }));
   };
 
-  const handleSelectNewDesigns = () => {
-    const newDesignIds = [
-      'Bhartiye Ashok Samman',
-      'Best Business Icon Award',
-      'rashtriya padma bhushan samman',
-      'Bhartiye Gaurav Ratan Samman',
-      'INTERNATIONAL BUSINESS EXCELLENCE AWARD'
-    ];
-    setFormData((prev) => {
-      const current = Array.isArray(prev.certificateTemplateIds) ? prev.certificateTemplateIds : [];
-      return {
-        ...prev,
-        certificateTemplateIds: Array.from(new Set([...current, ...newDesignIds]))
-      };
-    });
-  };
-
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -232,10 +215,11 @@ const StudentForm = () => {
     const ctx = canvas.getContext('2d');
     setPreviewLoading(true);
 
-    const tid = previewingTemplate.id.toLowerCase();
     const candidateUrls = [
       `/assets/certificate-templates/${encodeURIComponent(previewingTemplate.id)}.png`,
       `/certificate-templates/${encodeURIComponent(previewingTemplate.id)}.png`,
+      `/assets/certificate-templates/Doctorate IHREO.png`,
+      `/certificate-templates/Doctorate IHREO.png`,
       `/api/certificate-templates/${encodeURIComponent(previewingTemplate.id)}/preview`,
       previewingTemplate.previewUrl
     ].filter(Boolean);
@@ -251,234 +235,161 @@ const StudentForm = () => {
 
       const pW = canvas.width;
       const pH = canvas.height;
-
-      // Draw Photo
-      if (formData.photoUrl) {
-        const pImg = new Image();
-        pImg.onload = () => {
-          const pw = pImg.width || 400;
-          const ph = pImg.height || 480;
-
-          if (tid.includes('padm') || tid.includes('bhushan')) {
-            const cx = 362, cy = 340, r = 71;
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(cx, cy, r, 0, Math.PI * 2);
-            ctx.closePath();
-            ctx.clip();
-            const scale = Math.max((r * 2) / pw, (r * 2) / ph);
-            const dw = pw * scale, dh = ph * scale;
-            ctx.drawImage(pImg, cx - dw / 2, cy - dh / 2, dw, dh);
-            ctx.restore();
-
-            ctx.beginPath();
-            ctx.arc(cx, cy, r, 0, Math.PI * 2);
-            ctx.lineWidth = 2.5;
-            ctx.strokeStyle = '#c49a45';
-            ctx.stroke();
-          } else if (tid.includes('icon') && tid.includes('business')) {
-            const cx = Math.round(canvas.width / 2);
-            const cy = 502, r = 105;
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(cx, cy, r, 0, Math.PI * 2);
-            ctx.closePath();
-            ctx.clip();
-            const scale = Math.max((r * 2) / pw, (r * 2) / ph);
-            const dw = pw * scale, dh = ph * scale;
-            ctx.drawImage(pImg, cx - dw / 2, cy - dh / 2, dw, dh);
-            ctx.restore();
-
-            ctx.beginPath();
-            ctx.arc(cx, cy, r, 0, Math.PI * 2);
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = '#c49a45';
-            ctx.stroke();
-          } else if (tid.includes('women') || (tid.includes('icon') && !tid.includes('business'))) {
-            const cx = Math.round(canvas.width / 2);
-            const cy = 460, r = 85;
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(cx, cy, r, 0, Math.PI * 2);
-            ctx.closePath();
-            ctx.clip();
-            const scale = Math.max((r * 2) / pw, (r * 2) / ph);
-            const dw = pw * scale, dh = ph * scale;
-            ctx.drawImage(pImg, cx - dw / 2, cy - dh / 2, dw, dh);
-            ctx.restore();
-
-            ctx.beginPath();
-            ctx.arc(cx, cy, r, 0, Math.PI * 2);
-            ctx.lineWidth = 2.5;
-            ctx.strokeStyle = '#c49a45';
-            ctx.stroke();
-          } else if (tid.includes('ashok')) {
-            ctx.drawImage(pImg, 280, 563, 122, 137);
-          } else if (tid.includes('gaurav')) {
-            const px = 255, py = 560, pw = 172, ph = 196, radius = 10;
-            ctx.save();
-            ctx.beginPath();
-            if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, radius);
-            else ctx.rect(px, py, pw, ph);
-            ctx.closePath();
-            ctx.clip();
-            const scaleFit = Math.max(pw / pImg.width, ph / pImg.height);
-            const dw = pImg.width * scaleFit, dh = pImg.height * scaleFit;
-            ctx.drawImage(pImg, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh);
-            ctx.restore();
-
-            ctx.beginPath();
-            if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, radius);
-            else ctx.rect(px, py, pw, ph);
-            ctx.lineWidth = 2.5;
-            ctx.strokeStyle = '#cda250';
-            ctx.stroke();
-          } else if (tid.includes('business') && tid.includes('excellence')) {
-            const px = 312, py = 356, pw = 110, ph = 130, radius = 6;
-            ctx.save();
-            ctx.beginPath();
-            if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, radius);
-            else ctx.rect(px, py, pw, ph);
-            ctx.closePath();
-            ctx.clip();
-            const scaleFit = Math.max(pw / pImg.width, ph / pImg.height);
-            const dw = pImg.width * scaleFit, dh = pImg.height * scaleFit;
-            ctx.drawImage(pImg, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh);
-            ctx.restore();
-
-            ctx.beginPath();
-            if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, radius);
-            else ctx.rect(px, py, pw, ph);
-            ctx.lineWidth = 1.5;
-            ctx.strokeStyle = '#444444';
-            ctx.stroke();
-          } else if (!tid.includes('samaj') && !tid.includes('arya')) {
-            ctx.drawImage(pImg, 253, 377, 88, 95);
-          }
-        };
-        pImg.src = formData.photoUrl;
-      }
-
-      // Draw Recipient Name, Category & Date
-      const name = formData.fullName || 'Recipient Full Name';
+      const name = (formData.fullName || 'Recipient Full Name').toUpperCase();
       const category = formData.category || 'For Outstanding Distinction & Excellence';
-      const dateStr = formData.letterIssuedAt ? `Date of Issue : ${formData.letterIssuedAt}` : 'Date of Issue : 26-12-2025';
-      ctx.textAlign = 'center';
+      const dateFormatted = formData.letterIssuedAt
+        ? formData.letterIssuedAt.split('-').reverse().join('-')
+        : new Date().toISOString().split('T')[0].split('-').reverse().join('-');
 
-      if (tid.includes('padm') || tid.includes('bhushan')) {
-        ctx.font = 'bold 14px "Times New Roman", serif';
-        ctx.fillStyle = '#2a1a08';
-        ctx.fillText(name, 362, 434);
+      const lowerId = String(previewingTemplate.id || '').toLowerCase();
 
-        ctx.font = 'bold 14.5px "Times New Roman", serif';
-        ctx.fillStyle = '#b45309';
-        ctx.fillText(category, 362, 612);
+      if (lowerId.includes('doctorate')) {
+        if (formData.photoUrl) {
+          const pImg = new Image();
+          pImg.onload = () => {
+            ctx.save();
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(253, 377, 88, 95, 4);
+            else ctx.rect(253, 377, 88, 95);
+            ctx.closePath();
+            ctx.clip();
+            ctx.drawImage(pImg, 253, 377, 88, 95);
+            ctx.restore();
 
-        ctx.font = 'bold 26px "Times New Roman", serif';
-        ctx.fillStyle = '#111827';
-        ctx.fillText(name, 362, 672);
-
-        ctx.font = 'bold 13px "Helvetica", sans-serif';
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillText(formData.letterIssuedAt || '26-Dec-2025', 362, 728);
-      } else if (tid.includes('icon') && tid.includes('business')) {
-        const cx = Math.round(canvas.width / 2);
-        // Name on Blue Ribbon
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(253, 377, 88, 95, 4);
+            else ctx.rect(253, 377, 88, 95);
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = '#222222';
+            ctx.stroke();
+          };
+          pImg.src = formData.photoUrl;
+        }
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = 'bold 28px "Times New Roman", serif';
-        ctx.fillStyle = '#f8e6a0';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-        ctx.shadowBlur = 3;
-        ctx.shadowOffsetY = 1;
-        ctx.fillText(name, cx, 645);
-        ctx.shadowColor = 'transparent';
-      } else if (tid.includes('samaj') || tid.includes('arya')) {
-        // Recipient Name on Underline
-        ctx.textAlign = 'center';
-        ctx.font = 'italic bold 25px "Times New Roman", serif';
-        ctx.fillStyle = '#2b1b17';
-        ctx.fillText(name, 417, 540);
-
-        // Date of Issue
-        const sDate = formData.letterIssuedAt || '26/12/2025';
-        ctx.font = '10.5px Helvetica, Arial, sans-serif';
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillText(sDate, 460, 860);
-      } else if (tid.includes('women') || (tid.includes('icon') && !tid.includes('business'))) {
-        // Recipient Name on Underline
-        ctx.textAlign = 'center';
-        ctx.font = 'italic bold 24px "Times New Roman", serif';
-        ctx.fillStyle = '#111827';
-        ctx.fillText(name, 341, 730);
-
-        // Date of Issue
-        const wDate = formData.letterIssuedAt || '26/12/2025';
-        ctx.font = '10.5px Helvetica, Arial, sans-serif';
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillText(wDate, 420, 824);
-      } else if (tid.includes('ashok')) {
-        ctx.font = 'bold 22px "Times New Roman", serif';
-        ctx.fillStyle = '#111827';
-        ctx.fillText(name, 341, 724);
-
-        ctx.font = '13px "Times New Roman", serif';
-        ctx.fillStyle = '#222222';
-        ctx.fillText('And is honored with the title', 341, 748);
-
         ctx.font = 'bold 17px "Times New Roman", serif';
-        ctx.fillStyle = '#8B1E0F';
-        ctx.fillText('“Bhartiye Ashok Samman”', 341, 772);
-
-        ctx.font = '11px "Times New Roman", serif';
-        ctx.fillStyle = '#222222';
-        ctx.fillText(`For his exceptional ${category.toLowerCase().startsWith('social') ? category : 'work in ' + category}, notable accomplishments,`, 341, 796);
-        ctx.fillText('and significant contributions towards the progress of the nation.', 341, 812);
-
-        ctx.font = '10.5px "Helvetica", sans-serif';
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillText(dateStr, 341, 840);
-      } else if (tid.includes('gaurav')) {
-        // Center text
-        ctx.textAlign = 'center';
-        ctx.font = 'bold 22px "Times New Roman", serif';
-        ctx.fillStyle = '#111827';
-        ctx.fillText(name, 341, 783);
-
-        ctx.font = '13px "Times New Roman", serif';
-        ctx.fillStyle = '#222222';
-        ctx.fillText('And is honored with the title', 341, 810);
-
-        ctx.font = 'bold 17px "Times New Roman", serif';
-        ctx.fillStyle = '#1e5422';
-        ctx.fillText('“Bhartiye Gaurav Ratan Samman”', 341, 836);
-
-        ctx.font = '11.5px "Times New Roman", serif';
-        ctx.fillStyle = '#222222';
-        ctx.fillText(`For his exceptional work as a ${category}, notable accomplishments,`, 341, 863);
-        ctx.fillText('and significant contributions towards the progress of the nation.', 341, 881);
-
-        const gDate = formData.letterIssuedAt || '26-12-2025';
-        ctx.font = '10.5px "Helvetica", sans-serif';
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillText(gDate, 440, 896);
-      } else if (tid.includes('business')) {
-        // Recipient Name on Underline
-        ctx.textAlign = 'center';
-        ctx.font = 'italic bold 25px "Times New Roman", serif';
-        ctx.fillStyle = '#2b1b17';
-        ctx.fillText(name, 412, 549);
-
-        // Date of Issue
-        const intlDate = formData.letterIssuedAt || '18/02/26';
-        ctx.font = '10.5px Helvetica, Arial, sans-serif';
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillText(`Date of Issue : ${intlDate}`, 366, 860);
-      } else {
-        ctx.font = 'bold 18px "Times New Roman", serif';
         ctx.fillStyle = '#111827';
         ctx.fillText(name, pW / 2, 280);
+
+        ctx.font = 'bold 13.5px "Times New Roman", serif';
+        ctx.fillStyle = '#dc2626';
+        ctx.fillText(category, pW / 2, 202);
+
+        const dateStr = formData.letterIssuedAt ? `Date of Issue : ${formData.letterIssuedAt}` : `Date of Issue : ${new Date().toISOString().split('T')[0]}`;
+        ctx.font = '9.5px Helvetica, Arial, sans-serif';
+        ctx.fillStyle = '#1f2937';
+        ctx.fillText(dateStr, pW / 2, 138);
+      } else if (lowerId.includes('padma') || lowerId.includes('padm')) {
+        if (formData.photoUrl) {
+          const pImg = new Image();
+          pImg.onload = () => {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(pW / 2, 340, 72, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.drawImage(pImg, pW / 2 - 72, 340 - 72, 144, 144);
+            ctx.restore();
+          };
+          pImg.src = formData.photoUrl;
+        }
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = 'bold 16.5px "Times New Roman", serif';
+        ctx.fillStyle = '#102a4e';
+        ctx.fillText(name, pW / 2, 435);
+
+        ctx.textBaseline = 'alphabetic';
+        ctx.font = 'bold 13px "Times New Roman", serif';
+        ctx.fillStyle = '#991b1b';
+        ctx.fillText(category, pW / 2, 590);
+
+        ctx.textAlign = 'left';
+        ctx.font = 'bold 10px Helvetica, Arial, sans-serif';
+        ctx.fillStyle = '#1f2937';
+        ctx.fillText(dateFormatted, 485, 896);
+      } else if (lowerId.includes('business')) {
+        if (formData.photoUrl) {
+          const pImg = new Image();
+          pImg.onload = () => {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(pW / 2, 485, 108, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.drawImage(pImg, pW / 2 - 108, 485 - 108, 216, 216);
+            ctx.restore();
+          };
+          pImg.src = formData.photoUrl;
+        }
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = 'bold 19px "Times New Roman", serif';
+        ctx.fillStyle = '#fde088';
+        ctx.fillText(name, pW / 2, 626);
+
+        ctx.textBaseline = 'alphabetic';
+        ctx.font = 'bold 10px Helvetica, Arial, sans-serif';
+        ctx.fillStyle = '#1f2937';
+        ctx.fillText(`Date: ${dateFormatted}`, pW / 2, 885);
+      } else if (lowerId.includes('gaurav') || lowerId.includes('ashok') || lowerId.includes('ratan')) {
+        if (formData.photoUrl) {
+          const pImg = new Image();
+          pImg.onload = () => {
+            ctx.drawImage(pImg, (pW - 172) / 2, 540, 172, 196);
+          };
+          pImg.src = formData.photoUrl;
+        }
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 18px "Times New Roman", serif';
+        ctx.fillStyle = '#0f2137';
+        ctx.fillText(name, pW / 2, 765);
+
+        ctx.textAlign = 'left';
+        ctx.font = 'bold 12px "Times New Roman", serif';
+        ctx.fillStyle = '#991b1b';
+        ctx.fillText(category, 310, 838);
+
+        ctx.textAlign = 'left';
+        ctx.font = 'bold 10px Helvetica, Arial, sans-serif';
+        ctx.fillStyle = '#1f2937';
+        ctx.fillText(dateFormatted, 380, 878);
+      } else if (lowerId.includes('women') || lowerId.includes('icon')) {
+        if (formData.photoUrl) {
+          const pImg = new Image();
+          pImg.onload = () => {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(pW / 2, 460, 85, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.drawImage(pImg, pW / 2 - 85, 460 - 85, 170, 170);
+            ctx.restore();
+          };
+          pImg.src = formData.photoUrl;
+        }
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 19px "Times New Roman", serif';
+        ctx.fillStyle = '#0f2137';
+        ctx.fillText(name, pW / 2, 712);
+
+        ctx.textAlign = 'left';
+        ctx.font = 'bold 10.5px Helvetica, Arial, sans-serif';
+        ctx.fillStyle = '#1f2937';
+        ctx.fillText(dateFormatted, 530, 828);
+      } else {
+        // Arya Bhushan Samaj Seva Award (No photo overlay!)
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 19px "Times New Roman", serif';
+        ctx.fillStyle = '#0c1e36';
+        ctx.fillText(name, pW / 2, 528);
+
+        ctx.font = 'bold 14.5px "Times New Roman", serif';
+        ctx.fillStyle = '#a81c1c';
+        ctx.fillText(category, pW / 2, 710);
+
+        ctx.textAlign = 'left';
+        ctx.font = 'bold 10.5px Helvetica, Arial, sans-serif';
+        ctx.fillStyle = '#1f2937';
+        ctx.fillText(dateFormatted, 535, 854);
       }
+
       setPreviewLoading(false);
     };
 
@@ -491,8 +402,8 @@ const StudentForm = () => {
         canvas.height = 960;
         ctx.fillStyle = '#fdfbf7';
         ctx.fillRect(0, 0, 680, 960);
-        ctx.strokeStyle = '#d4af37';
-        ctx.lineWidth = 12;
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 10;
         ctx.strokeRect(20, 20, 640, 920);
         ctx.lineWidth = 2;
         ctx.strokeRect(32, 32, 616, 896);
@@ -502,12 +413,12 @@ const StudentForm = () => {
         ctx.fillStyle = '#0f172a';
         ctx.fillText('Iconic Human Rights & Educational Organisation', 340, 120);
 
-        ctx.font = '14px "Inter", sans-serif';
+        ctx.font = '13px "Inter", sans-serif';
         ctx.fillStyle = '#64748b';
         ctx.fillText('Approved by Ministry of Corporate Affairs, Government of India', 340, 150);
 
-        ctx.font = 'bold 28px "Playfair Display", Georgia, serif';
-        ctx.fillStyle = '#b45309';
+        ctx.font = 'bold 24px "Playfair Display", Georgia, serif';
+        ctx.fillStyle = '#1e3a8a';
         ctx.fillText(previewingTemplate.label, 340, 240);
 
         // Photo slot
@@ -527,15 +438,15 @@ const StudentForm = () => {
           ctx.fillText('Photo', 340, 385);
         }
 
-        ctx.font = 'bold 26px "Playfair Display", Georgia, serif';
+        ctx.font = 'bold 22px "Playfair Display", Georgia, serif';
         ctx.fillStyle = '#0f172a';
         ctx.fillText(formData.fullName || 'Recipient Full Name', 340, 520);
 
-        ctx.font = '16px "Inter", sans-serif';
-        ctx.fillStyle = '#334155';
+        ctx.font = 'bold 15px "Inter", sans-serif';
+        ctx.fillStyle = '#dc2626';
         ctx.fillText(formData.category || 'For Outstanding Distinction & Excellence', 340, 580);
 
-        ctx.font = '14px "Inter", sans-serif';
+        ctx.font = '13px "Inter", sans-serif';
         ctx.fillStyle = '#64748b';
         ctx.fillText(`Date of Issue : ${formData.letterIssuedAt || new Date().toISOString().split('T')[0]}`, 340, 720);
 
@@ -944,14 +855,6 @@ const StudentForm = () => {
                 </div>
 
                 <div className="template-quick-actions">
-                  <button
-                    type="button"
-                    className="btn btn-outline btn-sm"
-                    onClick={handleSelectNewDesigns}
-                    style={{ color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.4)' }}
-                  >
-                    ✨ Select 5 New Designs
-                  </button>
                   <button type="button" className="btn btn-outline btn-sm" onClick={handleSelectAllTemplates}>
                     Select All
                   </button>
