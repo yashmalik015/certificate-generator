@@ -463,6 +463,7 @@ const renderDoctorateAward = async (baseDoc, page, studentData, customDomain) =>
 const renderAryaBhushanAward = async (baseDoc, page, studentData, customDomain) => {
   const { width: pW, height: pH } = page.getSize();
   const fontTimesBold = await baseDoc.embedFont(StandardFonts.TimesRomanBold);
+  const fontTimesBoldItalic = await baseDoc.embedFont(StandardFonts.TimesRomanBoldItalic);
   const fontHelvBold = await baseDoc.embedFont(StandardFonts.HelveticaBold);
   const fontHelv = await baseDoc.embedFont(StandardFonts.Helvetica);
 
@@ -472,12 +473,12 @@ const renderAryaBhushanAward = async (baseDoc, page, studentData, customDomain) 
   // Top Left CIN, Licence & Sl. No., Reg No.
   const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${cleanRefno}\nReg No. 459383`;
   page.drawText(refText, {
-    x: 95,
-    y: pH - 90,
-    size: 7.5,
+    x: 105,
+    y: pH - 85,
+    size: 7,
     font: fontHelv,
     color: rgb(0.12, 0.12, 0.12),
-    lineHeight: 12
+    lineHeight: 10
   });
 
   // Top Right QR Code
@@ -488,46 +489,49 @@ const renderAryaBhushanAward = async (baseDoc, page, studentData, customDomain) 
     const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 150 });
     const qrImg = await baseDoc.embedPng(qrBuf);
     page.drawImage(qrImg, {
-      x: 520,
-      y: pH - 150,
-      width: 72,
-      height: 72
+      x: 615,
+      y: pH - 130,
+      width: 60,
+      height: 60
     });
   } catch (qrErr) {}
 
-  // Recipient Photo inside Rectangular Frame (x: 305, y from top: 355)
-  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#222222', 1.5, 300, 340);
+  // Recipient Photo inside Rectangular Frame (x: centered, y from top: 370)
+  const picW = 82;
+  const picH = 96;
+  const picX = (pW - picW) / 2;
+  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#888888', 1.0, 300, 350);
   if (pImg) {
     page.drawImage(pImg, {
-      x: 305,
-      y: pH - 485,
-      width: 114,
-      height: 130
+      x: picX,
+      y: pH - 466,
+      width: picW,
+      height: picH
     });
   }
 
-  // Recipient Name placed right on underline after "Mr./Ms." (y from top: 545, from bottom: pH - 545)
-  const nameStr = (studentData.fullName || 'Recipient Name').toUpperCase();
-  let nameSize = 22.0;
-  while (nameSize > 12 && fontTimesBold.widthOfTextAtSize(nameStr, nameSize) > 360) {
+  // Recipient Name placed right on underline after "Mr./Ms."
+  const nameStr = studentData.fullName || 'Recipient Name';
+  let nameSize = 23.0;
+  while (nameSize > 12 && fontTimesBoldItalic.widthOfTextAtSize(nameStr, nameSize) > 360) {
     nameSize -= 0.5;
   }
   page.drawText(nameStr, {
-    x: 245,
-    y: pH - 542,
+    x: 252,
+    y: pH - 543,
     size: nameSize,
-    font: fontTimesBold,
+    font: fontTimesBoldItalic,
     color: rgb(0.60, 0.11, 0.11)
   });
 
   // Date of Issue on underline
   const dateFormatted = formatIssueDate(studentData.letterIssuedAt, 'DD/MM/YY');
   page.drawText(dateFormatted, {
-    x: 380,
+    x: 442,
     y: pH - 898,
-    size: 11.5,
-    font: fontHelvBold,
-    color: rgb(0.12, 0.12, 0.12)
+    size: 12.0,
+    font: fontTimesBoldItalic,
+    color: rgb(0.60, 0.11, 0.11)
   });
 };
 
@@ -928,31 +932,49 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           const cleanRefno = String(studentData.refno || 'IHREO/2026/040').replace(/WCAEO/gi, 'IHREO');
           const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${cleanRefno}\nReg No. 459383`;
           ctx.textAlign = 'left';
-          ctx.font = '7.5px Helvetica, Arial, sans-serif';
-          ctx.fillStyle = '#1f2937';
+          ctx.font = '7px Arial, sans-serif';
+          ctx.fillStyle = '#111827';
           const lines = refText.split('\n');
           lines.forEach((line, i) => {
-            ctx.fillText(line, 95, 90 + (i * 12));
+            ctx.fillText(line, 105, 82 + (i * 10));
           });
           
           if (studentData.photoUrl) {
             const rawBuf = await getPhotoBuffer(studentData.photoUrl);
             if (rawBuf) {
               const pImg = await loadImage(rawBuf);
-              ctx.drawImage(pImg, 305, 355, 114, 130);
+              const picW = 82;
+              const picH = 96;
+              const picX = (canvas.width - picW) / 2;
+              ctx.save();
+              ctx.beginPath();
+              if (ctx.roundRect) {
+                ctx.roundRect(picX, 370, picW, picH, 6);
+              } else {
+                ctx.rect(picX, 370, picW, picH);
+              }
+              ctx.clip();
+              ctx.drawImage(pImg, picX, 370, picW, picH);
+              ctx.restore();
+              
+              // Draw light border around photo
+              ctx.strokeStyle = '#888888';
+              ctx.lineWidth = 1;
+              ctx.stroke();
             }
           }
 
+          const aryaName = studentData.fullName || 'Recipient Name';
           ctx.textAlign = 'left';
-          ctx.font = 'bold 22px "Times New Roman", serif';
+          ctx.font = 'italic bold 23px "Times New Roman", serif';
           ctx.fillStyle = '#991b1b';
-          ctx.fillText(recipientName, 245, 542);
+          ctx.fillText(aryaName, 252, 543);
 
           const dateFormattedFixed = formatIssueDate(studentData.letterIssuedAt, 'DD/MM/YY');
           ctx.textAlign = 'left';
-          ctx.font = 'bold 11.5px Helvetica, Arial, sans-serif';
-          ctx.fillStyle = '#1f2937';
-          ctx.fillText(dateFormattedFixed, 380, 898);
+          ctx.font = 'italic bold 12px "Times New Roman", serif';
+          ctx.fillStyle = '#991b1b';
+          ctx.fillText(dateFormattedFixed, 442, 898);
         }
 
         fs.writeFileSync(pngPath, canvas.toBuffer('image/png'));
