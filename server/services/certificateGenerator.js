@@ -673,57 +673,86 @@ const renderPadmaBhushanAward = async (baseDoc, page, studentData, customDomain)
 const renderGauravRatanAward = async (baseDoc, page, studentData, customDomain) => {
   const { width: pW, height: pH } = page.getSize();
   const fontTimesBold = await baseDoc.embedFont(StandardFonts.TimesRomanBold);
-  const fontHelvBold = await baseDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontTimesBoldItalic = await baseDoc.embedFont(StandardFonts.TimesRomanBoldItalic);
 
-  // Recipient Photo inside Rectangular Frame (x: 257.5, y: 546, w: 166, h: 188)
-  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#b8860b', 2.0, 300, 340);
+  // Recipient Photo inside Rectangular Frame
+  const picW = 180;
+  const picH = 206;
+  const picX = 249;
+  const picY = 529;
+  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#000000', 0, picW, picH);
   if (pImg) {
     page.drawImage(pImg, {
-      x: (pW - 166) / 2,
-      y: pH - 546 - 188,
-      width: 166,
-      height: 188
+      x: picX,
+      y: pH - picY - picH,
+      width: picW,
+      height: picH
     });
   }
 
-  // Recipient Name (below photo at y: 775)
-  const nameStr = (studentData.fullName || 'Recipient Name').toUpperCase();
-  let nameSize = 17.0;
-  while (nameSize > 10 && fontTimesBold.widthOfTextAtSize(nameStr, nameSize) > 300) {
+  // Recipient Name (below photo at y: 770)
+  const nameStr = studentData.fullName || 'Recipient Name';
+  let nameSize = 25.0;
+  while (nameSize > 12 && fontTimesBold.widthOfTextAtSize(nameStr, nameSize) > 400) {
     nameSize -= 0.5;
   }
   const nw = fontTimesBold.widthOfTextAtSize(nameStr, nameSize);
   page.drawText(nameStr, {
     x: (pW - nw) / 2,
-    y: pH - 775,
+    y: pH - 770,
     size: nameSize,
     font: fontTimesBold,
-    color: rgb(0.06, 0.14, 0.28)
+    color: rgb(0.1, 0.1, 0.1)
   });
 
-  // Award Category in place of "Wild Life Expert" (exact slot x: 295..425, y: 864)
-  const catStr = studentData.category || 'National Social Welfare & Community Service';
-  let catSize = 9.5;
-  while (catSize > 6.5 && fontTimesBold.widthOfTextAtSize(catStr, catSize) > 120) {
+  // Award Category
+  const catStr = studentData.category || 'Social Welfare';
+  let catSize = 13.0;
+  while (catSize > 8 && fontTimesBold.widthOfTextAtSize(catStr, catSize) > 160) {
     catSize -= 0.5;
   }
+  // Draw a beige rectangle to cover the baked-in "Wild Life Expert"
+  page.drawRectangle({
+    x: 360,
+    y: pH - 840,
+    width: 140,
+    height: 18,
+    color: rgb(0.992, 0.988, 0.965)
+  });
+  
   const cw = fontTimesBold.widthOfTextAtSize(catStr, catSize);
   page.drawText(catStr, {
-    x: 295 + (130 - cw) / 2,
-    y: pH - 864,
+    x: 360 + (140 - cw) / 2,
+    y: pH - 836,
     size: catSize,
     font: fontTimesBold,
-    color: rgb(0.60, 0.11, 0.11)
+    color: rgb(0.1, 0.1, 0.1)
   });
 
-  // Date of Issue on underline (x: 360, y: 902)
+  // Date of Issue on underline
   const dateFormatted = formatIssueDate(studentData.letterIssuedAt, 'DD-MM-YYYY');
   page.drawText(dateFormatted, {
-    x: 360,
-    y: pH - 902,
-    size: 9.5,
-    font: fontHelvBold,
-    color: rgb(0.12, 0.12, 0.12)
+    x: 395,
+    y: pH - 887,
+    size: 13,
+    font: fontTimesBold,
+    color: rgb(0.1, 0.1, 0.1)
+  });
+
+  // Signatures
+  page.drawText("Ashish Malik", {
+    x: 140,
+    y: pH - 920,
+    size: 20,
+    font: fontTimesBoldItalic,
+    color: rgb(0.1, 0.2, 0.5)
+  });
+  page.drawText("P. Sharma", {
+    x: pW - 200,
+    y: pH - 920,
+    size: 20,
+    font: fontTimesBoldItalic,
+    color: rgb(0.1, 0.2, 0.5)
   });
 };
 
@@ -932,23 +961,33 @@ export const generateCertificate = async (studentData, templateId, customDomain)
             const rawBuf = await getPhotoBuffer(studentData.photoUrl);
             if (rawBuf) {
               const pImg = await loadImage(rawBuf);
-              ctx.drawImage(pImg, (canvas.width - 166) / 2, 546, 166, 188);
+              ctx.drawImage(pImg, 249, 529, 180, 206);
             }
           }
           ctx.textAlign = 'center';
-          ctx.font = 'bold 17px "Times New Roman", serif';
-          ctx.fillStyle = '#0f2137';
-          ctx.fillText(recipientName, canvas.width / 2, 775);
+          ctx.font = 'bold 25px "Times New Roman", serif';
+          ctx.fillStyle = '#1a1a1a';
+          ctx.fillText(recipientName, canvas.width / 2, 770);
+
+          // Cover up baked "Wild Life Expert"
+          ctx.fillStyle = '#fdfcf7';
+          ctx.fillRect(360, 822, 140, 18);
 
           ctx.textAlign = 'center';
-          ctx.font = 'bold 9.5px "Times New Roman", serif';
-          ctx.fillStyle = '#991b1b';
-          ctx.fillText(category, 360, 864);
+          ctx.font = 'bold 13px "Times New Roman", serif';
+          ctx.fillStyle = '#1a1a1a';
+          ctx.fillText(category, 430, 836);
 
           ctx.textAlign = 'left';
-          ctx.font = 'bold 9.5px Helvetica, Arial, sans-serif';
-          ctx.fillStyle = '#1f2937';
-          ctx.fillText(dateFormatted, 360, 902);
+          ctx.font = 'bold 13px "Times New Roman", serif';
+          ctx.fillStyle = '#1a1a1a';
+          ctx.fillText(dateFormatted, 395, 887);
+
+          // Signatures
+          ctx.font = 'italic bold 20px "Times New Roman", serif';
+          ctx.fillStyle = '#1a3380';
+          ctx.fillText("Ashish Malik", 140, 920);
+          ctx.fillText("P. Sharma", canvas.width - 200, 920);
         } else if (lowerId.includes('women') || lowerId.includes('icon')) {
           if (studentData.photoUrl) {
             const rawBuf = await getPhotoBuffer(studentData.photoUrl);
