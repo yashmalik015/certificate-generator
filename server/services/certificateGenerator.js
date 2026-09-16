@@ -836,8 +836,10 @@ export const generateCertificate = async (studentData, templateId, customDomain)
       if (basePngPath && fs.existsSync(basePngPath)) {
         const { createCanvas, loadImage } = await import('canvas');
         const bgImg = await loadImage(basePngPath);
-        const canvas = createCanvas(bgImg.width, bgImg.height);
+        const scale = 2;
+        const canvas = createCanvas(bgImg.width * scale, bgImg.height * scale);
         const ctx = canvas.getContext('2d');
+        ctx.scale(scale, scale);
         ctx.drawImage(bgImg, 0, 0);
 
         const recipientName = (studentData.fullName || 'Recipient Name').toUpperCase();
