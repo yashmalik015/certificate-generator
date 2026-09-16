@@ -585,58 +585,87 @@ const renderBestBusinessAward = async (baseDoc, page, studentData, customDomain)
 const renderPadmaBhushanAward = async (baseDoc, page, studentData, customDomain) => {
   const { width: pW, height: pH } = page.getSize();
   const fontTimesBold = await baseDoc.embedFont(StandardFonts.TimesRomanBold);
+  const fontTimesBoldItalic = await baseDoc.embedFont(StandardFonts.TimesRomanBoldItalic);
   const fontHelvBold = await baseDoc.embedFont(StandardFonts.HelveticaBold);
 
-  // Recipient Photo inside Circle Frame (cx: 361, cy: 340, r: 72)
-  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'circle', '#e5be65', 2.0, 240, 240);
+  const cleanRefno = String(studentData.refno || 'IHREO/2026/040').replace(/WCAEO/gi, 'IHREO');
+  const cleanCertNo = String(studentData.certificateNumber || cleanRefno.replace('IHREO/', 'IHREO/CERT/') || 'IHREO/CERT/2026/0040').replace(/WCAEO/gi, 'IHREO');
+
+  // Top Right QR Code
+  try {
+    const domain = resolveAppDomain(customDomain);
+    const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(cleanCertNo)}`;
+    const QRCode = (await import('qrcode')).default;
+    const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 150 });
+    const qrImg = await baseDoc.embedPng(qrBuf);
+    page.drawImage(qrImg, {
+      x: 602,
+      y: pH - 140,
+      width: 70,
+      height: 70
+    });
+  } catch (qrErr) {}
+
+  // Recipient Photo inside Circle Frame (cx: center, cy: 343)
+  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'circle', '#d4af37', 1.0, 240, 240);
   if (pImg) {
-    const photoD = 144;
+    const photoD = 138;
     page.drawImage(pImg, {
       x: (pW - photoD) / 2,
-      y: pH - 340 - photoD / 2,
+      y: pH - 343 - photoD / 2,
       width: photoD,
       height: photoD
     });
   }
 
-  // Recipient Name in Ribbon Banner (cy: 433)
-  const nameStr = (studentData.fullName || 'Recipient Name').toUpperCase();
-  let nameSize = 16.5;
-  while (nameSize > 10 && fontTimesBold.widthOfTextAtSize(nameStr, nameSize) > 230) {
+  // Recipient Name in large text below "is presented to" (y: 606)
+  const nameStr = studentData.fullName || 'Recipient Name';
+  let nameSize = 26.0;
+  while (nameSize > 12 && fontTimesBold.widthOfTextAtSize(nameStr, nameSize) > 420) {
     nameSize -= 0.5;
   }
   const nw = fontTimesBold.widthOfTextAtSize(nameStr, nameSize);
   page.drawText(nameStr, {
     x: (pW - nw) / 2,
-    y: pH - 433,
+    y: pH - 606,
     size: nameSize,
     font: fontTimesBold,
-    color: rgb(0.08, 0.16, 0.32)
+    color: rgb(0.2, 0.05, 0.05)
   });
 
-  // Award Category in dedicated empty space below "is presented to" (y: 600)
-  const catStr = studentData.category || 'Excellence in National Service & Social Leadership';
-  let catSize = 13.0;
-  while (catSize > 9.5 && fontTimesBold.widthOfTextAtSize(catStr, catSize) > 420) {
-    catSize -= 0.5;
-  }
-  const cw = fontTimesBold.widthOfTextAtSize(catStr, catSize);
-  page.drawText(catStr, {
-    x: (pW - cw) / 2,
-    y: pH - 600,
-    size: catSize,
-    font: fontTimesBold,
-    color: rgb(0.60, 0.11, 0.11)
-  });
-
-  // Date at bottom "Government of India, this day [Date]" (x: 480, y: 926)
-  const dateFormatted = formatIssueDate(studentData.letterIssuedAt, 'DD-MM-YYYY');
+  // Date placed inside floral ornaments (y: 712)
+  const dateFormatted = formatIssueDate(studentData.letterIssuedAt, 'DD-MMM-YYYY');
+  let dateSize = 15.0;
+  const dw = fontTimesBold.widthOfTextAtSize(dateFormatted, dateSize);
   page.drawText(dateFormatted, {
-    x: 480,
-    y: pH - 926,
-    size: 9.5,
-    font: fontHelvBold,
-    color: rgb(0.12, 0.12, 0.12)
+    x: (pW - dw) / 2,
+    y: pH - 712,
+    size: dateSize,
+    font: fontTimesBold,
+    color: rgb(0.4, 0.3, 0.1)
+  });
+
+  // Signatures (Founder and Co-Founder) at y: 770
+  const sigSize = 22.0;
+  const sig1 = "Meghna Shama";
+  const sig2 = "Isha Serial";
+  const s1w = fontTimesBoldItalic.widthOfTextAtSize(sig1, sigSize);
+  const s2w = fontTimesBoldItalic.widthOfTextAtSize(sig2, sigSize);
+  
+  page.drawText(sig1, {
+    x: 200 - (s1w / 2),
+    y: pH - 770,
+    size: sigSize,
+    font: fontTimesBoldItalic,
+    color: rgb(0.1, 0.2, 0.5)
+  });
+
+  page.drawText(sig2, {
+    x: pW - 200 - (s2w / 2),
+    y: pH - 770,
+    size: sigSize,
+    font: fontTimesBoldItalic,
+    color: rgb(0.1, 0.2, 0.5)
   });
 };
 
@@ -837,29 +866,42 @@ export const generateCertificate = async (studentData, templateId, customDomain)
             const rawBuf = await getPhotoBuffer(studentData.photoUrl);
             if (rawBuf) {
               const pImg = await loadImage(rawBuf);
+              const photoD = 138;
+              const picX = (canvas.width - photoD) / 2;
+              const picY = 343 - (photoD / 2);
+              
               ctx.save();
               ctx.beginPath();
-              ctx.arc(canvas.width / 2, 340, 72, 0, Math.PI * 2);
+              ctx.arc(picX + photoD/2, picY + photoD/2, photoD/2, 0, 2 * Math.PI);
               ctx.clip();
-              ctx.drawImage(pImg, canvas.width / 2 - 72, 340 - 72, 144, 144);
+              ctx.drawImage(pImg, picX, picY, photoD, photoD);
               ctx.restore();
+              
+              ctx.beginPath();
+              ctx.arc(picX + photoD/2, picY + photoD/2, photoD/2, 0, 2 * Math.PI);
+              ctx.strokeStyle = '#d4af37';
+              ctx.lineWidth = 1.0;
+              ctx.stroke();
             }
           }
+          
+          const padmaName = studentData.fullName || 'Recipient Name';
           ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.font = 'bold 16.5px "Times New Roman", serif';
-          ctx.fillStyle = '#102a4e';
-          ctx.fillText(recipientName, canvas.width / 2, 433);
-
           ctx.textBaseline = 'alphabetic';
-          ctx.font = 'bold 13px "Times New Roman", serif';
-          ctx.fillStyle = '#991b1b';
-          ctx.fillText(category, canvas.width / 2, 600);
+          ctx.font = 'bold 26px "Times New Roman", serif';
+          ctx.fillStyle = '#330d0d';
+          ctx.fillText(padmaName, canvas.width / 2, 606);
 
-          ctx.textAlign = 'left';
-          ctx.font = 'bold 9.5px Helvetica, Arial, sans-serif';
-          ctx.fillStyle = '#1f2937';
-          ctx.fillText(dateFormatted, 480, 926);
+          const dateFormattedFixed = formatIssueDate(studentData.letterIssuedAt, 'DD-MMM-YYYY');
+          ctx.font = 'bold 15px "Times New Roman", serif';
+          ctx.fillStyle = '#664c1a';
+          ctx.fillText(dateFormattedFixed, canvas.width / 2, 712);
+
+          // Signatures
+          ctx.font = 'italic bold 22px "Times New Roman", serif';
+          ctx.fillStyle = '#1a3380';
+          ctx.fillText("Meghna Shama", 200, 770);
+          ctx.fillText("Isha Serial", canvas.width - 200, 770);
         } else if (lowerId.includes('business')) {
           if (studentData.photoUrl) {
             const rawBuf = await getPhotoBuffer(studentData.photoUrl);
