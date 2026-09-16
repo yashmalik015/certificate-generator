@@ -464,43 +464,68 @@ const renderAryaBhushanAward = async (baseDoc, page, studentData, customDomain) 
   const { width: pW, height: pH } = page.getSize();
   const fontTimesBold = await baseDoc.embedFont(StandardFonts.TimesRomanBold);
   const fontHelvBold = await baseDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontHelv = await baseDoc.embedFont(StandardFonts.Helvetica);
 
-  // Recipient Name placed right on underline after "Mr./Ms." (y: 524)
+  const cleanRefno = String(studentData.refno || 'IHREO/2026/040').replace(/WCAEO/gi, 'IHREO');
+  const cleanCertNo = String(studentData.certificateNumber || cleanRefno.replace('IHREO/', 'IHREO/CERT/') || 'IHREO/CERT/2026/0040').replace(/WCAEO/gi, 'IHREO');
+
+  // Top Left CIN, Licence & Sl. No., Reg No.
+  const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${cleanRefno}\nReg No. 459383`;
+  page.drawText(refText, {
+    x: 95,
+    y: pH - 90,
+    size: 7.5,
+    font: fontHelv,
+    color: rgb(0.12, 0.12, 0.12),
+    lineHeight: 12
+  });
+
+  // Top Right QR Code
+  try {
+    const domain = resolveAppDomain(customDomain);
+    const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(cleanCertNo)}`;
+    const QRCode = (await import('qrcode')).default;
+    const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 150 });
+    const qrImg = await baseDoc.embedPng(qrBuf);
+    page.drawImage(qrImg, {
+      x: 520,
+      y: pH - 150,
+      width: 72,
+      height: 72
+    });
+  } catch (qrErr) {}
+
+  // Recipient Photo inside Rectangular Frame (x: 305, y from top: 355)
+  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#222222', 1.5, 300, 340);
+  if (pImg) {
+    page.drawImage(pImg, {
+      x: 305,
+      y: pH - 485,
+      width: 114,
+      height: 130
+    });
+  }
+
+  // Recipient Name placed right on underline after "Mr./Ms." (y from top: 545, from bottom: pH - 545)
   const nameStr = (studentData.fullName || 'Recipient Name').toUpperCase();
-  let nameSize = 19.0;
+  let nameSize = 22.0;
   while (nameSize > 12 && fontTimesBold.widthOfTextAtSize(nameStr, nameSize) > 360) {
     nameSize -= 0.5;
   }
-  const nw = fontTimesBold.widthOfTextAtSize(nameStr, nameSize);
   page.drawText(nameStr, {
-    x: (pW - nw) / 2,
-    y: pH - 524,
+    x: 245,
+    y: pH - 542,
     size: nameSize,
-    font: fontTimesBold,
-    color: rgb(0.06, 0.14, 0.28)
-  });
-
-  // Award Category / Field on clean line (y: 710)
-  const catStr = studentData.category || 'Humanitarian Services & Social Upliftment';
-  let catSize = 14.0;
-  while (catSize > 10 && fontTimesBold.widthOfTextAtSize(catStr, catSize) > 440) {
-    catSize -= 0.5;
-  }
-  const cw = fontTimesBold.widthOfTextAtSize(catStr, catSize);
-  page.drawText(catStr, {
-    x: (pW - cw) / 2,
-    y: pH - 710,
-    size: catSize,
     font: fontTimesBold,
     color: rgb(0.60, 0.11, 0.11)
   });
 
-  // Date of Issue on underline (x: 420, y: 880)
-  const dateFormatted = formatIssueDate(studentData.letterIssuedAt, 'DD-MM-YYYY');
+  // Date of Issue on underline
+  const dateFormatted = formatIssueDate(studentData.letterIssuedAt, 'DD/MM/YY');
   page.drawText(dateFormatted, {
-    x: 420,
-    y: pH - 880,
-    size: 10.5,
+    x: 380,
+    y: pH - 898,
+    size: 11.5,
     font: fontHelvBold,
     color: rgb(0.12, 0.12, 0.12)
   });
@@ -900,19 +925,34 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           ctx.fillText(dateFormatted, 365, 852);
         } else {
           // Arya Bhushan Samaj Seva Award
-          ctx.textAlign = 'center';
-          ctx.font = 'bold 19px "Times New Roman", serif';
-          ctx.fillStyle = '#0c1e36';
-          ctx.fillText(recipientName, canvas.width / 2, 524);
-
-          ctx.font = 'bold 14.0px "Times New Roman", serif';
-          ctx.fillStyle = '#a81c1c';
-          ctx.fillText(category, canvas.width / 2, 710);
+          const cleanRefno = String(studentData.refno || 'IHREO/2026/040').replace(/WCAEO/gi, 'IHREO');
+          const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${cleanRefno}\nReg No. 459383`;
+          ctx.textAlign = 'left';
+          ctx.font = '7.5px Helvetica, Arial, sans-serif';
+          ctx.fillStyle = '#1f2937';
+          const lines = refText.split('\n');
+          lines.forEach((line, i) => {
+            ctx.fillText(line, 95, 90 + (i * 12));
+          });
+          
+          if (studentData.photoUrl) {
+            const rawBuf = await getPhotoBuffer(studentData.photoUrl);
+            if (rawBuf) {
+              const pImg = await loadImage(rawBuf);
+              ctx.drawImage(pImg, 305, 355, 114, 130);
+            }
+          }
 
           ctx.textAlign = 'left';
-          ctx.font = 'bold 10.5px Helvetica, Arial, sans-serif';
+          ctx.font = 'bold 22px "Times New Roman", serif';
+          ctx.fillStyle = '#991b1b';
+          ctx.fillText(recipientName, 245, 542);
+
+          const dateFormattedFixed = formatIssueDate(studentData.letterIssuedAt, 'DD/MM/YY');
+          ctx.textAlign = 'left';
+          ctx.font = 'bold 11.5px Helvetica, Arial, sans-serif';
           ctx.fillStyle = '#1f2937';
-          ctx.fillText(dateFormatted, 420, 880);
+          ctx.fillText(dateFormattedFixed, 380, 898);
         }
 
         fs.writeFileSync(pngPath, canvas.toBuffer('image/png'));
