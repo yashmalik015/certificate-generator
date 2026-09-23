@@ -382,13 +382,18 @@ router.get('/:id/certificate/:templateId/download', authMiddleware, async (req, 
     const format = req.query.format || 'pdf'; // 'pdf' or 'png'
     let student = null;
 
-    if (mongoose.connection.readyState === 1) {
-      if (mongoose.Types.ObjectId.isValid(id)) {
-        student = await Student.findById(id);
-      } else {
-        const idAlt = id.replace(/_/g, '/');
-        student = await Student.findOne({ $or: [{ refno: id }, { certificateNumber: id }, { refno: idAlt }, { certificateNumber: idAlt }] });
+    // Look up student from DB
+    try {
+      if (mongoose.connection.readyState === 1) {
+        if (mongoose.Types.ObjectId.isValid(id)) {
+          student = await Student.findById(id);
+        } else {
+          const idAlt = id.replace(/_/g, '/');
+          student = await Student.findOne({ $or: [{ refno: id }, { certificateNumber: id }, { refno: idAlt }, { certificateNumber: idAlt }] });
+        }
       }
+    } catch (dbErr) {
+      console.warn('Download DB lookup warning:', dbErr.message);
     }
 
     if (!student) {
@@ -396,54 +401,79 @@ router.get('/:id/certificate/:templateId/download', authMiddleware, async (req, 
     }
 
     if (!student) {
-      student = {
-        _id: id,
-        refno: 'IHREO/2026/002',
-        certificateNumber: 'IHREO/CERT/2026/0002',
-        fullName: 'Student',
-        category: 'Excellence',
-        letterIssuedAt: new Date()
-      };
+      return res.status(404).json({ error: 'Student not found. Cannot generate certificate for download.' });
     }
-
-    const incomingDomain = extractIncomingBaseUrl(req);
-    let certRes;
-    if (templateId === 'universal-id-card') {
-      certRes = await generateIdCard(student, incomingDomain);
-    } else if (templateId === 'universal-membership-certificate') {
-      certRes = await generateMembershipCert(student, incomingDomain);
-    } else {
-      certRes = await generateCertificate(student, templateId, incomingDomain);
-    }
-
-    const relativeUrl = format === 'png' ? certRes.pngUrl : certRes.pdfUrl;
-
-    const isVercel = Boolean(process.env.VERCEL || process.env.NOW_REGION);
-    const filePath = isVercel
-      ? path.join('/tmp', relativeUrl.replace(/^\//, ''))
-      : path.resolve(__dirname, '..', relativeUrl.replace(/^\//, ''));
 
     const rawCertNo = student.refno || student.registrationNumber || 'CERT';
     const cleanCertNo = String(rawCertNo).replace(/[\/\s:\\]/g, '_');
     const cleanTid = String(templateId || 'Certificate').replace(/[^a-zA-Z0-9_-]/g, '_');
     const downloadFileName = `${cleanCertNo}-${cleanTid}.${format}`;
 
+    // First check if file already exists on disk (warm instance)
+    const isVercel = Boolean(process.env.VERCEL || process.env.NOW_REGION);
+    const certUploadsDir = isVercel
+      ? path.join('/tmp', 'uploads', 'certificates')
+      : path.resolve(__dirname, '../uploads/certificates');
+    const expectedFile = path.join(certUploadsDir, `${cleanCertNo}-${cleanTid}.${format}`);
+
+    if (fs.existsSync(expectedFile)) {
+      const fileBuffer = fs.readFileSync(expectedFile);
+      if (fileBuffer && fileBuffer.length > 0) {
+        res.setHeader('Content-Type', format === 'png' ? 'image/png' : 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${downloadFileName}"`);
+        return res.send(fileBuffer);
+      }
+    }
+
+    // Regenerate the certificate on-the-fly (cold start / ephemeral /tmp on Vercel)
+    const incomingDomain = extractIncomingBaseUrl(req);
+    let certRes;
+    try {
+      if (templateId === 'universal-id-card') {
+        certRes = await generateIdCard(student, incomingDomain);
+      } else if (templateId === 'universal-membership-certificate') {
+        certRes = await generateMembershipCert(student, incomingDomain);
+      } else {
+        certRes = await generateCertificate(student, templateId, incomingDomain);
+      }
+    } catch (genErr) {
+      console.error('Certificate regeneration failed:', genErr);
+      return res.status(500).json({ error: 'Failed to generate certificate. Please try again.' });
+    }
+
+    if (!certRes) {
+      return res.status(500).json({ error: 'Certificate generation returned empty result.' });
+    }
+
     res.setHeader('Content-Type', format === 'png' ? 'image/png' : 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${downloadFileName}"`);
 
+    // Prefer sending pdfBytes directly from memory (most reliable on serverless)
+    if (format === 'pdf' && certRes.pdfBytes) {
+      const buf = Buffer.isBuffer(certRes.pdfBytes) ? certRes.pdfBytes : Buffer.from(certRes.pdfBytes);
+      return res.send(buf);
+    }
+
+    // Fallback: read the generated file from disk
+    const relativeUrl = format === 'png' ? certRes.pngUrl : certRes.pdfUrl;
+    const filePath = isVercel
+      ? path.join('/tmp', relativeUrl.replace(/^\//, ''))
+      : path.resolve(__dirname, '..', relativeUrl.replace(/^\//, ''));
+
     if (fs.existsSync(filePath)) {
       const fileBuffer = fs.readFileSync(filePath);
-      return res.send(fileBuffer);
+      if (fileBuffer && fileBuffer.length > 0) {
+        return res.send(fileBuffer);
+      }
     }
 
-    if (format === 'pdf' && certRes.pdfBytes) {
-      return res.send(Buffer.from(certRes.pdfBytes));
-    }
-
-    return res.status(404).send('Certificate file not found on server.');
+    return res.status(404).json({ error: 'Certificate file could not be generated. Please contact support.' });
   } catch (err) {
     console.error('Download certificate error:', err);
-    return res.status(500).send('Error downloading certificate.');
+    // Always send a valid HTTP response to prevent ERR_INVALID_RESPONSE
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Error downloading certificate: ' + (err.message || 'Unknown error') });
+    }
   }
 });
 

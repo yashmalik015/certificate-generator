@@ -4,7 +4,9 @@
   "outputDirectory": "dist",
   "functions": {
     "api/*.js": {
-      "includeFiles": "src/assets/**"
+      "includeFiles": "src/assets/**",
+      "maxDuration": 30,
+      "memory": 1024
     }
   },
   "rewrites": [
