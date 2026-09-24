@@ -45,7 +45,7 @@ const StudentForm = () => {
   const previewCanvasRef = useRef(null);
 
   const bloodGroupOptions = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-  const commonCountries = ['Indian', 'American', 'British', 'Canadian', 'Australian', 'German', 'French', 'Emirati', 'Nepalese'];
+  const commonCountries = ['Indian', 'American', 'British', 'Canadian', 'Australian', 'German', 'French', 'Emirati', 'Nepalese', 'Bangladeshi'];
 
   const categoryTabs = ['All', 'National Honors', 'Business & Excellence', 'Academic & Honorary', 'Literary & Cultural'];
 
