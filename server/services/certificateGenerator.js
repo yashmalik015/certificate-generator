@@ -539,10 +539,39 @@ const renderAryaBhushanAward = async (baseDoc, page, studentData, customDomain) 
 const renderBestBusinessAward = async (baseDoc, page, studentData, customDomain) => {
   const { width: pW, height: pH } = page.getSize();
   const fontTimesBold = await baseDoc.embedFont(StandardFonts.TimesRomanBold);
-  const fontHelvBold = await baseDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontTimesBoldItalic = await baseDoc.embedFont(StandardFonts.TimesRomanBoldItalic);
+  const fontHelv = await baseDoc.embedFont(StandardFonts.Helvetica);
 
-  // Recipient Photo inside Circular Frame (cx: 357, cy: 485, r: 108)
-  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'circle', '#f0c05a', 2.5, 300, 300);
+  const cleanRefno = String(studentData.refno || 'IHREO/2026/040').replace(/WCAEO/gi, 'IHREO');
+  const cleanCertNo = String(studentData.certificateNumber || cleanRefno.replace('IHREO/', 'IHREO/CERT/') || 'IHREO/CERT/2026/0040').replace(/WCAEO/gi, 'IHREO');
+
+  // Top Left CIN, Licence & Sl. No., Reg No.
+  const refText = `CIN NO : U85499DL2025NPL459383\nLicence No. : 765686\nSI No.  459384/IHRE0021\nReg No. 459383`;
+  page.drawText(refText, {
+    x: 65,
+    y: pH - 85,
+    size: 7.5,
+    font: fontHelv,
+    color: rgb(0.12, 0.12, 0.12),
+    lineHeight: 10
+  });
+
+  // Top Right QR Code
+  try {
+    const domain = resolveAppDomain(customDomain);
+    const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(cleanCertNo)}`;
+    const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 150 });
+    const qrImg = await baseDoc.embedPng(qrBuf);
+    page.drawImage(qrImg, {
+      x: pW - 130,
+      y: pH - 130,
+      width: 65,
+      height: 65
+    });
+  } catch (qrErr) {}
+
+  // Recipient Photo inside Circular Frame (cx: center, cy: 485, r: 108)
+  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'circle', '#d4af37', 2.5, 300, 300);
   if (pImg) {
     const photoD = 216;
     page.drawImage(pImg, {
@@ -553,32 +582,24 @@ const renderBestBusinessAward = async (baseDoc, page, studentData, customDomain)
     });
   }
 
-  // Recipient Name in Ribbon Banner below photo (cy: 626)
-  const nameStr = (studentData.fullName || 'Recipient Name').toUpperCase();
-  let nameSize = 19.0;
-  while (nameSize > 11 && fontTimesBold.widthOfTextAtSize(nameStr, nameSize) > 310) {
+  // Recipient Name in Ribbon Banner below photo (cy: 626) — elegant script, Title Case
+  const nameStr = studentData.fullName || 'Recipient Name';
+  let nameSize = 26.0;
+  while (nameSize > 14 && fontTimesBoldItalic.widthOfTextAtSize(nameStr, nameSize) > 320) {
     nameSize -= 0.5;
   }
-  const nw = fontTimesBold.widthOfTextAtSize(nameStr, nameSize);
+  const nw = fontTimesBoldItalic.widthOfTextAtSize(nameStr, nameSize);
   page.drawText(nameStr, {
     x: (pW - nw) / 2,
     y: pH - 626,
     size: nameSize,
-    font: fontTimesBold,
+    font: fontTimesBoldItalic,
     color: rgb(0.99, 0.90, 0.60)
   });
 
-  // Date placed cleanly above the Ministry and MSME logos
-  const dateFormatted = formatIssueDate(studentData.letterIssuedAt, 'DD-MM-YYYY');
-  const dateStr = `Date: ${dateFormatted}`;
-  const dw = fontHelvBold.widthOfTextAtSize(dateStr, 9.5);
-  page.drawText(dateStr, {
-    x: (pW - dw) / 2,
-    y: pH - 888,
-    size: 9.5,
-    font: fontHelvBold,
-    color: rgb(0.12, 0.12, 0.12)
-  });
+  // NOTE: Date intentionally NOT drawn — the template already has the
+  // "Thank you for being a true change-maker..." line at this position
+  // and drawing a date here was overlapping it.
 };
 
 // ── 4. Render Bhartiya Padma Bhushan Samman ──────────────────────────────────
@@ -934,28 +955,62 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           ctx.fillText("Meghna Shama", 200, 770);
           ctx.fillText("Isha Serial", canvas.width - 200, 770);
         } else if (lowerId.includes('business')) {
+          const centerX = bgImg.width / 2;
+
+          // Top Left CIN details
+          const cleanRefno = String(studentData.refno || 'IHREO/2026/040').replace(/WCAEO/gi, 'IHREO');
+          ctx.textAlign = 'left';
+          ctx.font = '7.5px Arial, sans-serif';
+          ctx.fillStyle = '#1f2937';
+          const cinLines = [
+            'CIN NO : U85499DL2025NPL459383',
+            'Licence No. : 765686',
+            `SI No.  459384/IHRE0021`,
+            'Reg No. 459383'
+          ];
+          cinLines.forEach((line, i) => {
+            ctx.fillText(line, 65, 82 + (i * 10));
+          });
+
+          // Photo — circular, centered
           if (studentData.photoUrl) {
             const rawBuf = await getPhotoBuffer(studentData.photoUrl);
             if (rawBuf) {
               const pImg = await loadImage(rawBuf);
+              const photoR = 108;
               ctx.save();
               ctx.beginPath();
-              ctx.arc(canvas.width / 2, 485, 108, 0, Math.PI * 2);
+              ctx.arc(centerX, 485, photoR, 0, Math.PI * 2);
               ctx.clip();
-              ctx.drawImage(pImg, canvas.width / 2 - 108, 485 - 108, 216, 216);
+              // Cover-fit the photo into the circle
+              const imgW = pImg.width;
+              const imgH = pImg.height;
+              const minDim = Math.min(imgW, imgH);
+              const sx = (imgW - minDim) / 2;
+              const sy = (imgH - minDim) / 2;
+              ctx.drawImage(pImg, sx, sy, minDim, minDim, centerX - photoR, 485 - photoR, photoR * 2, photoR * 2);
               ctx.restore();
+
+              // Gold border around circle
+              ctx.beginPath();
+              ctx.arc(centerX, 485, photoR, 0, Math.PI * 2);
+              ctx.strokeStyle = '#d4af37';
+              ctx.lineWidth = 2.5;
+              ctx.stroke();
             }
           }
+
+          // Name — elegant Title Case script, NOT uppercase
+          const businessName = studentData.fullName || 'Recipient Name';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.font = 'bold 19px "Times New Roman", serif';
+          ctx.font = 'italic bold 26px "Times New Roman", serif';
           ctx.fillStyle = '#fde088';
-          ctx.fillText(recipientName, canvas.width / 2, 626);
-
+          ctx.fillText(businessName, centerX, 626);
           ctx.textBaseline = 'alphabetic';
-          ctx.font = 'bold 9.5px Helvetica, Arial, sans-serif';
-          ctx.fillStyle = '#1f2937';
-          ctx.fillText(`Date: ${dateFormatted}`, canvas.width / 2, 888);
+
+          // NOTE: Date intentionally NOT drawn — it was overlapping the
+          // "Thank you for being a true change-maker..." text baked into template
         } else if (lowerId.includes('gaurav') || lowerId.includes('ashok') || lowerId.includes('ratan')) {
           if (studentData.photoUrl) {
             const rawBuf = await getPhotoBuffer(studentData.photoUrl);

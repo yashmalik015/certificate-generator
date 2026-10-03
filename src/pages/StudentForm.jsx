@@ -310,25 +310,39 @@ const StudentForm = () => {
         if (formData.photoUrl) {
           const pImg = new Image();
           pImg.onload = () => {
+            const photoR = 108;
             ctx.save();
             ctx.beginPath();
-            ctx.arc(pW / 2, 485, 108, 0, Math.PI * 2);
+            ctx.arc(pW / 2, 485, photoR, 0, Math.PI * 2);
             ctx.clip();
-            ctx.drawImage(pImg, pW / 2 - 108, 485 - 108, 216, 216);
+            // Cover-fit the photo into the circle
+            const imgW = pImg.width;
+            const imgH = pImg.height;
+            const minDim = Math.min(imgW, imgH);
+            const sx = (imgW - minDim) / 2;
+            const sy = (imgH - minDim) / 2;
+            ctx.drawImage(pImg, sx, sy, minDim, minDim, pW / 2 - photoR, 485 - photoR, photoR * 2, photoR * 2);
             ctx.restore();
+
+            // Gold border around circle
+            ctx.beginPath();
+            ctx.arc(pW / 2, 485, photoR, 0, Math.PI * 2);
+            ctx.strokeStyle = '#d4af37';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
           };
           pImg.src = formData.photoUrl;
         }
+        // Name — elegant Title Case script, NOT uppercase
+        const businessName = formData.fullName || 'Recipient Name';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.font = 'bold 19px "Times New Roman", serif';
+        ctx.font = 'italic bold 26px "Times New Roman", serif';
         ctx.fillStyle = '#fde088';
-        ctx.fillText(name, pW / 2, 626);
-
+        ctx.fillText(businessName, pW / 2, 626);
         ctx.textBaseline = 'alphabetic';
-        ctx.font = 'bold 10px Helvetica, Arial, sans-serif';
-        ctx.fillStyle = '#1f2937';
-        ctx.fillText(`Date: ${dateFormatted}`, pW / 2, 885);
+        // NOTE: Date intentionally NOT drawn — was overlapping
+        // the "Thank you for being a true change-maker..." template text
       } else if (lowerId.includes('gaurav') || lowerId.includes('ashok') || lowerId.includes('ratan')) {
         if (formData.photoUrl) {
           const pImg = new Image();
