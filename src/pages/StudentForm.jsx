@@ -282,30 +282,40 @@ const StudentForm = () => {
         if (formData.photoUrl) {
           const pImg = new Image();
           pImg.onload = () => {
+            const photoR = 72;
             ctx.save();
             ctx.beginPath();
-            ctx.arc(pW / 2, 340, 72, 0, Math.PI * 2);
+            ctx.arc(pW / 2, 340, photoR, 0, Math.PI * 2);
             ctx.clip();
-            ctx.drawImage(pImg, pW / 2 - 72, 340 - 72, 144, 144);
+            // Cover-fit the photo into the circle
+            const imgW = pImg.width;
+            const imgH = pImg.height;
+            const minDim = Math.min(imgW, imgH);
+            const sx = (imgW - minDim) / 2;
+            const sy = (imgH - minDim) / 2;
+            ctx.drawImage(pImg, sx, sy, minDim, minDim, pW / 2 - photoR, 340 - photoR, photoR * 2, photoR * 2);
             ctx.restore();
           };
           pImg.src = formData.photoUrl;
         }
+        
+        // Ribbon Name
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.font = 'bold 16.5px "Times New Roman", serif';
-        ctx.fillStyle = '#102a4e';
+        ctx.fillStyle = '#330d0d';
         ctx.fillText(name, pW / 2, 435);
 
+        // Large Main Name
         ctx.textBaseline = 'alphabetic';
-        ctx.font = 'bold 13px "Times New Roman", serif';
-        ctx.fillStyle = '#991b1b';
-        ctx.fillText(category, pW / 2, 590);
+        ctx.font = 'bold 26px "Times New Roman", serif';
+        ctx.fillStyle = '#330d0d';
+        ctx.fillText(name, pW / 2, 606);
 
-        ctx.textAlign = 'left';
-        ctx.font = 'bold 10px Helvetica, Arial, sans-serif';
-        ctx.fillStyle = '#1f2937';
-        ctx.fillText(dateFormatted, 485, 896);
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 15px "Times New Roman", serif';
+        ctx.fillStyle = '#664c1a';
+        ctx.fillText(dateFormatted, pW / 2, 712);
       } else if (lowerId.includes('business')) {
         if (formData.photoUrl) {
           const pImg = new Image();
@@ -323,13 +333,6 @@ const StudentForm = () => {
             const sy = (imgH - minDim) / 2;
             ctx.drawImage(pImg, sx, sy, minDim, minDim, pW / 2 - photoR, 485 - photoR, photoR * 2, photoR * 2);
             ctx.restore();
-
-            // Gold border around circle
-            ctx.beginPath();
-            ctx.arc(pW / 2, 485, photoR, 0, Math.PI * 2);
-            ctx.strokeStyle = '#d4af37';
-            ctx.lineWidth = 2.5;
-            ctx.stroke();
           };
           pImg.src = formData.photoUrl;
         }
@@ -337,8 +340,8 @@ const StudentForm = () => {
         const businessName = formData.fullName || 'Recipient Name';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.font = 'italic bold 26px "Times New Roman", serif';
-        ctx.fillStyle = '#fde088';
+        ctx.font = 'bold 26px "Times New Roman", serif';
+        ctx.fillStyle = '#f0c05a';
         ctx.fillText(businessName, pW / 2, 626);
         ctx.textBaseline = 'alphabetic';
         // NOTE: Date intentionally NOT drawn — was overlapping
@@ -347,24 +350,41 @@ const StudentForm = () => {
         if (formData.photoUrl) {
           const pImg = new Image();
           pImg.onload = () => {
-            ctx.drawImage(pImg, (pW - 172) / 2, 540, 172, 196);
+            const picW = 208;
+            const picH = 252;
+            const picX = (pW - picW) / 2;
+            const picY = 468;
+            ctx.save();
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(picX, picY, picW, picH, 6);
+            else ctx.rect(picX, picY, picW, picH);
+            ctx.clip();
+            const imgW = pImg.width;
+            const imgH = pImg.height;
+            const targetAspect = picW / picH;
+            const imgAspect = imgW / imgH;
+            let sx = 0, sy = 0, sw = imgW, sh = imgH;
+            if (imgAspect > targetAspect) {
+              sw = imgH * targetAspect;
+              sx = (imgW - sw) / 2;
+            } else {
+              sh = imgW / targetAspect;
+              sy = (imgH - sh) / 2;
+            }
+            ctx.drawImage(pImg, sx, sy, sw, sh, picX, picY, picW, picH);
+            ctx.restore();
           };
           pImg.src = formData.photoUrl;
         }
         ctx.textAlign = 'center';
-        ctx.font = 'bold 18px "Times New Roman", serif';
-        ctx.fillStyle = '#0f2137';
-        ctx.fillText(name, pW / 2, 765);
+        ctx.font = 'bold 25px "Times New Roman", serif';
+        ctx.fillStyle = '#0f1726';
+        ctx.fillText(name, pW / 2, 755);
 
         ctx.textAlign = 'left';
-        ctx.font = 'bold 12px "Times New Roman", serif';
-        ctx.fillStyle = '#991b1b';
-        ctx.fillText(category, 310, 838);
-
-        ctx.textAlign = 'left';
-        ctx.font = 'bold 10px Helvetica, Arial, sans-serif';
-        ctx.fillStyle = '#1f2937';
-        ctx.fillText(dateFormatted, 380, 878);
+        ctx.font = 'bold 13px "Times New Roman", serif';
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillText(dateFormatted, 370, 885);
       } else if (lowerId.includes('women') || lowerId.includes('icon')) {
         if (formData.photoUrl) {
           const pImg = new Image();
@@ -373,20 +393,29 @@ const StudentForm = () => {
             ctx.beginPath();
             ctx.arc(pW / 2, 460, 85, 0, Math.PI * 2);
             ctx.clip();
-            ctx.drawImage(pImg, pW / 2 - 85, 460 - 85, 170, 170);
+            const photoD = 170;
+            const picX = pW / 2 - 85;
+            const picY = 460 - 85;
+            const imgW = pImg.width;
+            const imgH = pImg.height;
+            const minDim = Math.min(imgW, imgH);
+            const sx = (imgW - minDim) / 2;
+            const sy = (imgH - minDim) / 2;
+            ctx.drawImage(pImg, sx, sy, minDim, minDim, picX, picY, photoD, photoD);
             ctx.restore();
           };
           pImg.src = formData.photoUrl;
         }
         ctx.textAlign = 'center';
-        ctx.font = 'bold 19px "Times New Roman", serif';
-        ctx.fillStyle = '#0f2137';
+        ctx.font = 'bold 28px "Times New Roman", serif';
+        ctx.fillStyle = '#1a1a1a';
         ctx.fillText(name, pW / 2, 712);
 
+        const dateFormattedWomen = dateFormatted.replace(/-/g, '/');
         ctx.textAlign = 'left';
-        ctx.font = 'bold 10.5px Helvetica, Arial, sans-serif';
-        ctx.fillStyle = '#1f2937';
-        ctx.fillText(dateFormatted, 530, 828);
+        ctx.font = 'bold 14px "Times New Roman", serif';
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillText(dateFormattedWomen, 500, 812);
       } else {
         // Arya Bhushan Samaj Seva Award (No photo overlay!)
         ctx.textAlign = 'center';
