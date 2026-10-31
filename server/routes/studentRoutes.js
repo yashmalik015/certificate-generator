@@ -207,16 +207,27 @@ router.post('/', authMiddleware, async (req, res) => {
         })
       );
 
-      // Generate universal ID Card + Membership Certificate
+      // Generate universal ID Card + Membership Certificate if not already selected
       let idCardResult = null, membershipResult = null;
-      try { idCardResult = await generateIdCard(newStudent, incomingDomain); } catch (e) { console.error('ID card gen error:', e); }
-      try { membershipResult = await generateMembershipCert(newStudent, incomingDomain); } catch (e) { console.error('Membership gen error:', e); }
+      if (!templatesToRun.includes('universal-id-card')) {
+        try { idCardResult = await generateIdCard(newStudent, incomingDomain); } catch (e) { console.error('ID card gen error:', e); }
+      }
+      if (!templatesToRun.includes('universal-membership-certificate')) {
+        try { membershipResult = await generateMembershipCert(newStudent, incomingDomain); } catch (e) { console.error('Membership gen error:', e); }
+      }
 
-      const generatedUrls = [
+      const allUrls = [
         ...certResults.filter(Boolean),
         ...(idCardResult ? [idCardResult] : []),
         ...(membershipResult ? [membershipResult] : [])
       ];
+      const seenTids = new Set();
+      const generatedUrls = allUrls.filter((item) => {
+        if (!item || !item.templateId) return false;
+        if (seenTids.has(item.templateId)) return false;
+        seenTids.add(item.templateId);
+        return true;
+      });
 
       newStudent.generatedCertificateUrls = generatedUrls;
       await newStudent.save();
@@ -248,14 +259,25 @@ router.post('/', authMiddleware, async (req, res) => {
         })
       );
       let idCardResult = null, membershipResult = null;
-      try { idCardResult = await generateIdCard(mockStudent, incomingDomain); } catch (e) { console.error('ID card gen error:', e); }
-      try { membershipResult = await generateMembershipCert(mockStudent, incomingDomain); } catch (e) { console.error('Membership gen error:', e); }
+      if (!templatesToRun.includes('universal-id-card')) {
+        try { idCardResult = await generateIdCard(mockStudent, incomingDomain); } catch (e) { console.error('ID card gen error:', e); }
+      }
+      if (!templatesToRun.includes('universal-membership-certificate')) {
+        try { membershipResult = await generateMembershipCert(mockStudent, incomingDomain); } catch (e) { console.error('Membership gen error:', e); }
+      }
 
-      mockStudent.generatedCertificateUrls = [
+      const allMock = [
         ...generatedResults.filter(Boolean),
         ...(idCardResult ? [idCardResult] : []),
         ...(membershipResult ? [membershipResult] : [])
       ];
+      const seenMock = new Set();
+      mockStudent.generatedCertificateUrls = allMock.filter((item) => {
+        if (!item || !item.templateId) return false;
+        if (seenMock.has(item.templateId)) return false;
+        seenMock.add(item.templateId);
+        return true;
+      });
 
       global._mockStudentsStore.unshift(mockStudent);
       return res.status(201).json(mockStudent);
@@ -290,19 +312,29 @@ router.put('/:id', authMiddleware, async (req, res) => {
         student.certificateTemplateIds = templatesToRun;
 
         // Regenerate award certificates
-        const generatedUrls = [];
+        const rawResults = [];
         for (const tid of templatesToRun) {
           try {
             const certRes = await generateCertificate(student, tid, incomingDomain);
-            generatedUrls.push(certRes);
+            if (certRes) rawResults.push(certRes);
           } catch (genErr) { console.error(`Cert regen error (${tid}):`, genErr); }
         }
 
-        // Regenerate universal docs
-        try { const r = await generateIdCard(student, incomingDomain); if (r) generatedUrls.push(r); } catch (e) { console.error('ID card regen:', e); }
-        try { const r = await generateMembershipCert(student, incomingDomain); if (r) generatedUrls.push(r); } catch (e) { console.error('Membership regen:', e); }
+        // Regenerate universal docs if not already included in templatesToRun
+        if (!templatesToRun.includes('universal-id-card')) {
+          try { const r = await generateIdCard(student, incomingDomain); if (r) rawResults.push(r); } catch (e) { console.error('ID card regen:', e); }
+        }
+        if (!templatesToRun.includes('universal-membership-certificate')) {
+          try { const r = await generateMembershipCert(student, incomingDomain); if (r) rawResults.push(r); } catch (e) { console.error('Membership regen:', e); }
+        }
 
-        student.generatedCertificateUrls = generatedUrls;
+        const seenPut = new Set();
+        student.generatedCertificateUrls = rawResults.filter((item) => {
+          if (!item || !item.templateId) return false;
+          if (seenPut.has(item.templateId)) return false;
+          seenPut.add(item.templateId);
+          return true;
+        });
         await student.save();
 
         const updated = await Student.findById(student._id)

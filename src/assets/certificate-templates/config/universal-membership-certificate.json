@@ -1,0 +1,31 @@
+{
+  "fields": {
+    "fullName": {
+      "x": 298,
+      "y": 266,
+      "fontSize": 16,
+      "align": "center",
+      "color": "#111827",
+      "font": "bold"
+    },
+    "letterIssuedAt": {
+      "x": 298,
+      "y": 181,
+      "fontSize": 9,
+      "align": "center",
+      "color": "#1f2937",
+      "font": "regular"
+    }
+  },
+  "photo": {
+    "x": 255,
+    "y": 360,
+    "width": 88,
+    "height": 100
+  },
+  "qrCode": {
+    "x": 443,
+    "y": 687,
+    "size": 57
+  }
+}

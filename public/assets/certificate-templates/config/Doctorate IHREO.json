@@ -1,0 +1,39 @@
+{
+  "fields": {
+    "fullName": {
+      "x": 298,
+      "y": 280,
+      "fontSize": 17,
+      "align": "center",
+      "color": "#111827",
+      "font": "bold"
+    },
+    "category": {
+      "x": 298,
+      "y": 202,
+      "fontSize": 14,
+      "align": "center",
+      "color": "#dc2626",
+      "font": "bold"
+    },
+    "letterIssuedAt": {
+      "x": 298,
+      "y": 138,
+      "fontSize": 10,
+      "align": "center",
+      "color": "#1f2937",
+      "font": "regular"
+    }
+  },
+  "photo": {
+    "x": 254,
+    "y": 378,
+    "width": 88,
+    "height": 95
+  },
+  "qrCode": {
+    "x": 450,
+    "y": 715,
+    "size": 72
+  }
+}

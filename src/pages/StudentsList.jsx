@@ -95,24 +95,13 @@ const StudentsList = () => {
     window.open(downloadUrl, '_blank');
   };
 
-  // Format short button label for award template name
+  // Format short button label for template name
   const getShortTemplateLabel = (templateId) => {
     const lower = String(templateId || '').toLowerCase();
-    if (lower.includes('ashok')) return 'Ashok Samman';
-    if (lower.includes('gaurav') || lower.includes('ratan')) return 'Gaurav Ratan';
-    if (lower.includes('icon') && lower.includes('business')) return 'Business Icon';
-    if (lower.includes('business') && lower.includes('excellence')) return "Int'l Business";
-    if (lower.includes('padm') || lower.includes('bhushan')) return 'Padma Bhushan';
-    if (lower.includes('doctorate')) return 'Doctorate';
-    if (lower.includes('samaj') || lower.includes('seva')) return 'Samaj Seva';
-    if (lower.includes('entrepreneur') || lower.includes('enterpreneur')) return 'Entrepreneur';
-    if (lower.includes('literary') || lower.includes('lifetime')) return 'Literary Award';
-    if (lower.includes('sahitya')) return 'Sahitya Sewa';
-    if (lower.includes('shiksha') || lower.includes('principal')) return 'Shiksha Ratna';
-    if (lower.includes('bibhuti')) return 'Bibhuti Puraskar';
-    if (lower.includes('laureate')) return 'Laureate Award';
-    if (lower.includes('women') || lower.includes('icon')) return 'Women Icon';
-    return templateId.substring(0, 14);
+    if (lower.includes('doctorate')) return 'Doctorate Award';
+    if (lower.includes('membership')) return 'Member Cert';
+    if (lower.includes('id-card') || lower.includes('id card')) return 'ID Card';
+    return templateId.substring(0, 16);
   };
 
   const startRecord = (pagination.page - 1) * pagination.perPage + 1;
@@ -283,7 +272,7 @@ const StudentsList = () => {
                       </span>
                     </td>
                     <td>
-                      {/* Award certificate download buttons */}
+                      {/* Certificate & Document download buttons */}
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                         {student.certificateTemplateIds?.map((tid) => (
                           <button
@@ -295,23 +284,27 @@ const StudentsList = () => {
                             <Download size={12} /> {getShortTemplateLabel(tid)}
                           </button>
                         ))}
-                        {/* Universal documents */}
-                        <button
-                          className="btn-cert-download"
-                          style={{ background: 'rgba(6,182,212,0.15)', borderColor: 'rgba(6,182,212,0.35)', color: '#22d3ee' }}
-                          onClick={() => handleDownloadCert(student._id, 'universal-id-card')}
-                          title="Download ID Card PDF"
-                        >
-                          <Download size={12} /> ID Card
-                        </button>
-                        <button
-                          className="btn-cert-download"
-                          style={{ background: 'rgba(139,92,246,0.15)', borderColor: 'rgba(139,92,246,0.35)', color: '#a78bfa' }}
-                          onClick={() => handleDownloadCert(student._id, 'universal-membership-certificate')}
-                          title="Download Membership Certificate PDF"
-                        >
-                          <Download size={12} /> Member Cert
-                        </button>
+                        {/* Universal documents if not already in certificateTemplateIds */}
+                        {!student.certificateTemplateIds?.includes('universal-id-card') && (
+                          <button
+                            className="btn-cert-download"
+                            style={{ background: 'rgba(6,182,212,0.15)', borderColor: 'rgba(6,182,212,0.35)', color: '#22d3ee' }}
+                            onClick={() => handleDownloadCert(student._id, 'universal-id-card')}
+                            title="Download ID Card PDF"
+                          >
+                            <Download size={12} /> ID Card
+                          </button>
+                        )}
+                        {!student.certificateTemplateIds?.includes('universal-membership-certificate') && (
+                          <button
+                            className="btn-cert-download"
+                            style={{ background: 'rgba(139,92,246,0.15)', borderColor: 'rgba(139,92,246,0.35)', color: '#a78bfa' }}
+                            onClick={() => handleDownloadCert(student._id, 'universal-membership-certificate')}
+                            title="Download Membership Certificate PDF"
+                          >
+                            <Download size={12} /> Member Cert
+                          </button>
+                        )}
                       </div>
                     </td>
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>

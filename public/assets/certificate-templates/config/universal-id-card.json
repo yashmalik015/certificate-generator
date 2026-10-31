@@ -1,0 +1,47 @@
+{
+  "fields": {
+    "fullName": {
+      "x": 114,
+      "y": 70,
+      "fontSize": 8,
+      "align": "left",
+      "color": "#111827",
+      "font": "bold"
+    },
+    "designation": {
+      "x": 114,
+      "y": 58,
+      "fontSize": 8,
+      "align": "left",
+      "color": "#111827",
+      "font": "bold"
+    },
+    "nationality": {
+      "x": 114,
+      "y": 46,
+      "fontSize": 8,
+      "align": "left",
+      "color": "#111827",
+      "font": "bold"
+    },
+    "letterIssuedAt": {
+      "x": 114,
+      "y": 35,
+      "fontSize": 8,
+      "align": "left",
+      "color": "#111827",
+      "font": "bold"
+    }
+  },
+  "photo": {
+    "x": 14,
+    "y": 38,
+    "width": 38,
+    "height": 42
+  },
+  "qrCode": {
+    "x": 228,
+    "y": 86,
+    "size": 28
+  }
+}

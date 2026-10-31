@@ -47,7 +47,7 @@ const StudentForm = () => {
   const bloodGroupOptions = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   const commonCountries = ['Indian', 'American', 'British', 'Canadian', 'Australian', 'German', 'French', 'Emirati', 'Nepalese', 'Bangladeshi'];
 
-  const categoryTabs = ['All', 'National Honors', 'Business & Excellence', 'Academic & Honorary', 'Literary & Cultural'];
+  const categoryTabs = ['All', 'Academic & Honorary', 'Membership', 'Identity Card'];
 
   useEffect(() => {
     loadOptions();
@@ -77,7 +77,7 @@ const StudentForm = () => {
       setTemplates(templatesData);
       setDesignations(designationsData);
 
-      // Default select first event, subject, and template if new
+      // Default select first event, subject, and all templates if new
       if (!isEdit) {
         setFormData((prev) => ({
           ...prev,
@@ -85,7 +85,7 @@ const StudentForm = () => {
           subjectId: prev.subjectId || (subjectsData[0]?._id || ''),
           certificateTemplateIds: (Array.isArray(prev.certificateTemplateIds) && prev.certificateTemplateIds.length > 0)
             ? prev.certificateTemplateIds
-            : (templatesData.length > 0 ? [templatesData[0].id] : [])
+            : (templatesData.length > 0 ? templatesData.map((t) => t.id) : ['Doctorate IHREO'])
         }));
       }
     } catch (err) {
@@ -278,159 +278,82 @@ const StudentForm = () => {
         ctx.font = '9.5px Helvetica, Arial, sans-serif';
         ctx.fillStyle = '#1f2937';
         ctx.fillText(dateStr, pW / 2, 138);
-      } else if (lowerId.includes('padma') || lowerId.includes('padm')) {
+      } else if (lowerId.includes('membership')) {
+        const scaleX = pW / 597.2754;
+        const scaleY = pH / 843.8899;
+
         if (formData.photoUrl) {
           const pImg = new Image();
           pImg.onload = () => {
-            const photoR = 72;
+            const px = 254.63 * scaleX;
+            const py = (843.8899 - 360.09 - 99.58) * scaleY;
+            const pw = 88.06 * scaleX;
+            const ph = 99.58 * scaleY;
             ctx.save();
             ctx.beginPath();
-            ctx.arc(pW / 2, 340, photoR, 0, Math.PI * 2);
+            if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, 4);
+            else ctx.rect(px, py, pw, ph);
+            ctx.closePath();
             ctx.clip();
-            // Cover-fit the photo into the circle
-            const imgW = pImg.width;
-            const imgH = pImg.height;
-            const minDim = Math.min(imgW, imgH);
-            const sx = (imgW - minDim) / 2;
-            const sy = (imgH - minDim) / 2;
-            ctx.drawImage(pImg, sx, sy, minDim, minDim, pW / 2 - photoR, 340 - photoR, photoR * 2, photoR * 2);
+            ctx.drawImage(pImg, px, py, pw, ph);
             ctx.restore();
+
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, 4);
+            else ctx.rect(px, py, pw, ph);
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = '#333333';
+            ctx.stroke();
           };
           pImg.src = formData.photoUrl;
         }
-        
-        // Ribbon Name
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = 'bold 16.5px "Times New Roman", serif';
-        ctx.fillStyle = '#330d0d';
-        ctx.fillText(name, pW / 2, 435);
-
-        // Large Main Name
-        ctx.textBaseline = 'alphabetic';
-        ctx.font = 'bold 26px "Times New Roman", serif';
-        ctx.fillStyle = '#330d0d';
-        ctx.fillText(name, pW / 2, 606);
 
         ctx.textAlign = 'center';
-        ctx.font = 'bold 15px "Times New Roman", serif';
-        ctx.fillStyle = '#664c1a';
-        ctx.fillText(dateFormatted, pW / 2, 712);
-      } else if (lowerId.includes('business')) {
-        if (formData.photoUrl) {
-          const pImg = new Image();
-          pImg.onload = () => {
-            const photoR = 108;
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(pW / 2, 485, photoR, 0, Math.PI * 2);
-            ctx.clip();
-            // Cover-fit the photo into the circle
-            const imgW = pImg.width;
-            const imgH = pImg.height;
-            const minDim = Math.min(imgW, imgH);
-            const sx = (imgW - minDim) / 2;
-            const sy = (imgH - minDim) / 2;
-            ctx.drawImage(pImg, sx, sy, minDim, minDim, pW / 2 - photoR, 485 - photoR, photoR * 2, photoR * 2);
-            ctx.restore();
-          };
-          pImg.src = formData.photoUrl;
-        }
-        // Name — elegant Title Case script, NOT uppercase
-        const businessName = formData.fullName || 'Recipient Name';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = 'bold 26px "Times New Roman", serif';
-        ctx.fillStyle = '#f0c05a';
-        ctx.fillText(businessName, pW / 2, 626);
-        ctx.textBaseline = 'alphabetic';
-        // NOTE: Date intentionally NOT drawn — was overlapping
-        // the "Thank you for being a true change-maker..." template text
-      } else if (lowerId.includes('gaurav') || lowerId.includes('ashok') || lowerId.includes('ratan')) {
-        if (formData.photoUrl) {
-          const pImg = new Image();
-          pImg.onload = () => {
-            const picW = 208;
-            const picH = 252;
-            const picX = (pW - picW) / 2;
-            const picY = 468;
-            ctx.save();
-            ctx.beginPath();
-            if (ctx.roundRect) ctx.roundRect(picX, picY, picW, picH, 6);
-            else ctx.rect(picX, picY, picW, picH);
-            ctx.clip();
-            const imgW = pImg.width;
-            const imgH = pImg.height;
-            const targetAspect = picW / picH;
-            const imgAspect = imgW / imgH;
-            let sx = 0, sy = 0, sw = imgW, sh = imgH;
-            if (imgAspect > targetAspect) {
-              sw = imgH * targetAspect;
-              sx = (imgW - sw) / 2;
-            } else {
-              sh = imgW / targetAspect;
-              sy = (imgH - sh) / 2;
-            }
-            ctx.drawImage(pImg, sx, sy, sw, sh, picX, picY, picW, picH);
-            ctx.restore();
-          };
-          pImg.src = formData.photoUrl;
-        }
-        ctx.textAlign = 'center';
-        ctx.font = 'bold 25px "Times New Roman", serif';
-        ctx.fillStyle = '#0f1726';
-        ctx.fillText(name, pW / 2, 755);
+        ctx.font = `bold ${Math.round(16.5 * scaleX)}px "Times New Roman", serif`;
+        ctx.fillStyle = '#111827';
+        ctx.fillText(name, pW / 2, (843.8899 - 266.5) * scaleY);
 
-        ctx.textAlign = 'left';
-        ctx.font = 'bold 13px "Times New Roman", serif';
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillText(dateFormatted, 370, 885);
-      } else if (lowerId.includes('women') || lowerId.includes('icon')) {
-        if (formData.photoUrl) {
-          const pImg = new Image();
-          pImg.onload = () => {
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(pW / 2, 460, 85, 0, Math.PI * 2);
-            ctx.clip();
-            const photoD = 170;
-            const picX = pW / 2 - 85;
-            const picY = 460 - 85;
-            const imgW = pImg.width;
-            const imgH = pImg.height;
-            const minDim = Math.min(imgW, imgH);
-            const sx = (imgW - minDim) / 2;
-            const sy = (imgH - minDim) / 2;
-            ctx.drawImage(pImg, sx, sy, minDim, minDim, picX, picY, photoD, photoD);
-            ctx.restore();
-          };
-          pImg.src = formData.photoUrl;
-        }
-        ctx.textAlign = 'center';
-        ctx.font = 'bold 28px "Times New Roman", serif';
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillText(name, pW / 2, 712);
-
-        const dateFormattedWomen = dateFormatted.replace(/-/g, '/');
-        ctx.textAlign = 'left';
-        ctx.font = 'bold 14px "Times New Roman", serif';
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillText(dateFormattedWomen, 500, 812);
-      } else {
-        // Arya Bhushan Samaj Seva Award (No photo overlay!)
-        ctx.textAlign = 'center';
-        ctx.font = 'bold 19px "Times New Roman", serif';
-        ctx.fillStyle = '#0c1e36';
-        ctx.fillText(name, pW / 2, 528);
-
-        ctx.font = 'bold 14.5px "Times New Roman", serif';
-        ctx.fillStyle = '#a81c1c';
-        ctx.fillText(category, pW / 2, 710);
-
-        ctx.textAlign = 'left';
-        ctx.font = 'bold 10.5px Helvetica, Arial, sans-serif';
+        const dateStr = `Date of Issue : ${dateFormatted}`;
+        ctx.font = `${Math.round(9.5 * scaleX)}px Helvetica, Arial, sans-serif`;
         ctx.fillStyle = '#1f2937';
-        ctx.fillText(dateFormatted, 535, 854);
+        ctx.fillText(dateStr, pW / 2, (843.8899 - 181.0) * scaleY);
+      } else if (lowerId.includes('id-card') || lowerId.includes('id card')) {
+        const scaleX = pW / 270;
+        const scaleY = pH / 144;
+
+        if (formData.photoUrl) {
+          const pImg = new Image();
+          pImg.onload = () => {
+            const px = 14.41 * scaleX;
+            const py = (144 - 38.12 - 41.59) * scaleY;
+            const pw = 37.71 * scaleX;
+            const ph = 41.59 * scaleY;
+            ctx.save();
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, 4);
+            else ctx.rect(px, py, pw, ph);
+            ctx.closePath();
+            ctx.clip();
+            ctx.drawImage(pImg, px, py, pw, ph);
+            ctx.restore();
+
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, 4);
+            else ctx.rect(px, py, pw, ph);
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#333333';
+            ctx.stroke();
+          };
+          pImg.src = formData.photoUrl;
+        }
+
+        ctx.textAlign = 'left';
+        ctx.font = `bold ${Math.round(7.5 * scaleX)}px Helvetica, Arial, sans-serif`;
+        ctx.fillStyle = '#111827';
+        ctx.fillText(`: ${formData.fullName || 'Member Name'}`, 114 * scaleX, (144 - 70) * scaleY);
+        ctx.fillText(`: ${formData.designation || 'National Member'}`, 114 * scaleX, (144 - 58) * scaleY);
+        ctx.fillText(`: ${formData.nationality || 'Indian'}`, 114 * scaleX, (144 - 46) * scaleY);
+        ctx.fillText(`: ${dateFormatted}`, 114 * scaleX, (144 - 35) * scaleY);
       }
 
       setPreviewLoading(false);
