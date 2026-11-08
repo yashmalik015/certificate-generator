@@ -441,7 +441,30 @@ router.get('/:id/certificate/:templateId/download', authMiddleware, async (req, 
     const cleanTid = String(templateId || 'Certificate').replace(/[^a-zA-Z0-9_-]/g, '_');
     const downloadFileName = `${cleanCertNo}-${cleanTid}.${format}`;
 
-    // First check if file already exists on disk (warm instance)
+    // Generate certificate dynamically on-the-fly to guarantee fresh photo and data
+    const incomingDomain = extractIncomingBaseUrl(req);
+    let certRes = null;
+    try {
+      if (templateId === 'universal-id-card') {
+        certRes = await generateIdCard(student, incomingDomain);
+      } else if (templateId === 'universal-membership-certificate') {
+        certRes = await generateMembershipCert(student, incomingDomain);
+      } else {
+        certRes = await generateCertificate(student, templateId, incomingDomain);
+      }
+    } catch (genErr) {
+      console.warn('Certificate dynamic generation warning, falling back to disk cache:', genErr.message);
+    }
+
+    // Prefer sending fresh pdfBytes directly from memory (most reliable on serverless)
+    if (format === 'pdf' && certRes && certRes.pdfBytes) {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${downloadFileName}"`);
+      const buf = Buffer.isBuffer(certRes.pdfBytes) ? certRes.pdfBytes : Buffer.from(certRes.pdfBytes);
+      return res.send(buf);
+    }
+
+    // Fallback: check if file already exists on disk
     const isVercel = Boolean(process.env.VERCEL || process.env.NOW_REGION);
     const certUploadsDir = isVercel
       ? path.join('/tmp', 'uploads', 'certificates')
@@ -455,22 +478,6 @@ router.get('/:id/certificate/:templateId/download', authMiddleware, async (req, 
         res.setHeader('Content-Disposition', `attachment; filename="${downloadFileName}"`);
         return res.send(fileBuffer);
       }
-    }
-
-    // Regenerate the certificate on-the-fly (cold start / ephemeral /tmp on Vercel)
-    const incomingDomain = extractIncomingBaseUrl(req);
-    let certRes;
-    try {
-      if (templateId === 'universal-id-card') {
-        certRes = await generateIdCard(student, incomingDomain);
-      } else if (templateId === 'universal-membership-certificate') {
-        certRes = await generateMembershipCert(student, incomingDomain);
-      } else {
-        certRes = await generateCertificate(student, templateId, incomingDomain);
-      }
-    } catch (genErr) {
-      console.error('Certificate regeneration failed:', genErr);
-      return res.status(500).json({ error: 'Failed to generate certificate. Please try again.' });
     }
 
     if (!certRes) {

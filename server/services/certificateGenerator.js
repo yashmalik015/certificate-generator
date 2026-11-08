@@ -300,7 +300,13 @@ const embedPhotoWithShape = async (pdfDoc, studentData, shape = 'rect', borderCo
         ctx.restore();
 
         if (bw > 0) {
-          ctx.lineWidth = bw * 2;
+          ctx.beginPath();
+          if (ctx.roundRect) {
+            ctx.roundRect(bw / 2, bw / 2, targetWidth - bw, targetHeight - bw, radius);
+          } else {
+            ctx.rect(bw / 2, bw / 2, targetWidth - bw, targetHeight - bw);
+          }
+          ctx.lineWidth = bw;
           ctx.strokeStyle = borderColor;
           ctx.stroke();
         }
@@ -538,76 +544,20 @@ const renderPadmaBhushan = async (baseDoc, page, studentData, customDomain) => {
   }
 
   // 3. Recipient Photo inside original rounded rectangular gold frame
-  // Frame bounds: width 108.86, height 115.66, x: 243.42, y: 252.10
-  // Corner radius: 11.84 pt, border 2.0 pt in gold color (#754805)
-  const targetW = 108.86;
-  const targetH = 115.66;
-  const photoUrl = studentData.photoUrl || studentData.recipient_photo || studentData.photo || studentData.image;
-  const photoBuf = await getPhotoBuffer(photoUrl);
-  if (photoBuf && photoBuf.length > 0) {
-    let photoImg = null;
-    try {
-      const { createCanvas, loadImage } = await import('canvas');
-      const rawPhoto = await loadImage(photoBuf);
-      const scale = 4;
-      const cW = Math.round(targetW * scale);
-      const cH = Math.round(targetH * scale);
-      const canvas = createCanvas(cW, cH);
-      const ctx = canvas.getContext('2d');
-      const radius = 11.84 * scale;
-      const bw = 2.0 * scale;
-
-      ctx.save();
-      ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(0, 0, cW, cH, radius);
-      else ctx.rect(0, 0, cW, cH);
-      ctx.clip();
-
-      const imgAspect = (rawPhoto.width || 400) / (rawPhoto.height || 400);
-      const frameAspect = cW / cH;
-      let dW, dH, dX, dY;
-      if (imgAspect > frameAspect) {
-        dH = cH;
-        dW = dH * imgAspect;
-        dX = (cW - dW) / 2;
-        dY = 0;
-      } else {
-        dW = cW;
-        dH = dW / imgAspect;
-        dX = 0;
-        dY = (cH - dH) / 2;
-      }
-      ctx.drawImage(rawPhoto, dX, dY, dW, dH);
-      ctx.restore();
-
-      ctx.save();
-      ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(bw / 2, bw / 2, cW - bw, cH - bw, radius - bw / 2);
-      else ctx.rect(bw / 2, bw / 2, cW - bw, cH - bw);
-      ctx.lineWidth = bw;
-      ctx.strokeStyle = '#754805';
-      ctx.stroke();
-      ctx.restore();
-
-      photoImg = await baseDoc.embedPng(canvas.toBuffer('image/png'));
-    } catch (canvasErr) {
-      console.warn('Padma Bhushan canvas masking fallback (serverless environment):', canvasErr.message);
-      // Pure pdf-lib direct fallback without native dependencies
-      photoImg = await embedImageBuffer(baseDoc, photoBuf);
-    }
-
-    if (photoImg) {
-      page.drawImage(photoImg, {
-        x: 243.42,
-        y: 252.10,
-        width: targetW,
-        height: targetH
-      });
-    } else {
-      console.error('Failed to embed recipient photo into Padma Bhushan PDF.');
-    }
+  // Frame bounds: width: 109.52, height: 116.01, x: 243.06, y: 251.93
+  // Uses the identical proven embedPhotoWithShape helper as Honorary Doctorate and Lifetime Membership
+  const targetW = 109.52;
+  const targetH = 116.01;
+  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#754805', 1.8, 300, 320);
+  if (pImg) {
+    page.drawImage(pImg, {
+      x: 243.06,
+      y: 251.93,
+      width: targetW,
+      height: targetH
+    });
   } else {
-    console.warn('No photo buffer found for recipient photo. Checked fields: photoUrl, recipient_photo, photo, image');
+    console.warn('Padma Bhushan photo embedding: no photo image returned from embedPhotoWithShape');
   }
 
   // 4. Recipient Name
