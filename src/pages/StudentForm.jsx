@@ -235,6 +235,22 @@ const StudentForm = () => {
     let urlIdx = 0;
     const bgImg = new Image();
 
+    // Helper to draw rounded rectangle cross-environment
+    const drawRoundedRect = (ctx, x, y, width, height, radius) => {
+      const r = Math.min(Math.max(0, radius), width / 2, height / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + width - r, y);
+      ctx.arcTo(x + width, y, x + width, y + r, r);
+      ctx.lineTo(x + width, y + height - r);
+      ctx.arcTo(x + width, y + height, x + width - r, y + height, r);
+      ctx.lineTo(x + r, y + height);
+      ctx.arcTo(x, y + height, x, y + height - r, r);
+      ctx.lineTo(x + r, y);
+      ctx.arcTo(x, y, x + r, y, r);
+      ctx.closePath();
+    };
+
     const drawCertificate = (img) => {
       canvas.width = img.width || 700;
       canvas.height = img.height || 1000;
@@ -279,9 +295,7 @@ const StudentForm = () => {
             const bw = 2.0 * scaleX;
 
             ctx.save();
-            ctx.beginPath();
-            if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, r);
-            else ctx.rect(px, py, pw, ph);
+            drawRoundedRect(ctx, px, py, pw, ph, r);
             ctx.clip();
 
             const imgAspect = (pImg.width || 400) / (pImg.height || 400);
@@ -302,9 +316,7 @@ const StudentForm = () => {
             ctx.restore();
 
             ctx.save();
-            ctx.beginPath();
-            if (ctx.roundRect) ctx.roundRect(px + bw/2, py + bw/2, pw - bw, ph - bw, r - bw/2);
-            else ctx.rect(px + bw/2, py + bw/2, pw - bw, ph - bw);
+            drawRoundedRect(ctx, px + bw/2, py + bw/2, pw - bw, ph - bw, Math.max(0, r - bw/2));
             ctx.lineWidth = bw;
             ctx.strokeStyle = '#754805';
             ctx.stroke();
@@ -355,13 +367,11 @@ const StudentForm = () => {
             const py = (843.89 - 441.18 - 97.94) * scaleY;
             const pw = 86.01 * scaleX;
             const ph = 97.94 * scaleY;
-            const r = 3.5 * scaleX;
+            const r = 6.87 * scaleX;
             const bw = 0.57 * scaleX;
 
             ctx.save();
-            ctx.beginPath();
-            if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, r);
-            else ctx.rect(px, py, pw, ph);
+            drawRoundedRect(ctx, px, py, pw, ph, r);
             ctx.clip();
 
             const imgAspect = (pImg.width || 400) / (pImg.height || 400);
@@ -382,9 +392,7 @@ const StudentForm = () => {
             ctx.restore();
 
             ctx.save();
-            ctx.beginPath();
-            if (ctx.roundRect) ctx.roundRect(px + bw/2, py + bw/2, pw - bw, ph - bw, r - bw/2);
-            else ctx.rect(px + bw/2, py + bw/2, pw - bw, ph - bw);
+            drawRoundedRect(ctx, px + bw/2, py + bw/2, pw - bw, ph - bw, Math.max(0, r - bw/2));
             ctx.lineWidth = bw;
             ctx.strokeStyle = '#000000';
             ctx.stroke();
@@ -424,24 +432,46 @@ const StudentForm = () => {
         ctx.font = `bold ${Math.round(10.0 * scaleX)}px "Times New Roman", serif`;
         ctx.fillText(`Date of Issue : ${dateFormattedArya}`, pW / 2, (843.89 - 122.50) * scaleY);
       } else if (lowerId.includes('doctorate')) {
+        const scaleX = pW / 595.28;
+        const scaleY = pH / 841.89;
+
         if (formData.photoUrl) {
           const pImg = new Image();
           pImg.onload = () => {
+            const px = 253.66 * scaleX;
+            const py = (841.89 - 377.78 - 95.05) * scaleY;
+            const pw = 88.01 * scaleX;
+            const ph = 95.05 * scaleY;
+            const r = 9.56 * scaleX;
+            const bw = 1.5 * scaleX;
+
             ctx.save();
-            ctx.beginPath();
-            if (ctx.roundRect) ctx.roundRect(253, 377, 88, 95, 4);
-            else ctx.rect(253, 377, 88, 95);
-            ctx.closePath();
+            drawRoundedRect(ctx, px, py, pw, ph, r);
             ctx.clip();
-            ctx.drawImage(pImg, 253, 377, 88, 95);
+
+            const imgAspect = (pImg.width || 400) / (pImg.height || 400);
+            const frameAspect = pw / ph;
+            let dW, dH, dX, dY;
+            if (imgAspect > frameAspect) {
+              dH = ph;
+              dW = dH * imgAspect;
+              dX = px + (pw - dW) / 2;
+              dY = py;
+            } else {
+              dW = pw;
+              dH = dW / imgAspect;
+              dX = px;
+              dY = py + (ph - dH) / 2;
+            }
+            ctx.drawImage(pImg, dX, dY, dW, dH);
             ctx.restore();
 
-            ctx.beginPath();
-            if (ctx.roundRect) ctx.roundRect(253, 377, 88, 95, 4);
-            else ctx.rect(253, 377, 88, 95);
-            ctx.lineWidth = 1.5;
+            ctx.save();
+            drawRoundedRect(ctx, px + bw/2, py + bw/2, pw - bw, ph - bw, Math.max(0, r - bw/2));
+            ctx.lineWidth = bw;
             ctx.strokeStyle = '#222222';
             ctx.stroke();
+            ctx.restore();
           };
           pImg.src = formData.photoUrl;
         }
@@ -469,21 +499,36 @@ const StudentForm = () => {
             const py = (843.8899 - 360.09 - 99.58) * scaleY;
             const pw = 88.06 * scaleX;
             const ph = 99.58 * scaleY;
+            const r = 9.56 * scaleX;
+            const bw = 1.5 * scaleX;
+
             ctx.save();
-            ctx.beginPath();
-            if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, 4);
-            else ctx.rect(px, py, pw, ph);
-            ctx.closePath();
+            drawRoundedRect(ctx, px, py, pw, ph, r);
             ctx.clip();
-            ctx.drawImage(pImg, px, py, pw, ph);
+
+            const imgAspect = (pImg.width || 400) / (pImg.height || 400);
+            const frameAspect = pw / ph;
+            let dW, dH, dX, dY;
+            if (imgAspect > frameAspect) {
+              dH = ph;
+              dW = dH * imgAspect;
+              dX = px + (pw - dW) / 2;
+              dY = py;
+            } else {
+              dW = pw;
+              dH = dW / imgAspect;
+              dX = px;
+              dY = py + (ph - dH) / 2;
+            }
+            ctx.drawImage(pImg, dX, dY, dW, dH);
             ctx.restore();
 
-            ctx.beginPath();
-            if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, 4);
-            else ctx.rect(px, py, pw, ph);
-            ctx.lineWidth = 1.5;
+            ctx.save();
+            drawRoundedRect(ctx, px + bw/2, py + bw/2, pw - bw, ph - bw, Math.max(0, r - bw/2));
+            ctx.lineWidth = bw;
             ctx.strokeStyle = '#333333';
             ctx.stroke();
+            ctx.restore();
           };
           pImg.src = formData.photoUrl;
         }
@@ -508,21 +553,36 @@ const StudentForm = () => {
             const py = (144 - 38.12 - 41.59) * scaleY;
             const pw = 37.71 * scaleX;
             const ph = 41.59 * scaleY;
+            const r = 4.06 * scaleX;
+            const bw = 1.0 * scaleX;
+
             ctx.save();
-            ctx.beginPath();
-            if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, 4);
-            else ctx.rect(px, py, pw, ph);
-            ctx.closePath();
+            drawRoundedRect(ctx, px, py, pw, ph, r);
             ctx.clip();
-            ctx.drawImage(pImg, px, py, pw, ph);
+
+            const imgAspect = (pImg.width || 400) / (pImg.height || 400);
+            const frameAspect = pw / ph;
+            let dW, dH, dX, dY;
+            if (imgAspect > frameAspect) {
+              dH = ph;
+              dW = dH * imgAspect;
+              dX = px + (pw - dW) / 2;
+              dY = py;
+            } else {
+              dW = pw;
+              dH = dW / imgAspect;
+              dX = px;
+              dY = py + (ph - dH) / 2;
+            }
+            ctx.drawImage(pImg, dX, dY, dW, dH);
             ctx.restore();
 
-            ctx.beginPath();
-            if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, 4);
-            else ctx.rect(px, py, pw, ph);
-            ctx.lineWidth = 1;
+            ctx.save();
+            drawRoundedRect(ctx, px + bw/2, py + bw/2, pw - bw, ph - bw, Math.max(0, r - bw/2));
+            ctx.lineWidth = bw;
             ctx.strokeStyle = '#333333';
             ctx.stroke();
+            ctx.restore();
           };
           pImg.src = formData.photoUrl;
         }

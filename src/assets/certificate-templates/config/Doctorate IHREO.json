@@ -26,10 +26,13 @@
     }
   },
   "photo": {
-    "x": 254,
-    "y": 378,
-    "width": 88,
-    "height": 95
+    "x": 253.66,
+    "y": 377.78,
+    "width": 88.01,
+    "height": 95.05,
+    "borderRadius": 9.56,
+    "borderWidth": 1.5,
+    "borderColor": "#222222"
   },
   "qrCode": {
     "x": 450,
