@@ -10,6 +10,10 @@ const StudentForm = () => {
 
   const [formData, setFormData] = useState({
     refno: '',
+    cin_no: 'U85499DL2025NPL459383',
+    licence_no: '176566',
+    reg_no: '459383',
+    serial_no: '',
     fullName: '',
     fathersHusbandName: '',
     address: '',
@@ -116,6 +120,10 @@ const StudentForm = () => {
       if (data) {
         setFormData({
           ...data,
+          cin_no: data.cin_no || 'U85499DL2025NPL459383',
+          licence_no: data.licence_no || '176566',
+          reg_no: data.reg_no || '459383',
+          serial_no: data.serial_no || '',
           dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth).toISOString().split('T')[0] : '',
           letterIssuedAt: data.letterIssuedAt ? new Date(data.letterIssuedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           eventId: typeof data.eventId === 'object' && data.eventId ? data.eventId._id : data.eventId,
@@ -243,7 +251,84 @@ const StudentForm = () => {
 
       const lowerId = String(previewingTemplate.id || '').toLowerCase();
 
-      if (lowerId.includes('doctorate')) {
+      if (lowerId.includes('padma')) {
+        const scaleX = pW / 597.20;
+        const scaleY = pH / 843.92;
+
+        const cinNo = formData.cin_no || 'U85499DL2025NPL459383';
+        const licNo = formData.licence_no || '176566';
+        const slNo = formData.serial_no || (formData.refno ? (formData.refno.includes('459383') ? formData.refno : `459383/${formData.refno.replace(/^IHREO\/?/, 'IHREO')}`) : '459383/IHREO0216');
+        const regNo = formData.reg_no || '459383';
+
+        ctx.fillStyle = '#111827';
+        ctx.font = `${Math.round(10.86 * scaleX)}px Arial, Helvetica, sans-serif`;
+        ctx.textAlign = 'left';
+        ctx.fillText(`CIN NO:- ${cinNo}`, 66.0 * scaleX, (843.92 - 768.12) * scaleY);
+        ctx.fillText(`Licence No:- ${licNo}`, 66.0 * scaleX, (843.92 - 755.83) * scaleY);
+        ctx.fillText(`Sl. No. ${slNo}`, 66.0 * scaleX, (843.92 - 743.43) * scaleY);
+        ctx.fillText(`Reg No. ${regNo}`, 66.0 * scaleX, (843.92 - 730.71) * scaleY);
+
+        if (formData.photoUrl) {
+          const pImg = new Image();
+          pImg.onload = () => {
+            const px = 243.42 * scaleX;
+            const py = (843.92 - 252.10 - 115.66) * scaleY;
+            const pw = 108.86 * scaleX;
+            const ph = 115.66 * scaleY;
+            const r = 11.84 * scaleX;
+            const bw = 2.0 * scaleX;
+
+            ctx.save();
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, r);
+            else ctx.rect(px, py, pw, ph);
+            ctx.clip();
+
+            const imgAspect = (pImg.width || 400) / (pImg.height || 400);
+            const frameAspect = pw / ph;
+            let dW, dH, dX, dY;
+            if (imgAspect > frameAspect) {
+              dH = ph;
+              dW = dH * imgAspect;
+              dX = px + (pw - dW) / 2;
+              dY = py;
+            } else {
+              dW = pw;
+              dH = dW / imgAspect;
+              dX = px;
+              dY = py + (ph - dH) / 2;
+            }
+            ctx.drawImage(pImg, dX, dY, dW, dH);
+            ctx.restore();
+
+            ctx.save();
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(px + bw/2, py + bw/2, pw - bw, ph - bw, r - bw/2);
+            else ctx.rect(px + bw/2, py + bw/2, pw - bw, ph - bw);
+            ctx.lineWidth = bw;
+            ctx.strokeStyle = '#754805';
+            ctx.stroke();
+            ctx.restore();
+          };
+          pImg.src = formData.photoUrl;
+        }
+
+        const rawName = formData.fullName || 'Recipient Full Name';
+        ctx.textAlign = 'center';
+        let namePx = Math.round(20.5 * scaleX);
+        ctx.font = `bold ${namePx}px "Times New Roman", serif`;
+        while (namePx > Math.round(9 * scaleX) && ctx.measureText(rawName).width > 380 * scaleX) {
+          namePx -= 1;
+          ctx.font = `bold ${namePx}px "Times New Roman", serif`;
+        }
+        ctx.fillStyle = '#111827';
+        ctx.fillText(rawName, pW / 2, (843.92 - 228.00) * scaleY);
+
+        ctx.textAlign = 'left';
+        ctx.font = `${Math.round(10.5 * scaleX)}px Arial, Helvetica, sans-serif`;
+        ctx.fillStyle = '#1f2937';
+        ctx.fillText(dateFormatted, 295.5 * scaleX, (843.92 - 129.5) * scaleY);
+      } else if (lowerId.includes('doctorate')) {
         if (formData.photoUrl) {
           const pImg = new Image();
           pImg.onload = () => {
@@ -576,6 +661,58 @@ const StudentForm = () => {
               value={formData.certificateNumber}
               onChange={handleChange}
               required
+            />
+          </div>
+
+          {/* CIN Number */}
+          <div className="form-group">
+            <label className="form-label">CIN Number</label>
+            <input
+              type="text"
+              name="cin_no"
+              className="form-control"
+              placeholder="e.g. U85499DL2025NPL459383"
+              value={formData.cin_no}
+              onChange={handleChange}
+            />
+          </div>
+
+          {/* Licence Number */}
+          <div className="form-group">
+            <label className="form-label">Licence Number</label>
+            <input
+              type="text"
+              name="licence_no"
+              className="form-control"
+              placeholder="e.g. 176566"
+              value={formData.licence_no}
+              onChange={handleChange}
+            />
+          </div>
+
+          {/* Registration Number */}
+          <div className="form-group">
+            <label className="form-label">Registration Number</label>
+            <input
+              type="text"
+              name="reg_no"
+              className="form-control"
+              placeholder="e.g. 459383"
+              value={formData.reg_no}
+              onChange={handleChange}
+            />
+          </div>
+
+          {/* Serial Number Override */}
+          <div className="form-group">
+            <label className="form-label">Serial Number / Ref Override</label>
+            <input
+              type="text"
+              name="serial_no"
+              className="form-control"
+              placeholder="e.g. 459383/IHREO0216 (leave blank to use Refno)"
+              value={formData.serial_no}
+              onChange={handleChange}
             />
           </div>
 

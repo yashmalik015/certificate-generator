@@ -57,6 +57,7 @@ export const resolveAppDomain = (customDomain) => {
 // ── Friendly Award Titles & Categories ──────────────────────────────────────
 export const getAwardTitle = (templateId) => {
   const lower = String(templateId || '').toLowerCase();
+  if (lower.includes('padma')) return 'Bhartiya Padma Bhushan Samman';
   if (lower.includes('doctorate')) return 'Honorary Doctorate Award';
   if (lower.includes('membership')) return 'Certificate of Lifetime Membership';
   if (lower.includes('id-card') || lower.includes('id card')) return 'Universal ID Card';
@@ -65,15 +66,24 @@ export const getAwardTitle = (templateId) => {
 
 export const getAwardCategory = (templateId) => {
   const lower = String(templateId || '').toLowerCase();
+  if (lower.includes('padma')) return 'Academic & Honorary';
   if (lower.includes('doctorate')) return 'Academic & Honorary';
   if (lower.includes('membership')) return 'Membership';
   if (lower.includes('id-card') || lower.includes('id card')) return 'Identity Card';
   return 'Official Documents';
 };
 
-// ── Curated Authentic Template List (Doctorate IHREO, Lifetime Membership, ID Card) ──
+// ── Curated Authentic Template List (Padma Bhushan, Doctorate IHREO, Lifetime Membership, ID Card) ──
 export const getAvailableTemplates = () => {
   return [
+    {
+      id: 'Bhartiya Padma Bhushan Samman',
+      filename: 'Bhartiya Padma Bhushan Samman.pdf',
+      label: 'Bhartiya Padma Bhushan Samman',
+      category: 'Academic & Honorary',
+      hasConfig: true,
+      previewUrl: '/assets/certificate-templates/Bhartiya%20Padma%20Bhushan%20Samman.png'
+    },
     {
       id: 'Doctorate IHREO',
       filename: 'Doctorate IHREO.pdf',
@@ -432,6 +442,140 @@ const renderDoctorateAward = async (baseDoc, page, studentData, customDomain) =>
 
 
 
+// ── 2. Render Bhartiya Padma Bhushan Samman ────────────────────────────────
+const renderPadmaBhushan = async (baseDoc, page, studentData, customDomain) => {
+  const { width: pW } = page.getSize();
+  const fontHelv = await baseDoc.embedFont(StandardFonts.Helvetica);
+  const fontTimesBold = await baseDoc.embedFont(StandardFonts.TimesRomanBold);
+
+  const cinNo = studentData.cin_no || 'U85499DL2025NPL459383';
+  const licenceNo = studentData.licence_no || '176566';
+  const regNo = studentData.reg_no || '459383';
+
+  // Format serial number
+  let rawSlNo = studentData.serial_no || studentData.refno || '459383/IHREO0216';
+  let formattedSlNo = String(rawSlNo).trim();
+  if (!formattedSlNo.includes('459383') && !formattedSlNo.includes('/')) {
+    formattedSlNo = `459383/${formattedSlNo}`;
+  }
+
+  // Certificate number for QR code verification
+  const cleanCertNo = String(studentData.certificateNumber || formattedSlNo.replace('IHREO/', 'IHREO/CERT/') || 'IHREO/CERT/2026/0040').replace(/WCAEO/gi, 'IHREO');
+
+  // 1. Top Left 4 Lines (exact vector coordinates from reference PDF)
+  const fontSize = 10.86;
+  const textColor = rgb(0.08, 0.08, 0.08);
+
+  page.drawText(`CIN NO:- ${cinNo}`, { x: 66.0, y: 768.12, size: fontSize, font: fontHelv, color: textColor });
+  page.drawText(`Licence No:- ${licenceNo}`, { x: 66.0, y: 755.83, size: fontSize, font: fontHelv, color: textColor });
+  page.drawText(`Sl. No. ${formattedSlNo}`, { x: 66.0, y: 743.43, size: fontSize, font: fontHelv, color: textColor });
+  page.drawText(`Reg No. ${regNo}`, { x: 66.0, y: 730.71, size: fontSize, font: fontHelv, color: textColor });
+
+  // 2. Top Right Dynamic QR Code
+  try {
+    const domain = resolveAppDomain(customDomain);
+    const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(cleanCertNo)}`;
+    const qrBuf = await QRCode.toBuffer(verifyUrl, { type: 'png', margin: 1, width: 250, errorCorrectionLevel: 'M' });
+    const qrImg = await baseDoc.embedPng(qrBuf);
+    page.drawImage(qrImg, {
+      x: 478.22,
+      y: 718.81,
+      width: 61.94,
+      height: 61.94
+    });
+  } catch (qrErr) {
+    console.warn('QR code generation warning:', qrErr.message);
+  }
+
+  // 3. Recipient Photo inside original rounded rectangular gold frame
+  // Frame bounds: width 108.86, height 115.66, x: 243.42, y: 252.10
+  // Corner radius: 11.84 pt, border 2.0 pt in gold color (#754805)
+  const targetW = 108.86;
+  const targetH = 115.66;
+  const photoBuf = await getPhotoBuffer(studentData.photoUrl || studentData.recipient_photo);
+  if (photoBuf && photoBuf.length > 0) {
+    try {
+      const { createCanvas, loadImage } = await import('canvas');
+      const rawPhoto = await loadImage(photoBuf);
+      const scale = 4;
+      const cW = Math.round(targetW * scale);
+      const cH = Math.round(targetH * scale);
+      const canvas = createCanvas(cW, cH);
+      const ctx = canvas.getContext('2d');
+      const radius = 11.84 * scale;
+      const bw = 2.0 * scale;
+
+      ctx.save();
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(0, 0, cW, cH, radius);
+      else ctx.rect(0, 0, cW, cH);
+      ctx.clip();
+
+      const imgAspect = (rawPhoto.width || 400) / (rawPhoto.height || 400);
+      const frameAspect = cW / cH;
+      let dW, dH, dX, dY;
+      if (imgAspect > frameAspect) {
+        dH = cH;
+        dW = dH * imgAspect;
+        dX = (cW - dW) / 2;
+        dY = 0;
+      } else {
+        dW = cW;
+        dH = dW / imgAspect;
+        dX = 0;
+        dY = (cH - dH) / 2;
+      }
+      ctx.drawImage(rawPhoto, dX, dY, dW, dH);
+      ctx.restore();
+
+      ctx.save();
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(bw / 2, bw / 2, cW - bw, cH - bw, radius - bw / 2);
+      else ctx.rect(bw / 2, bw / 2, cW - bw, cH - bw);
+      ctx.lineWidth = bw;
+      ctx.strokeStyle = '#754805';
+      ctx.stroke();
+      ctx.restore();
+
+      const photoPng = await baseDoc.embedPng(canvas.toBuffer('image/png'));
+      page.drawImage(photoPng, {
+        x: 243.42,
+        y: 252.10,
+        width: targetW,
+        height: targetH
+      });
+    } catch (photoErr) {
+      console.warn('Padma photo embedding error:', photoErr.message);
+    }
+  }
+
+  // 4. Recipient Name
+  const nameStr = String(studentData.fullName || studentData.full_name || 'Recipient Name').trim();
+  let nameSize = 20.5;
+  while (nameSize > 10 && fontTimesBold.widthOfTextAtSize(nameStr, nameSize) > 380) {
+    nameSize -= 0.5;
+  }
+  const nameW = fontTimesBold.widthOfTextAtSize(nameStr, nameSize);
+  page.drawText(nameStr, {
+    x: (pW - nameW) / 2,
+    y: 228.00,
+    size: nameSize,
+    font: fontTimesBold,
+    color: rgb(0.08, 0.08, 0.08)
+  });
+
+  // 5. Issue Date
+  const rawDate = studentData.letterIssuedAt || studentData.issue_date || new Date();
+  const dateFormatted = formatIssueDate(rawDate, 'DD-MM-YYYY');
+  page.drawText(dateFormatted, {
+    x: 295.5,
+    y: 129.5,
+    size: 10.5,
+    font: fontHelv,
+    color: rgb(0.1, 0.1, 0.1)
+  });
+};
+
 // ── Master Dispatcher: Render PDF ───────────────────────────────────────────
 export const renderIhreDocPdf = async (studentData, templateId, customDomain) => {
   let pdfTemplatePath = findTemplateFile(templateId, ['.pdf', '.png']) || findTemplateFile('Doctorate IHREO', ['.pdf']);
@@ -453,7 +597,12 @@ export const renderIhreDocPdf = async (studentData, templateId, customDomain) =>
   }
 
   const page = baseDoc.getPage(0);
-  await renderDoctorateAward(baseDoc, page, studentData, customDomain);
+  const lower = String(templateId || '').toLowerCase();
+  if (lower.includes('padma')) {
+    await renderPadmaBhushan(baseDoc, page, studentData, customDomain);
+  } else {
+    await renderDoctorateAward(baseDoc, page, studentData, customDomain);
+  }
   return await baseDoc.save();
 };
 
@@ -484,73 +633,177 @@ export const generateCertificate = async (studentData, templateId, customDomain)
 
     // Also generate PNG representation for instant web preview
     try {
-      const basePngPath = findTemplateFile(templateId, ['.png']) || findTemplateFile('Doctorate IHREO', ['.png']);
+      const isPadma = String(templateId || '').toLowerCase().includes('padma');
+      const basePngPath = findTemplateFile(templateId, ['.png']) || (isPadma ? findTemplateFile('Bhartiya Padma Bhushan Samman', ['.png']) : findTemplateFile('Doctorate IHREO', ['.png']));
       if (basePngPath && fs.existsSync(basePngPath)) {
         const { createCanvas, loadImage } = await import('canvas');
         const bgImg = await loadImage(basePngPath);
-        const scale = 2;
-        const canvas = createCanvas(bgImg.width * scale, bgImg.height * scale);
-        const ctx = canvas.getContext('2d');
-        ctx.scale(scale, scale);
-        ctx.drawImage(bgImg, 0, 0);
 
-        const recipientName = (studentData.fullName || 'Recipient Name').toUpperCase();
-        const category = studentData.category || 'For Outstanding Distinction & Excellence';
-        const dateFormatted = formatIssueDate(studentData.letterIssuedAt, 'DD-MM-YYYY');
-        const cleanRefno = String(studentData.refno || 'IHREO/2026/040').replace(/WCAEO/gi, 'IHREO');
-        const cleanCertNo = String(studentData.certificateNumber || cleanRefno.replace('IHREO/', 'IHREO/CERT/') || 'IHREO/CERT/2026/0040').replace(/WCAEO/gi, 'IHREO');
+        if (isPadma) {
+          const canvas = createCanvas(bgImg.width, bgImg.height);
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(bgImg, 0, 0);
 
-        // Top Left Reference Text
-        const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${cleanRefno}\nReg No. 459383`;
-        ctx.textAlign = 'left';
-        ctx.font = '7.5px Arial, sans-serif';
-        ctx.fillStyle = '#1f2937';
-        const lines = refText.split('\n');
-        lines.forEach((line, i) => {
-          ctx.fillText(line, 65, 55 + (i * 10));
-        });
+          const scaleX = bgImg.width / 597.20;
+          const scaleY = bgImg.height / 843.92;
 
-        // Photo inside center frame
-        if (studentData.photoUrl) {
-          const rawBuf = await getPhotoBuffer(studentData.photoUrl);
+          const cinNo = studentData.cin_no || 'U85499DL2025NPL459383';
+          const licNo = studentData.licence_no || '176566';
+          const regNo = studentData.reg_no || '459383';
+          let rawSlNo = studentData.serial_no || studentData.refno || '459383/IHREO0216';
+          let formattedSlNo = String(rawSlNo).trim();
+          if (!formattedSlNo.includes('459383') && !formattedSlNo.includes('/')) {
+            formattedSlNo = `459383/${formattedSlNo}`;
+          }
+
+          // Top Left
+          ctx.fillStyle = '#111827';
+          const fontSizePx = Math.round(10.86 * scaleX);
+          ctx.font = `${fontSizePx}px Arial, Helvetica, sans-serif`;
+          ctx.textAlign = 'left';
+          ctx.fillText(`CIN NO:- ${cinNo}`, 66.0 * scaleX, (843.92 - 768.12) * scaleY);
+          ctx.fillText(`Licence No:- ${licNo}`, 66.0 * scaleX, (843.92 - 755.83) * scaleY);
+          ctx.fillText(`Sl. No. ${formattedSlNo}`, 66.0 * scaleX, (843.92 - 743.43) * scaleY);
+          ctx.fillText(`Reg No. ${regNo}`, 66.0 * scaleX, (843.92 - 730.71) * scaleY);
+
+          // Top Right QR
+          const cleanCertNo = String(studentData.certificateNumber || formattedSlNo.replace('IHREO/', 'IHREO/CERT/') || 'IHREO/CERT/2026/0040').replace(/WCAEO/gi, 'IHREO');
+          const domain = resolveAppDomain(customDomain);
+          const verifyUrl = `${domain}/verify?cert=${encodeURIComponent(cleanCertNo)}`;
+          const qrBuf = await QRCode.toBuffer(verifyUrl, { margin: 1, width: Math.round(61.94 * scaleX) });
+          const qrImg = await loadImage(qrBuf);
+          ctx.drawImage(qrImg, 478.22 * scaleX, (843.92 - 718.81 - 61.94) * scaleY, 61.94 * scaleX, 61.94 * scaleY);
+
+          // Recipient Photo
+          const rawBuf = await getPhotoBuffer(studentData.photoUrl || studentData.recipient_photo);
           if (rawBuf) {
-            const pImg = await loadImage(rawBuf);
-            const picX = 254;
-            const picY = 369;
-            const picW = 88;
-            const picH = 95;
+            const photo = await loadImage(rawBuf);
+            const pX = 243.42 * scaleX;
+            const pY = (843.92 - 252.10 - 115.66) * scaleY;
+            const pW = 108.86 * scaleX;
+            const pH = 115.66 * scaleY;
+            const radius = 11.84 * scaleX;
+            const bw = 2.0 * scaleX;
+
             ctx.save();
             ctx.beginPath();
-            if (ctx.roundRect) {
-              ctx.roundRect(picX, picY, picW, picH, 6);
-            } else {
-              ctx.rect(picX, picY, picW, picH);
-            }
+            if (ctx.roundRect) ctx.roundRect(pX, pY, pW, pH, radius);
+            else ctx.rect(pX, pY, pW, pH);
             ctx.clip();
-            ctx.drawImage(pImg, picX, picY, picW, picH);
+
+            const imgAspect = (photo.width || 400) / (photo.height || 400);
+            const frameAspect = pW / pH;
+            let dW, dH, dX, dY;
+            if (imgAspect > frameAspect) {
+              dH = pH;
+              dW = dH * imgAspect;
+              dX = pX + (pW - dW) / 2;
+              dY = pY;
+            } else {
+              dW = pW;
+              dH = dW / imgAspect;
+              dX = pX;
+              dY = pY + (pH - dH) / 2;
+            }
+            ctx.drawImage(photo, dX, dY, dW, dH);
             ctx.restore();
-            ctx.strokeStyle = '#222222';
-            ctx.lineWidth = 1;
+
+            ctx.save();
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(pX + bw/2, pY + bw/2, pW - bw, pH - bw, radius - bw/2);
+            else ctx.rect(pX + bw/2, pY + bw/2, pW - bw, pH - bw);
+            ctx.lineWidth = bw;
+            ctx.strokeStyle = '#754805';
             ctx.stroke();
+            ctx.restore();
           }
+
+          // Recipient Name with controlled scaling
+          const nameStr = String(studentData.fullName || studentData.full_name || 'Recipient Name').trim();
+          ctx.textAlign = 'center';
+          let namePx = Math.round(20.5 * scaleX);
+          ctx.font = `bold ${namePx}px "Times New Roman", serif`;
+          while (namePx > Math.round(9 * scaleX) && ctx.measureText(nameStr).width > 380 * scaleX) {
+            namePx -= 1;
+            ctx.font = `bold ${namePx}px "Times New Roman", serif`;
+          }
+          ctx.fillStyle = '#111827';
+          ctx.fillText(nameStr, bgImg.width / 2, (843.92 - 228.00) * scaleY);
+
+          // Issue Date
+          const rawDate = studentData.letterIssuedAt || studentData.issue_date || new Date();
+          const dateFormatted = formatIssueDate(rawDate, 'DD-MM-YYYY');
+          ctx.textAlign = 'left';
+          ctx.font = `${Math.round(10.5 * scaleX)}px Arial, Helvetica, sans-serif`;
+          ctx.fillStyle = '#1f2937';
+          ctx.fillText(dateFormatted, 295.5 * scaleX, (843.92 - 129.5) * scaleY);
+
+          fs.writeFileSync(pngPath, canvas.toBuffer('image/png'));
+        } else {
+          const scale = 2;
+          const canvas = createCanvas(bgImg.width * scale, bgImg.height * scale);
+          const ctx = canvas.getContext('2d');
+          ctx.scale(scale, scale);
+          ctx.drawImage(bgImg, 0, 0);
+
+          const recipientName = (studentData.fullName || 'Recipient Name').toUpperCase();
+          const category = studentData.category || 'For Outstanding Distinction & Excellence';
+          const dateFormatted = formatIssueDate(studentData.letterIssuedAt, 'DD-MM-YYYY');
+          const cleanRefno = String(studentData.refno || 'IHREO/2026/040').replace(/WCAEO/gi, 'IHREO');
+          const cleanCertNo = String(studentData.certificateNumber || cleanRefno.replace('IHREO/', 'IHREO/CERT/') || 'IHREO/CERT/2026/0040').replace(/WCAEO/gi, 'IHREO');
+
+          // Top Left Reference Text
+          const refText = `CIN NO:- U85499DL2025NPL459383\nLicence No:- 176566\nSl. No. ${cleanRefno}\nReg No. 459383`;
+          ctx.textAlign = 'left';
+          ctx.font = '7.5px Arial, sans-serif';
+          ctx.fillStyle = '#1f2937';
+          const lines = refText.split('\n');
+          lines.forEach((line, i) => {
+            ctx.fillText(line, 65, 55 + (i * 10));
+          });
+
+          // Photo inside center frame
+          if (studentData.photoUrl) {
+            const rawBuf = await getPhotoBuffer(studentData.photoUrl);
+            if (rawBuf) {
+              const pImg = await loadImage(rawBuf);
+              const picX = 254;
+              const picY = 369;
+              const picW = 88;
+              const picH = 95;
+              ctx.save();
+              ctx.beginPath();
+              if (ctx.roundRect) {
+                ctx.roundRect(picX, picY, picW, picH, 6);
+              } else {
+                ctx.rect(picX, picY, picW, picH);
+              }
+              ctx.clip();
+              ctx.drawImage(pImg, picX, picY, picW, picH);
+              ctx.restore();
+              ctx.strokeStyle = '#222222';
+              ctx.lineWidth = 1;
+              ctx.stroke();
+            }
+          }
+
+          // Recipient Name inside Name Capsule
+          ctx.textAlign = 'center';
+          ctx.font = 'bold 16.5px "Times New Roman", serif';
+          ctx.fillStyle = '#111827';
+          ctx.fillText(studentData.fullName || 'Recipient Name', bgImg.width / 2, 562);
+
+          // Category
+          ctx.font = 'bold 13.5px "Times New Roman", serif';
+          ctx.fillStyle = '#cc2020';
+          ctx.fillText(category, bgImg.width / 2, 642);
+
+          // Date of Issue
+          ctx.font = '9.5px Arial, sans-serif';
+          ctx.fillStyle = '#1f2937';
+          ctx.fillText(`Date of Issue : ${dateFormatted}`, bgImg.width / 2, 704);
+          fs.writeFileSync(pngPath, canvas.toBuffer('image/png'));
         }
-
-        // Recipient Name inside Name Capsule
-        ctx.textAlign = 'center';
-        ctx.font = 'bold 16.5px "Times New Roman", serif';
-        ctx.fillStyle = '#111827';
-        ctx.fillText(studentData.fullName || 'Recipient Name', bgImg.width / 2, 562);
-
-        // Category
-        ctx.font = 'bold 13.5px "Times New Roman", serif';
-        ctx.fillStyle = '#cc2020';
-        ctx.fillText(category, bgImg.width / 2, 642);
-
-        // Date of Issue
-        ctx.font = '9.5px Arial, sans-serif';
-        ctx.fillStyle = '#1f2937';
-        ctx.fillText(`Date of Issue : ${dateFormatted}`, bgImg.width / 2, 704);
-        fs.writeFileSync(pngPath, canvas.toBuffer('image/png'));
       } else {
         if (!fs.existsSync(pngPath)) fs.writeFileSync(pngPath, Buffer.from([]));
       }

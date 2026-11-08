@@ -1,0 +1,66 @@
+{
+  "fields": {
+    "cin_no": {
+      "x": 66.0,
+      "y": 768.12,
+      "fontSize": 10.86,
+      "align": "left",
+      "color": "#111827",
+      "font": "regular"
+    },
+    "licence_no": {
+      "x": 66.0,
+      "y": 755.83,
+      "fontSize": 10.86,
+      "align": "left",
+      "color": "#111827",
+      "font": "regular"
+    },
+    "serial_no": {
+      "x": 66.0,
+      "y": 743.43,
+      "fontSize": 10.86,
+      "align": "left",
+      "color": "#111827",
+      "font": "regular"
+    },
+    "reg_no": {
+      "x": 66.0,
+      "y": 730.71,
+      "fontSize": 10.86,
+      "align": "left",
+      "color": "#111827",
+      "font": "regular"
+    },
+    "fullName": {
+      "x": 298.6,
+      "y": 228.00,
+      "fontSize": 20.5,
+      "align": "center",
+      "color": "#111827",
+      "font": "bold"
+    },
+    "letterIssuedAt": {
+      "x": 295.5,
+      "y": 129.5,
+      "fontSize": 10.5,
+      "align": "left",
+      "color": "#1f2937",
+      "font": "regular"
+    }
+  },
+  "photo": {
+    "x": 243.42,
+    "y": 252.10,
+    "width": 108.86,
+    "height": 115.66,
+    "borderRadius": 11.84,
+    "borderWidth": 2.0,
+    "borderColor": "#754805"
+  },
+  "qrCode": {
+    "x": 478.22,
+    "y": 718.81,
+    "size": 61.94
+  }
+}

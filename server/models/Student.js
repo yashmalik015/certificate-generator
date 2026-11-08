@@ -9,6 +9,10 @@ const generatedCertSchema = new mongoose.Schema({
 const studentSchema = new mongoose.Schema(
   {
     refno: { type: String, required: true, unique: true, trim: true },
+    cin_no: { type: String, default: 'U85499DL2025NPL459383', trim: true },
+    licence_no: { type: String, default: '176566', trim: true },
+    reg_no: { type: String, default: '459383', trim: true },
+    serial_no: { type: String, default: '', trim: true },
     fullName: { type: String, required: true, trim: true },
     fathersHusbandName: { type: String, default: '' },
     address: { type: String, default: '' },
