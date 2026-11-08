@@ -120,9 +120,15 @@ const getPhotoBuffer = async (photoUrl) => {
   if (trimmed.startsWith('data:')) {
     try {
       const commaIdx = trimmed.indexOf(',');
-      const b64 = commaIdx !== -1 ? trimmed.slice(commaIdx + 1) : trimmed;
-      const cleanB64 = decodeURIComponent(b64).replace(/\s+/g, '').replace(/ /g, '+');
-      return Buffer.from(cleanB64, 'base64');
+      let b64 = commaIdx !== -1 ? trimmed.slice(commaIdx + 1) : trimmed;
+      if (b64.includes('%')) {
+        try {
+          b64 = decodeURIComponent(b64);
+        } catch {}
+      }
+      const cleanB64 = b64.replace(/\s+/g, '').replace(/ /g, '+');
+      const buf = Buffer.from(cleanB64, 'base64');
+      if (buf && buf.length > 0) return buf;
     } catch (e) {
       console.warn('Base64 parse warning:', e.message);
     }
@@ -131,7 +137,15 @@ const getPhotoBuffer = async (photoUrl) => {
   // 2. Raw Base64 string
   if (/^[A-Za-z0-9+/=]{100,}$/.test(trimmed.slice(0, 200))) {
     try {
-      return Buffer.from(trimmed.replace(/\s+/g, '').replace(/ /g, '+'), 'base64');
+      let b64 = trimmed;
+      if (b64.includes('%')) {
+        try {
+          b64 = decodeURIComponent(b64);
+        } catch {}
+      }
+      const cleanB64 = b64.replace(/\s+/g, '').replace(/ /g, '+');
+      const buf = Buffer.from(cleanB64, 'base64');
+      if (buf && buf.length > 0) return buf;
     } catch {}
   }
 
@@ -173,11 +187,51 @@ const getPhotoBuffer = async (photoUrl) => {
   return null;
 };
 
+// ── Safe Pure PDF-Lib Image Embedder (Zero native dependencies) ─────────────
+const embedImageBuffer = async (pdfDoc, buf) => {
+  if (!buf || !buf.length) return null;
+  // If buffer matches JPEG signature (0xFF 0xD8)
+  if (buf.length >= 2 && buf[0] === 0xFF && buf[1] === 0xD8) {
+    try {
+      return await pdfDoc.embedJpg(buf);
+    } catch (e1) {
+      try {
+        return await pdfDoc.embedPng(buf);
+      } catch (e2) {
+        return null;
+      }
+    }
+  }
+  // If buffer matches PNG signature (0x89 0x50 0x4E 0x47)
+  if (buf.length >= 4 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) {
+    try {
+      return await pdfDoc.embedPng(buf);
+    } catch (e1) {
+      try {
+        return await pdfDoc.embedJpg(buf);
+      } catch (e2) {
+        return null;
+      }
+    }
+  }
+  // Otherwise try JPG then PNG
+  try {
+    return await pdfDoc.embedJpg(buf);
+  } catch {
+    try {
+      return await pdfDoc.embedPng(buf);
+    } catch {
+      return null;
+    }
+  }
+};
+
 // ── Embed photo helper with shape masking (rect / circle) ───────────────────
 const embedPhotoWithShape = async (pdfDoc, studentData, shape = 'rect', borderColor = '#222222', borderWidth = 1.5, targetWidth = 300, targetHeight = 300) => {
-  if (!studentData.photoUrl) return null;
+  const photoUrl = studentData.photoUrl || studentData.recipient_photo || studentData.photo || studentData.image;
+  if (!photoUrl) return null;
   try {
-    const rawBuf = await getPhotoBuffer(studentData.photoUrl);
+    const rawBuf = await getPhotoBuffer(photoUrl);
     if (!rawBuf || !rawBuf.length) return null;
 
     try {
@@ -255,12 +309,8 @@ const embedPhotoWithShape = async (pdfDoc, studentData, shape = 'rect', borderCo
       const pngBuf = canvas.toBuffer('image/png');
       return await pdfDoc.embedPng(pngBuf);
     } catch (canvasErr) {
-      console.warn('Canvas photo masking fallback:', canvasErr.message);
-      if (rawBuf[0] === 0xFF && rawBuf[1] === 0xD8) {
-        return await pdfDoc.embedJpg(rawBuf);
-      } else {
-        return await pdfDoc.embedPng(rawBuf);
-      }
+      console.warn('Canvas photo masking fallback (serverless environment):', canvasErr.message);
+      return await embedImageBuffer(pdfDoc, rawBuf);
     }
   } catch (e) {
     console.error('Photo embed error:', e.message);
@@ -492,8 +542,10 @@ const renderPadmaBhushan = async (baseDoc, page, studentData, customDomain) => {
   // Corner radius: 11.84 pt, border 2.0 pt in gold color (#754805)
   const targetW = 108.86;
   const targetH = 115.66;
-  const photoBuf = await getPhotoBuffer(studentData.photoUrl || studentData.recipient_photo);
+  const photoUrl = studentData.photoUrl || studentData.recipient_photo || studentData.photo || studentData.image;
+  const photoBuf = await getPhotoBuffer(photoUrl);
   if (photoBuf && photoBuf.length > 0) {
+    let photoImg = null;
     try {
       const { createCanvas, loadImage } = await import('canvas');
       const rawPhoto = await loadImage(photoBuf);
@@ -537,16 +589,25 @@ const renderPadmaBhushan = async (baseDoc, page, studentData, customDomain) => {
       ctx.stroke();
       ctx.restore();
 
-      const photoPng = await baseDoc.embedPng(canvas.toBuffer('image/png'));
-      page.drawImage(photoPng, {
+      photoImg = await baseDoc.embedPng(canvas.toBuffer('image/png'));
+    } catch (canvasErr) {
+      console.warn('Padma Bhushan canvas masking fallback (serverless environment):', canvasErr.message);
+      // Pure pdf-lib direct fallback without native dependencies
+      photoImg = await embedImageBuffer(baseDoc, photoBuf);
+    }
+
+    if (photoImg) {
+      page.drawImage(photoImg, {
         x: 243.42,
         y: 252.10,
         width: targetW,
         height: targetH
       });
-    } catch (photoErr) {
-      console.warn('Padma photo embedding error:', photoErr.message);
+    } else {
+      console.error('Failed to embed recipient photo into Padma Bhushan PDF.');
     }
+  } else {
+    console.warn('No photo buffer found for recipient photo. Checked fields: photoUrl, recipient_photo, photo, image');
   }
 
   // 4. Recipient Name
@@ -675,7 +736,7 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           ctx.drawImage(qrImg, 478.22 * scaleX, (843.92 - 718.81 - 61.94) * scaleY, 61.94 * scaleX, 61.94 * scaleY);
 
           // Recipient Photo
-          const rawBuf = await getPhotoBuffer(studentData.photoUrl || studentData.recipient_photo);
+          const rawBuf = await getPhotoBuffer(studentData.photoUrl || studentData.recipient_photo || studentData.photo || studentData.image);
           if (rawBuf) {
             const photo = await loadImage(rawBuf);
             const pX = 243.42 * scaleX;
