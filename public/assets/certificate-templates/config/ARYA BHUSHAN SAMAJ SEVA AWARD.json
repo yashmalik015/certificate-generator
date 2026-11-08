@@ -1,0 +1,74 @@
+{
+  "fields": {
+    "cin_no": {
+      "x": 88.5,
+      "y": 776.17,
+      "fontSize": 8.08,
+      "align": "left",
+      "color": "#111827",
+      "font": "regular"
+    },
+    "licence_no": {
+      "x": 88.5,
+      "y": 765.22,
+      "fontSize": 9.26,
+      "align": "left",
+      "color": "#111827",
+      "font": "regular"
+    },
+    "serial_no": {
+      "x": 88.5,
+      "y": 755.36,
+      "fontSize": 8.37,
+      "align": "left",
+      "color": "#111827",
+      "font": "regular"
+    },
+    "reg_no": {
+      "x": 88.5,
+      "y": 746.09,
+      "fontSize": 8.37,
+      "align": "left",
+      "color": "#111827",
+      "font": "regular"
+    },
+    "fullName": {
+      "x": 337.46,
+      "y": 386.51,
+      "fontSize": 24.39,
+      "align": "center",
+      "color": "#a41212",
+      "font": "italic"
+    },
+    "subject": {
+      "x": 298.64,
+      "y": 247.79,
+      "fontSize": 18,
+      "align": "center",
+      "color": "#a41212",
+      "font": "bold"
+    },
+    "letterIssuedAt": {
+      "x": 298.64,
+      "y": 122.5,
+      "fontSize": 10,
+      "align": "center",
+      "color": "#a41212",
+      "font": "bold"
+    }
+  },
+  "photo": {
+    "x": 254.52,
+    "y": 441.18,
+    "width": 86.01,
+    "height": 97.94,
+    "borderRadius": 3.5,
+    "borderWidth": 0.57,
+    "borderColor": "#000000"
+  },
+  "qrCode": {
+    "x": 464.94,
+    "y": 739.54,
+    "size": 42.52
+  }
+}

@@ -328,6 +328,101 @@ const StudentForm = () => {
         ctx.font = `${Math.round(10.5 * scaleX)}px Arial, Helvetica, sans-serif`;
         ctx.fillStyle = '#1f2937';
         ctx.fillText(dateFormatted, 295.5 * scaleX, (843.92 - 129.5) * scaleY);
+      } else if (lowerId.includes('arya') || lowerId.includes('samaj')) {
+        const scaleX = pW / 597.28;
+        const scaleY = pH / 843.89;
+
+        const cinNo = formData.cin_no || 'U85499DL2025NPL459383';
+        const licNo = formData.licence_no || '176566';
+        const slNo = formData.serial_no || (formData.refno ? (formData.refno.includes('459383') ? formData.refno : `459383/${formData.refno.replace(/^IHREO\/?/, 'IHREO')}`) : '459383/IHREO2026/154');
+        const regNo = formData.reg_no || '459383';
+
+        // Top Left 4 Lines
+        ctx.fillStyle = '#111827';
+        ctx.textAlign = 'left';
+        ctx.font = `${Math.round(8.08 * scaleX)}px Arial, Helvetica, sans-serif`;
+        ctx.fillText(`CIN NO.:- ${cinNo}`, 88.50 * scaleX, (843.89 - 776.17) * scaleY);
+        ctx.font = `${Math.round(9.26 * scaleX)}px Arial, Helvetica, sans-serif`;
+        ctx.fillText(`Licence No.:- ${licNo}`, 88.50 * scaleX, (843.89 - 765.22) * scaleY);
+        ctx.font = `${Math.round(8.37 * scaleX)}px Arial, Helvetica, sans-serif`;
+        ctx.fillText(`Sl. No. ${slNo}`, 88.50 * scaleX, (843.89 - 755.36) * scaleY);
+        ctx.fillText(`Reg No. ${regNo}`, 88.50 * scaleX, (843.89 - 746.09) * scaleY);
+
+        if (formData.photoUrl) {
+          const pImg = new Image();
+          pImg.onload = () => {
+            const px = 254.52 * scaleX;
+            const py = (843.89 - 441.18 - 97.94) * scaleY;
+            const pw = 86.01 * scaleX;
+            const ph = 97.94 * scaleY;
+            const r = 3.5 * scaleX;
+            const bw = 0.57 * scaleX;
+
+            ctx.save();
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, r);
+            else ctx.rect(px, py, pw, ph);
+            ctx.clip();
+
+            const imgAspect = (pImg.width || 400) / (pImg.height || 400);
+            const frameAspect = pw / ph;
+            let dW, dH, dX, dY;
+            if (imgAspect > frameAspect) {
+              dH = ph;
+              dW = dH * imgAspect;
+              dX = px + (pw - dW) / 2;
+              dY = py;
+            } else {
+              dW = pw;
+              dH = dW / imgAspect;
+              dX = px;
+              dY = py + (ph - dH) / 2;
+            }
+            ctx.drawImage(pImg, dX, dY, dW, dH);
+            ctx.restore();
+
+            ctx.save();
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(px + bw/2, py + bw/2, pw - bw, ph - bw, r - bw/2);
+            else ctx.rect(px + bw/2, py + bw/2, pw - bw, ph - bw);
+            ctx.lineWidth = bw;
+            ctx.strokeStyle = '#000000';
+            ctx.stroke();
+            ctx.restore();
+          };
+          pImg.src = formData.photoUrl;
+        }
+
+        // Recipient Name (Italic red over underline at center 337.46, y: 386.51)
+        const rawName = formData.fullName || 'Recipient Full Name';
+        ctx.textAlign = 'center';
+        let namePx = Math.round(24.39 * scaleX);
+        ctx.font = `italic bold ${namePx}px "Times New Roman", serif`;
+        const maxNamePx = 310 * scaleX;
+        while (namePx > Math.round(11 * scaleX) && ctx.measureText(rawName).width > maxNamePx) {
+          namePx -= 1;
+          ctx.font = `italic bold ${namePx}px "Times New Roman", serif`;
+        }
+        ctx.fillStyle = '#a41212';
+        ctx.fillText(rawName, 337.46 * scaleX, (843.89 - 386.51) * scaleY);
+
+        // Award Subject: e.g. Social Worker
+        const subjectStr = formData.subject || formData.award_subject || formData.designation || formData.category || 'Social Worker';
+        let subjectPx = Math.round(18.0 * scaleX);
+        ctx.font = `bold ${subjectPx}px "Times New Roman", serif`;
+        while (subjectPx > Math.round(10 * scaleX) && ctx.measureText(subjectStr).width > 400 * scaleX) {
+          subjectPx -= 1;
+          ctx.font = `bold ${subjectPx}px "Times New Roman", serif`;
+        }
+        ctx.fillText(subjectStr, pW / 2, (843.89 - 247.79) * scaleY);
+
+        // Issue Date: Date of Issue : DD/MM/YYYY
+        const rawDate = formData.letterIssuedAt || formData.issue_date || new Date();
+        const dateFormattedArya = typeof rawDate === 'string' && rawDate.includes('-')
+          ? rawDate.split('-').reverse().join('/')
+          : new Date().toLocaleDateString('en-GB');
+        ctx.font = `bold ${Math.round(10.0 * scaleX)}px "Times New Roman", serif`;
+        ctx.fillText(`Date of Issue : ${dateFormattedArya}`, pW / 2, (843.89 - 122.50) * scaleY);
       } else if (lowerId.includes('doctorate')) {
         if (formData.photoUrl) {
           const pImg = new Image();
