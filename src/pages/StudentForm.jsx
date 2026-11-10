@@ -267,7 +267,21 @@ const StudentForm = () => {
 
       const lowerId = String(previewingTemplate.id || '').toLowerCase();
 
-      if (lowerId.includes('gaurav') || lowerId.includes('ratan')) {
+      if (lowerId.includes('appreciation')) {
+        const scaleX = pW / 841.8898;
+        const scaleY = pH / 595.2756;
+
+        const rawName = String(formData.fullName || 'Recipient Full Name').trim();
+        ctx.textAlign = 'center';
+        let namePx = Math.round(40.5 * scaleX);
+        ctx.font = `${namePx}px "Times New Roman", Times, serif`;
+        while (namePx > Math.round(18.0 * scaleX) && ctx.measureText(rawName).width > 440 * scaleX) {
+          namePx -= 1;
+          ctx.font = `${namePx}px "Times New Roman", Times, serif`;
+        }
+        ctx.fillStyle = '#111827';
+        ctx.fillText(rawName, 430.42 * scaleX, (595.2756 - 327.13) * scaleY);
+      } else if (lowerId.includes('gaurav') || lowerId.includes('ratan')) {
         const scaleX = pW / 597.224;
         const scaleY = pH / 843.920;
 
@@ -815,7 +829,8 @@ const StudentForm = () => {
 
     if (!formData.fullName?.trim()) return setError('Full Name is required.');
     if (!formData.category?.trim()) return setError('Category is required.');
-    if (!formData.photoUrl) return setError('Recipient photo upload is required.');
+    const isAppreciationOnly = formData.certificateTemplateIds && formData.certificateTemplateIds.length > 0 && formData.certificateTemplateIds.every(tid => String(tid).toLowerCase().includes('appreciation'));
+    if (!formData.photoUrl && !isAppreciationOnly) return setError('Recipient photo upload is required.');
     if (!formData.eventId) return setError('Event selection is required.');
     if (!formData.subjectId) return setError('Subject selection is required.');
     if (!formData.certificateTemplateIds || formData.certificateTemplateIds.length === 0) {

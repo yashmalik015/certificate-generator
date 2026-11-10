@@ -1,0 +1,12 @@
+{
+  "fields": {
+    "fullName": {
+      "x": 430.42,
+      "y": 327.13,
+      "fontSize": 41.0,
+      "align": "center",
+      "color": "#111827",
+      "font": "regular"
+    }
+  }
+}

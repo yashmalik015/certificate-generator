@@ -57,6 +57,7 @@ export const resolveAppDomain = (customDomain) => {
 // ── Friendly Award Titles & Categories ──────────────────────────────────────
 export const getAwardTitle = (templateId) => {
   const lower = String(templateId || '').toLowerCase();
+  if (lower.includes('appreciation')) return 'Certificate of Appreciation';
   if (lower.includes('gaurav') || lower.includes('ratan')) return 'Bhartiya Gaurav Ratan Samman';
   if (lower.includes('shree') || (lower.includes('rashtriya') && lower.includes('padma'))) return 'Rashtriya Padma Shree Samman';
   if (lower.includes('padma')) return 'Bhartiya Padma Bhushan Samman';
@@ -69,6 +70,7 @@ export const getAwardTitle = (templateId) => {
 
 export const getAwardCategory = (templateId) => {
   const lower = String(templateId || '').toLowerCase();
+  if (lower.includes('appreciation')) return 'Appreciation';
   if (lower.includes('gaurav') || lower.includes('ratan') || lower.includes('shree') || (lower.includes('rashtriya') && lower.includes('padma')) || lower.includes('padma') || lower.includes('arya') || lower.includes('samaj')) return 'Honorary Awards';
   if (lower.includes('doctorate')) return 'Academic & Honorary';
   if (lower.includes('membership')) return 'Membership';
@@ -79,6 +81,14 @@ export const getAwardCategory = (templateId) => {
 // ── Curated Authentic Template List ──
 export const getAvailableTemplates = () => {
   return [
+    {
+      id: 'Certificate of Appreciation',
+      filename: 'Certificate of Appreciation.pdf',
+      label: 'Certificate of Appreciation',
+      category: 'Appreciation',
+      hasConfig: true,
+      previewUrl: '/assets/certificate-templates/Certificate%20of%20Appreciation.png'
+    },
     {
       id: 'BHARTIYA GAURAV RATAN SAMMAN',
       filename: 'BHARTIYA GAURAV RATAN SAMMAN.pdf',
@@ -921,6 +931,29 @@ const renderBhartiyaGauravRatan = async (baseDoc, page, studentData, customDomai
   });
 };
 
+// ── 6. Render Certificate of Appreciation (A4 Landscape, Name only) ───────
+const renderCertificateOfAppreciation = async (baseDoc, page, studentData) => {
+  const fontTimes = await baseDoc.embedFont(StandardFonts.TimesRoman);
+
+  // Recipient Name: Centered horizontally over the orange line at x = 430.42, baseline y = 327.13
+  // Original size: 40.5 pt, color: dark black (#111827 / rgb(0.07, 0.09, 0.15))
+  const nameStr = String(studentData.fullName || studentData.full_name || 'Recipient Name').trim();
+  let nameSize = 40.5;
+  // Orange line is width 450 pt (205.47 to 655.37). Max allowable name width ~440 pt
+  while (nameSize > 18.0 && fontTimes.widthOfTextAtSize(nameStr, nameSize) > 440) {
+    nameSize -= 0.5;
+  }
+  const nameW = fontTimes.widthOfTextAtSize(nameStr, nameSize);
+  page.drawText(nameStr, {
+    x: 430.42 - nameW / 2,
+    y: 327.13,
+    size: nameSize,
+    font: fontTimes,
+    color: rgb(0.07, 0.09, 0.15)
+  });
+  // STRICT REQUIREMENT: NO PHOTO, NO QR CODE, NO DATES OR IDENTIFICATION NUMBERS
+};
+
 // ── Master Dispatcher: Render PDF ───────────────────────────────────────────
 export const renderIhreDocPdf = async (studentData, templateId, customDomain) => {
   let pdfTemplatePath = findTemplateFile(templateId, ['.pdf', '.png']) || findTemplateFile('Doctorate IHREO', ['.pdf']);
@@ -943,7 +976,9 @@ export const renderIhreDocPdf = async (studentData, templateId, customDomain) =>
 
   const page = baseDoc.getPage(0);
   const lower = String(templateId || '').toLowerCase();
-  if (lower.includes('gaurav') || lower.includes('ratan')) {
+  if (lower.includes('appreciation')) {
+    await renderCertificateOfAppreciation(baseDoc, page, studentData);
+  } else if (lower.includes('gaurav') || lower.includes('ratan')) {
     await renderBhartiyaGauravRatan(baseDoc, page, studentData, customDomain);
   } else if (lower.includes('shree') || (lower.includes('rashtriya') && lower.includes('padma'))) {
     await renderRashtriyaPadmaShree(baseDoc, page, studentData, customDomain);
@@ -984,16 +1019,37 @@ export const generateCertificate = async (studentData, templateId, customDomain)
 
     // Also generate PNG representation for instant web preview
     try {
-      const isGaurav = String(templateId || '').toLowerCase().includes('gaurav') || String(templateId || '').toLowerCase().includes('ratan');
-      const isShree = !isGaurav && (String(templateId || '').toLowerCase().includes('shree') || (String(templateId || '').toLowerCase().includes('rashtriya') && String(templateId || '').toLowerCase().includes('padma')));
-      const isPadma = !isGaurav && !isShree && String(templateId || '').toLowerCase().includes('padma');
-      const isArya = !isGaurav && (String(templateId || '').toLowerCase().includes('arya') || String(templateId || '').toLowerCase().includes('samaj'));
-      const basePngPath = findTemplateFile(templateId, ['.png']) || (isGaurav ? findTemplateFile('BHARTIYA GAURAV RATAN SAMMAN', ['.png']) : (isShree ? findTemplateFile('RASHTRIYA PADMA SHREE SAMMAN', ['.png']) : (isPadma ? findTemplateFile('Bhartiya Padma Bhushan Samman', ['.png']) : (isArya ? findTemplateFile('ARYA BHUSHAN SAMAJ SEVA AWARD', ['.png']) : findTemplateFile('Doctorate IHREO', ['.png'])))));
+      const isAppreciation = String(templateId || '').toLowerCase().includes('appreciation');
+      const isGaurav = !isAppreciation && (String(templateId || '').toLowerCase().includes('gaurav') || String(templateId || '').toLowerCase().includes('ratan'));
+      const isShree = !isAppreciation && !isGaurav && (String(templateId || '').toLowerCase().includes('shree') || (String(templateId || '').toLowerCase().includes('rashtriya') && String(templateId || '').toLowerCase().includes('padma')));
+      const isPadma = !isAppreciation && !isGaurav && !isShree && String(templateId || '').toLowerCase().includes('padma');
+      const isArya = !isAppreciation && !isGaurav && (String(templateId || '').toLowerCase().includes('arya') || String(templateId || '').toLowerCase().includes('samaj'));
+      const basePngPath = findTemplateFile(templateId, ['.png']) || (isAppreciation ? findTemplateFile('Certificate of Appreciation', ['.png']) : (isGaurav ? findTemplateFile('BHARTIYA GAURAV RATAN SAMMAN', ['.png']) : (isShree ? findTemplateFile('RASHTRIYA PADMA SHREE SAMMAN', ['.png']) : (isPadma ? findTemplateFile('Bhartiya Padma Bhushan Samman', ['.png']) : (isArya ? findTemplateFile('ARYA BHUSHAN SAMAJ SEVA AWARD', ['.png']) : findTemplateFile('Doctorate IHREO', ['.png']))))));
       if (basePngPath && fs.existsSync(basePngPath)) {
         const { createCanvas, loadImage } = await import('canvas');
         const bgImg = await loadImage(basePngPath);
 
-        if (isGaurav) {
+        if (isAppreciation) {
+          const canvas = createCanvas(bgImg.width, bgImg.height);
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(bgImg, 0, 0);
+
+          const scaleX = bgImg.width / 841.8898;
+          const scaleY = bgImg.height / 595.2756;
+
+          const nameStr = String(studentData.fullName || studentData.full_name || 'Recipient Name').trim();
+          ctx.textAlign = 'center';
+          let namePx = Math.round(40.5 * scaleX);
+          ctx.font = `${namePx}px "Times New Roman", Times, serif`;
+          while (namePx > Math.round(18.0 * scaleX) && ctx.measureText(nameStr).width > 440 * scaleX) {
+            namePx -= 1;
+            ctx.font = `${namePx}px "Times New Roman", Times, serif`;
+          }
+          ctx.fillStyle = '#111827';
+          ctx.fillText(nameStr, 430.42 * scaleX, (595.2756 - 327.13) * scaleY);
+
+          fs.writeFileSync(pngPath, canvas.toBuffer('image/png'));
+        } else if (isGaurav) {
           const canvas = createCanvas(bgImg.width, bgImg.height);
           const ctx = canvas.getContext('2d');
           ctx.drawImage(bgImg, 0, 0);

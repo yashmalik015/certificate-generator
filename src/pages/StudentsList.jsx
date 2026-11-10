@@ -98,6 +98,7 @@ const StudentsList = () => {
   // Format short button label for template name
   const getShortTemplateLabel = (templateId) => {
     const lower = String(templateId || '').toLowerCase();
+    if (lower.includes('appreciation')) return 'Appreciation';
     if (lower.includes('gaurav') || lower.includes('ratan')) return 'Gaurav Ratan';
     if (lower.includes('shree') || (lower.includes('rashtriya') && lower.includes('padma'))) return 'Padma Shree';
     if (lower.includes('padma')) return 'Padma Bhushan';
