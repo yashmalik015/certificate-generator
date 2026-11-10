@@ -1,0 +1,58 @@
+{
+  "fields": {
+    "cin_no": {
+      "x": 46.51,
+      "y": 779.08,
+      "fontSize": 10.86,
+      "align": "left",
+      "color": "#111827",
+      "font": "regular"
+    },
+    "licence_no": {
+      "x": 46.51,
+      "y": 766.92,
+      "fontSize": 10.86,
+      "align": "left",
+      "color": "#111827",
+      "font": "regular"
+    },
+    "serial_no": {
+      "x": 46.51,
+      "y": 754.76,
+      "fontSize": 10.86,
+      "align": "left",
+      "color": "#111827",
+      "font": "regular"
+    },
+    "reg_no": {
+      "x": 46.51,
+      "y": 742.60,
+      "fontSize": 10.86,
+      "align": "left",
+      "color": "#111827",
+      "font": "regular"
+    },
+    "fullName": {
+      "x": 298.65,
+      "y": 331.56,
+      "fontSize": 25.5,
+      "align": "center",
+      "color": "#660000",
+      "font": "bold"
+    }
+  },
+  "photo": {
+    "x": 243.96,
+    "y": 379.06,
+    "width": 109.46,
+    "height": 115.79,
+    "borderRadius": 11.84,
+    "borderWidth": 1.8,
+    "borderColor": "#754805"
+  },
+  "qrCode": {
+    "x": 509.10,
+    "y": 663.20,
+    "size": 54.24
+  }
+}

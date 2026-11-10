@@ -267,7 +267,75 @@ const StudentForm = () => {
 
       const lowerId = String(previewingTemplate.id || '').toLowerCase();
 
-      if (lowerId.includes('padma')) {
+      if (lowerId.includes('shree') || (lowerId.includes('rashtriya') && lowerId.includes('padma'))) {
+        const scaleX = pW / 597.2954;
+        const scaleY = pH / 843.896;
+
+        const cinNo = formData.cin_no || 'U85499DL2025NPL459383';
+        const licNo = formData.licence_no || '176566';
+        const slNo = formData.serial_no || (formData.refno ? (formData.refno.includes('459383') ? formData.refno : `459383/${formData.refno.replace(/^IHREO\/?/, 'IHREO')}`) : '459383/IHREO0218');
+        const regNo = formData.reg_no || '459383';
+
+        ctx.fillStyle = '#111827';
+        ctx.font = `${Math.round(10.86 * scaleX)}px Arial, Helvetica, sans-serif`;
+        ctx.textAlign = 'left';
+        ctx.fillText(`CIN NO:- ${cinNo}`, 46.51 * scaleX, (843.896 - 779.08) * scaleY);
+        ctx.fillText(`Licence No:- ${licNo}`, 46.51 * scaleX, (843.896 - 766.92) * scaleY);
+        ctx.fillText(`Sl. No. ${slNo}`, 46.51 * scaleX, (843.896 - 754.76) * scaleY);
+        ctx.fillText(`Reg No. ${regNo}`, 46.51 * scaleX, (843.896 - 742.60) * scaleY);
+
+        if (formData.photoUrl) {
+          const pImg = new Image();
+          pImg.onload = () => {
+            const px = 243.96 * scaleX;
+            const py = (843.896 - 379.06 - 115.79) * scaleY;
+            const pw = 109.46 * scaleX;
+            const ph = 115.79 * scaleY;
+            const r = 11.84 * scaleX;
+            const bw = 2.0 * scaleX;
+
+            ctx.save();
+            drawRoundedRect(ctx, px, py, pw, ph, r);
+            ctx.clip();
+
+            const imgAspect = (pImg.width || 400) / (pImg.height || 400);
+            const frameAspect = pw / ph;
+            let dW, dH, dX, dY;
+            if (imgAspect > frameAspect) {
+              dH = ph;
+              dW = dH * imgAspect;
+              dX = px + (pw - dW) / 2;
+              dY = py;
+            } else {
+              dW = pw;
+              dH = dW / imgAspect;
+              dX = px;
+              dY = py + (ph - dH) / 2;
+            }
+            ctx.drawImage(pImg, dX, dY, dW, dH);
+            ctx.restore();
+
+            ctx.save();
+            drawRoundedRect(ctx, px + bw/2, py + bw/2, pw - bw, ph - bw, Math.max(0, r - bw/2));
+            ctx.lineWidth = bw;
+            ctx.strokeStyle = '#754805';
+            ctx.stroke();
+            ctx.restore();
+          };
+          pImg.src = formData.photoUrl;
+        }
+
+        const rawName = formData.fullName || 'Recipient Full Name';
+        ctx.textAlign = 'center';
+        let namePx = Math.round(25.5 * scaleX);
+        ctx.font = `bold ${namePx}px "Times New Roman", serif`;
+        while (namePx > Math.round(11 * scaleX) && ctx.measureText(rawName).width > 280 * scaleX) {
+          namePx -= 1;
+          ctx.font = `bold ${namePx}px "Times New Roman", serif`;
+        }
+        ctx.fillStyle = '#660000';
+        ctx.fillText(rawName, pW / 2, (843.896 - 331.56) * scaleY);
+      } else if (lowerId.includes('padma')) {
         const scaleX = pW / 597.20;
         const scaleY = pH / 843.92;
 
