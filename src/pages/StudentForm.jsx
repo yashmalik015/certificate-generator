@@ -1017,19 +1017,6 @@ const StudentForm = () => {
             />
           </div>
 
-          {/* Serial Number Override */}
-          <div className="form-group">
-            <label className="form-label">Serial Number / Ref Override</label>
-            <input
-              type="text"
-              name="serial_no"
-              className="form-control"
-              placeholder="e.g. 459383/IHREO0216 (leave blank to use Refno)"
-              value={formData.serial_no}
-              onChange={handleChange}
-            />
-          </div>
-
           {/* Full Name */}
           <div className="form-group">
             <label className="form-label">Recipient Full Name <span className="required">*</span></label>
