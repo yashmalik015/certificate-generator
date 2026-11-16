@@ -1,48 +1,48 @@
 {
   "fields": {
     "cin_no": {
-      "x": 86.40,
-      "y": 753.00,
-      "fontSize": 9.0,
+      "x": 86.4,
+      "y": 753,
+      "fontSize": 9,
       "align": "left",
       "color": "#111827",
       "font": "regular"
     },
     "licence_no": {
-      "x": 86.40,
-      "y": 743.00,
-      "fontSize": 9.0,
+      "x": 86.4,
+      "y": 743,
+      "fontSize": 9,
       "align": "left",
       "color": "#111827",
       "font": "regular"
     },
     "serial_no": {
-      "x": 86.40,
-      "y": 733.00,
-      "fontSize": 9.0,
+      "x": 86.4,
+      "y": 733,
+      "fontSize": 9,
       "align": "left",
       "color": "#111827",
       "font": "bold"
     },
     "reg_no": {
-      "x": 86.40,
-      "y": 723.00,
-      "fontSize": 9.0,
+      "x": 86.4,
+      "y": 723,
+      "fontSize": 9,
       "align": "left",
       "color": "#111827",
       "font": "bold"
     },
     "fullName": {
       "x": 298.61,
-      "y": 224.50,
-      "fontSize": 21.0,
+      "y": 224.5,
+      "fontSize": 21,
       "align": "center",
       "color": "#000000",
       "font": "bold"
     },
     "issue_date": {
       "x": 286.36,
-      "y": 130.00,
+      "y": 130,
       "fontSize": 10.75,
       "align": "center",
       "color": "#111827",
@@ -50,13 +50,23 @@
     }
   },
   "photo": {
-    "x": 244.21,
-    "y": 252.84,
-    "width": 109.27,
-    "height": 116.06,
-    "borderRadius": 11.84,
-    "borderWidth": 2.0,
-    "borderColor": "#754805"
+    "x": 243.4286,
+    "y": 252.095,
+    "width": 108.8561,
+    "height": 115.6578,
+    "borderRadius": 11.8389,
+    "borderWidth": 2.0001,
+    "borderColor": "#754805",
+    "innerX": 244.4287,
+    "innerY": 253.0951,
+    "innerWidth": 106.8559,
+    "innerHeight": 113.6576,
+    "cornerRadius": 10.8388,
+    "frameX": 243.4286,
+    "frameY": 252.095,
+    "frameWidth": 108.8561,
+    "frameHeight": 115.6578,
+    "frameRadius": 11.8389
   },
   "qrCode": {
     "x": 451.06,

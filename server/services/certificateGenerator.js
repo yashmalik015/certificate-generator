@@ -1,7 +1,22 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import {
+  PDFDocument,
+  rgb,
+  StandardFonts,
+  pushGraphicsState,
+  popGraphicsState,
+  clipEvenOdd,
+  endPath,
+  moveTo,
+  lineTo,
+  appendBezierCurve,
+  closePath,
+  setLineWidth,
+  setStrokingRgbColor,
+  stroke
+} from 'pdf-lib';
 import QRCode from 'qrcode';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -279,7 +294,285 @@ const drawRoundedRect = (ctx, x, y, width, height, radius) => {
   ctx.closePath();
 };
 
-// ── Embed photo helper with shape masking (rect / circle) and CSS object-fit: cover ──
+// ── Unified Photo Configurations for All Templates ─────────────────────────
+// Measured from original reference PDF vector streams (centerline & inner aperture)
+export const PHOTO_CONFIGS = {
+  'bhartiya-gaurav-ratan-samman': {
+    innerX: 244.4287,
+    innerY: 253.0951,
+    innerWidth: 106.8559,
+    innerHeight: 113.6576,
+    cornerRadius: 10.8388,
+    frameX: 243.4286,
+    frameY: 252.0950,
+    frameWidth: 108.8561,
+    frameHeight: 115.6578,
+    frameRadius: 11.8389,
+    borderWidth: 2.0001,
+    borderColor: '#754805'
+  },
+  'rashtriya-padma-shree-samman': {
+    innerX: 245.2087,
+    innerY: 380.3171,
+    innerWidth: 106.8559,
+    innerHeight: 113.6576,
+    cornerRadius: 10.8388,
+    frameX: 244.2086,
+    frameY: 379.3170,
+    frameWidth: 108.8561,
+    frameHeight: 115.6578,
+    frameRadius: 11.8389,
+    borderWidth: 2.0001,
+    borderColor: '#754805'
+  },
+  'bhartiya-padma-bhushan-samman': {
+    innerX: 244.4287,
+    innerY: 253.0951,
+    innerWidth: 106.8559,
+    innerHeight: 113.6576,
+    cornerRadius: 10.8388,
+    frameX: 243.4286,
+    frameY: 252.0950,
+    frameWidth: 108.8561,
+    frameHeight: 115.6578,
+    frameRadius: 11.8389,
+    borderWidth: 2.0001,
+    borderColor: '#754805'
+  },
+  'arya-bhushan-samaj-seva-award': {
+    innerX: 254.88,
+    innerY: 441.48,
+    innerWidth: 85.30,
+    innerHeight: 97.23,
+    cornerRadius: 6.59,
+    frameX: 254.59,
+    frameY: 441.20,
+    frameWidth: 85.87,
+    frameHeight: 97.80,
+    frameRadius: 6.87,
+    borderWidth: 0.5669,
+    borderColor: '#000000'
+  },
+  'doctorate-ihreo': {
+    innerX: 254.41,
+    innerY: 378.53,
+    innerWidth: 86.51,
+    innerHeight: 93.55,
+    cornerRadius: 8.81,
+    frameX: 253.66,
+    frameY: 377.78,
+    frameWidth: 88.01,
+    frameHeight: 95.05,
+    frameRadius: 9.56,
+    borderWidth: 1.5,
+    borderColor: '#222222'
+  },
+  'universal-id-card': {
+    innerX: 14.91,
+    innerY: 38.62,
+    innerWidth: 36.71,
+    innerHeight: 40.59,
+    cornerRadius: 3.56,
+    frameX: 14.41,
+    frameY: 38.12,
+    frameWidth: 37.71,
+    frameHeight: 41.59,
+    frameRadius: 4.06,
+    borderWidth: 1.0,
+    borderColor: '#333333'
+  },
+  'universal-membership-certificate': {
+    innerX: 255.38,
+    innerY: 360.84,
+    innerWidth: 86.56,
+    innerHeight: 98.08,
+    cornerRadius: 8.81,
+    frameX: 254.63,
+    frameY: 360.09,
+    frameWidth: 88.06,
+    frameHeight: 99.58,
+    frameRadius: 9.56,
+    borderWidth: 1.5,
+    borderColor: '#333333'
+  }
+};
+
+// ── Native PDF Vector Clipping Photo Renderer ──────────────────────────────
+export const renderPhotoWithNativeClip = async (baseDoc, page, studentData, config) => {
+  if (!config) return false;
+  const photoUrl = studentData.photoUrl || studentData.recipient_photo || studentData.photo || studentData.image;
+  if (!photoUrl) return false;
+
+  const rawBuf = await getPhotoBuffer(photoUrl);
+  if (!rawBuf || !rawBuf.length) {
+    console.warn('renderPhotoWithNativeClip: photo buffer not available');
+    return false;
+  }
+
+  const embeddedImg = await embedImageBuffer(baseDoc, rawBuf);
+  if (!embeddedImg) {
+    console.warn('renderPhotoWithNativeClip: embedImageBuffer failed');
+    return false;
+  }
+
+  const {
+    innerX,
+    innerY,
+    innerWidth,
+    innerHeight,
+    cornerRadius,
+    frameX,
+    frameY,
+    frameWidth,
+    frameHeight,
+    frameRadius,
+    borderWidth = 0,
+    borderColor
+  } = config;
+
+  // Proportional object-fit: cover scaling
+  const frameAspect = innerWidth / innerHeight;
+  const imgAspect = embeddedImg.width / embeddedImg.height;
+  let drawW, drawH, drawX, drawY;
+  const fx = typeof studentData.focalPoint?.x === 'number' ? studentData.focalPoint.x : 0.5;
+  const fy = typeof studentData.focalPoint?.y === 'number' ? studentData.focalPoint.y : 0.5;
+
+  if (imgAspect > frameAspect) {
+    drawH = innerHeight;
+    drawW = innerHeight * imgAspect;
+    const excessW = drawW - innerWidth;
+    drawX = innerX - excessW * fx;
+    drawY = innerY;
+  } else {
+    drawW = innerWidth;
+    drawH = innerWidth / imgAspect;
+    const excessH = drawH - innerHeight;
+    drawX = innerX;
+    drawY = innerY - excessH * (1 - fy);
+  }
+
+  // 1. Vector clipping path for inner aperture
+  const r = Math.min(cornerRadius, innerWidth / 2, innerHeight / 2);
+  const k = 0.55228475 * r;
+
+  page.pushOperators(
+    pushGraphicsState(),
+    moveTo(innerX + r, innerY),
+    lineTo(innerX + innerWidth - r, innerY),
+    appendBezierCurve(innerX + innerWidth - r + k, innerY, innerX + innerWidth, innerY + r - k, innerX + innerWidth, innerY + r),
+    lineTo(innerX + innerWidth, innerY + innerHeight - r),
+    appendBezierCurve(innerX + innerWidth, innerY + innerHeight - r + k, innerX + innerWidth - r + k, innerY + innerHeight, innerX + innerWidth - r, innerY + innerHeight),
+    lineTo(innerX + r, innerY + innerHeight),
+    appendBezierCurve(innerX + r - k, innerY + innerHeight, innerX, innerY + innerHeight - r + k, innerX, innerY + innerHeight - r),
+    lineTo(innerX, innerY + r),
+    appendBezierCurve(innerX, innerY + r - k, innerX + r - k, innerY, innerX + r, innerY),
+    closePath(),
+    clipEvenOdd(),
+    endPath()
+  );
+
+  // 2. Draw image with object-fit: cover inside active clip
+  page.drawImage(embeddedImg, {
+    x: drawX,
+    y: drawY,
+    width: drawW,
+    height: drawH
+  });
+
+  // 3. Restore graphics state (removes clipping mask)
+  page.pushOperators(popGraphicsState());
+
+  // 4. Stroke frame border on top to guarantee frame visibility without clipping
+  if (borderWidth > 0 && borderColor) {
+    const cleanHex = borderColor.replace('#', '');
+    const num = parseInt(cleanHex, 16);
+    const cr = ((num >> 16) & 255) / 255;
+    const cg = ((num >> 8) & 255) / 255;
+    const cb = (num & 255) / 255;
+
+    const fr = Math.min(frameRadius, frameWidth / 2, frameHeight / 2);
+    const fk = 0.55228475 * fr;
+
+    page.pushOperators(
+      pushGraphicsState(),
+      setLineWidth(borderWidth),
+      setStrokingRgbColor(cr, cg, cb),
+      moveTo(frameX + fr, frameY),
+      lineTo(frameX + frameWidth - fr, frameY),
+      appendBezierCurve(frameX + frameWidth - fr + fk, frameY, frameX + frameWidth, frameY + fr - fk, frameX + frameWidth, frameY + fr),
+      lineTo(frameX + frameWidth, frameY + frameHeight - fr),
+      appendBezierCurve(frameX + frameWidth, frameY + frameHeight - fr + fk, frameX + frameWidth - fr + fk, frameY + frameHeight, frameX + frameWidth - fr, frameY + frameHeight),
+      lineTo(frameX + fr, frameY + frameHeight),
+      appendBezierCurve(frameX + fr - fk, frameY + frameHeight, frameX, frameY + frameHeight - fr + fk, frameX, frameY + frameHeight - fr),
+      lineTo(frameX, frameY + fr),
+      appendBezierCurve(frameX, frameY + fr - fk, frameX + fr - fk, frameY, frameX + fr, frameY),
+      closePath(),
+      stroke(),
+      popGraphicsState()
+    );
+  }
+
+  return true;
+};
+
+// ── Shared Canvas 2D Photo Renderer (for web preview / PNG generation) ─────────
+export const renderPhotoOnCanvas = (ctx, photo, cfg, scaleX, scaleY, pageHeight, focalPoint) => {
+  if (!photo || !cfg) return;
+  const innerCanvasX = cfg.innerX * scaleX;
+  const innerCanvasY = (pageHeight - cfg.innerY - cfg.innerHeight) * scaleY;
+  const innerCanvasW = cfg.innerWidth * scaleX;
+  const innerCanvasH = cfg.innerHeight * scaleY;
+  const innerRadius = cfg.cornerRadius * scaleX;
+
+  const frameCanvasX = cfg.frameX * scaleX;
+  const frameCanvasY = (pageHeight - cfg.frameY - cfg.frameHeight) * scaleY;
+  const frameCanvasW = cfg.frameWidth * scaleX;
+  const frameCanvasH = cfg.frameHeight * scaleY;
+  const frameRadius = cfg.frameRadius * scaleX;
+  const frameBw = cfg.borderWidth * scaleX;
+
+  const fx = typeof focalPoint?.x === 'number' ? focalPoint.x : 0.5;
+  const fy = typeof focalPoint?.y === 'number' ? focalPoint.y : 0.5;
+
+  const imgW = photo.naturalWidth || photo.width || 400;
+  const imgH = photo.naturalHeight || photo.height || 400;
+  const imgAspect = imgW / imgH;
+  const frameAspect = innerCanvasW / innerCanvasH;
+
+  let dW, dH, dX, dY;
+  if (imgAspect > frameAspect) {
+    dH = innerCanvasH;
+    dW = dH * imgAspect;
+    const excessW = dW - innerCanvasW;
+    dX = innerCanvasX - excessW * fx;
+    dY = innerCanvasY;
+  } else {
+    dW = innerCanvasW;
+    dH = dW / imgAspect;
+    const excessH = dH - innerCanvasH;
+    dX = innerCanvasX;
+    dY = innerCanvasY - excessH * fy;
+  }
+
+  // 1. Clip to inner aperture
+  ctx.save();
+  drawRoundedRect(ctx, innerCanvasX, innerCanvasY, innerCanvasW, innerCanvasH, innerRadius);
+  ctx.clip();
+  ctx.drawImage(photo, dX, dY, dW, dH);
+  ctx.restore();
+
+  // 2. Stroke frame overlay
+  if (frameBw > 0 && cfg.borderColor) {
+    ctx.save();
+    drawRoundedRect(ctx, frameCanvasX, frameCanvasY, frameCanvasW, frameCanvasH, frameRadius);
+    ctx.lineWidth = frameBw;
+    ctx.strokeStyle = cfg.borderColor;
+    ctx.stroke();
+    ctx.restore();
+  }
+};
+
+// ── Embed photo helper for backward compatibility ──
 const embedPhotoWithShape = async (
   pdfDoc,
   studentData,
@@ -296,106 +589,10 @@ const embedPhotoWithShape = async (
   try {
     const rawBuf = await getPhotoBuffer(photoUrl);
     if (!rawBuf || !rawBuf.length) return null;
-
-    try {
-      const { createCanvas, loadImage } = await import('canvas');
-      const img = await loadImage(rawBuf);
-      const imgW = img.naturalWidth || img.width || 400;
-      const imgH = img.naturalHeight || img.height || 400;
-
-      // CSS object-fit: cover implementation
-      // Scale source image uniformly to cover entire frame without distortion
-      const frameAspect = targetWidthPt / targetHeightPt;
-      const imgAspect = imgW / imgH;
-
-      let sW, sH, sX, sY;
-      const fx = typeof focalPoint?.x === 'number' ? focalPoint.x : (typeof studentData.focalPoint?.x === 'number' ? studentData.focalPoint.x : 0.5);
-      const fy = typeof focalPoint?.y === 'number' ? focalPoint.y : (typeof studentData.focalPoint?.y === 'number' ? studentData.focalPoint.y : 0.5);
-
-      if (imgAspect > frameAspect) {
-        // Source image is wider than target frame (e.g. landscape photo into portrait frame)
-        sH = imgH;
-        sW = imgH * frameAspect;
-        const excessW = imgW - sW;
-        sX = Math.max(0, Math.min(imgW - sW, excessW * fx));
-        sY = 0;
-      } else {
-        // Source image is taller than target frame (or equal)
-        sW = imgW;
-        sH = imgW / frameAspect;
-        const excessH = imgH - sH;
-        sX = 0;
-        sY = Math.max(0, Math.min(imgH - sH, excessH * fy));
-      }
-
-      // High-resolution canvas rendering (~350-400 DPI equivalent for professional A4 print)
-      const dpiScale = 400 / 72; // ~5.55 pixels per point
-      const canvasW = Math.round(targetWidthPt * dpiScale);
-      const canvasH = Math.round(targetHeightPt * dpiScale);
-      const canvasRadius = (cornerRadiusPt || 0) * dpiScale;
-      const canvasBw = (borderWidthPt > 0 ? borderWidthPt : 0) * dpiScale;
-
-      const canvas = createCanvas(canvasW, canvasH);
-      const ctx = canvas.getContext('2d');
-
-      // Clear to 100% transparent background so corners do not cover template background artwork
-      ctx.clearRect(0, 0, canvasW, canvasH);
-
-      if (shape === 'circle') {
-        const radius = Math.min(canvasW, canvasH) / 2 - canvasBw / 2;
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(canvasW / 2, canvasH / 2, radius, 0, Math.PI * 2);
-        ctx.closePath();
-        ctx.clip();
-        ctx.drawImage(img, sX, sY, sW, sH, 0, 0, canvasW, canvasH);
-        ctx.restore();
-
-        if (canvasBw > 0) {
-          ctx.save();
-          ctx.beginPath();
-          ctx.arc(canvasW / 2, canvasH / 2, radius, 0, Math.PI * 2);
-          ctx.lineWidth = canvasBw;
-          ctx.strokeStyle = borderColor;
-          ctx.stroke();
-          ctx.restore();
-        }
-      } else {
-        // 1. Clip photo with exact rounded rectangle clipping mask matching frame curvature
-        ctx.save();
-        drawRoundedRect(ctx, 0, 0, canvasW, canvasH, canvasRadius);
-        ctx.clip();
-        ctx.drawImage(img, sX, sY, sW, sH, 0, 0, canvasW, canvasH);
-        ctx.restore();
-
-        // 2. Stroke exact border on top to guarantee frame visibility without clipping
-        if (canvasBw > 0) {
-          ctx.save();
-          drawRoundedRect(
-            ctx,
-            canvasBw / 2,
-            canvasBw / 2,
-            canvasW - canvasBw,
-            canvasH - canvasBw,
-            Math.max(0, canvasRadius - canvasBw / 2)
-          );
-          ctx.lineWidth = canvasBw;
-          ctx.strokeStyle = borderColor;
-          ctx.stroke();
-          ctx.restore();
-        }
-      }
-
-      const pngBuf = canvas.toBuffer('image/png');
-      return await pdfDoc.embedPng(pngBuf);
-    } catch (canvasErr) {
-      console.warn('Canvas photo masking fallback (serverless environment):', canvasErr.message);
-      return await embedImageBuffer(pdfDoc, rawBuf);
-    }
+    return await embedImageBuffer(pdfDoc, rawBuf);
   } catch (e) {
-    console.error('Photo embed error:', e.message);
+    return null;
   }
-  return null;
 };
 
 // ── Find Template File Helper ────────────────────────────────────────────────
@@ -484,16 +681,7 @@ const renderDoctorateAward = async (baseDoc, page, studentData, customDomain) =>
   });
 
   // Recipient Photo inside Center Slot between Graduation Caps
-  // Frame bounds: width: 88.01, height: 95.05, x: 253.66, y: 377.78, cornerRadius: 9.56 pt
-  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#222222', 1.5, 88.01, 95.05, 9.56);
-  if (pImg) {
-    page.drawImage(pImg, {
-      x: 253.66,
-      y: 377.78,
-      width: 88.01,
-      height: 95.05
-    });
-  }
+  await renderPhotoWithNativeClip(baseDoc, page, studentData, PHOTO_CONFIGS['doctorate-ihreo']);
 
   // Recipient Name inside Bottom Capsule
   const nameStr = studentData.fullName || 'Recipient Name';
@@ -619,22 +807,7 @@ const renderPadmaBhushan = async (baseDoc, page, studentData, customDomain) => {
   }
 
   // 3. Recipient Photo inside original rounded rectangular gold frame
-  // Exact reference: x: 244.06, y: 252.93, width: 109.52, height: 116.01, cornerRadius: 11.84 pt, border: 2.0 pt #754805
-  const targetW = 109.52;
-  const targetH = 116.01;
-  const pX = 244.06;
-  const pY = 252.93;
-  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#754805', 2.0, targetW, targetH, 11.84);
-  if (pImg) {
-    page.drawImage(pImg, {
-      x: pX,
-      y: pY,
-      width: targetW,
-      height: targetH
-    });
-  } else {
-    console.warn('Padma Bhushan photo embedding: no photo image returned from embedPhotoWithShape');
-  }
+  await renderPhotoWithNativeClip(baseDoc, page, studentData, PHOTO_CONFIGS['bhartiya-padma-bhushan-samman']);
 
   // 4. Recipient Name
   const nameStr = String(studentData.fullName || studentData.full_name || 'Recipient Name').trim();
@@ -708,22 +881,7 @@ const renderAryaBhushan = async (baseDoc, page, studentData, customDomain) => {
   }
 
   // 3. Recipient Photo inside original rounded rectangular frame
-  // Exact reference: x: 255.52, y: 442.18, width: 86.01, height: 97.94, radius: 6.87 pt, border: 0.57pt black
-  const targetW = 86.01;
-  const targetH = 97.94;
-  const pX = 255.52;
-  const pY = 442.18;
-  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#000000', 0.57, targetW, targetH, 6.87);
-  if (pImg) {
-    page.drawImage(pImg, {
-      x: pX,
-      y: pY,
-      width: targetW,
-      height: targetH
-    });
-  } else {
-    console.warn('Arya Bhushan photo embedding: no photo image returned from embedPhotoWithShape');
-  }
+  await renderPhotoWithNativeClip(baseDoc, page, studentData, PHOTO_CONFIGS['arya-bhushan-samaj-seva-award']);
 
   // 4. Recipient Name: Italic red name centered over gold underline (from x: 177.82 to 497.11, center: 337.46, y: 386.51)
   const redColor = rgb(0.65, 0.05, 0.05);
@@ -818,22 +976,7 @@ const renderRashtriyaPadmaShree = async (baseDoc, page, studentData, customDomai
   }
 
   // 3. Recipient Photo inside original rounded rectangular gold frame
-  // Exact reference: x: 244.96, y: 380.07, width: 109.46, height: 115.79, cornerRadius: 11.84 pt, border: 2.0 pt #754805
-  const targetW = 109.46;
-  const targetH = 115.79;
-  const pX = 244.96;
-  const pY = 380.07;
-  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#754805', 2.0, targetW, targetH, 11.84);
-  if (pImg) {
-    page.drawImage(pImg, {
-      x: pX,
-      y: pY,
-      width: targetW,
-      height: targetH
-    });
-  } else {
-    console.warn('Rashtriya Padma Shree photo embedding: no photo image returned from embedPhotoWithShape');
-  }
+  await renderPhotoWithNativeClip(baseDoc, page, studentData, PHOTO_CONFIGS['rashtriya-padma-shree-samman']);
 
   // 4. Recipient Name: dynamic dark red, centered at pW / 2, y: 331.56
   const redColor = rgb(0.40, 0.0, 0.0); // #660000 / deep dark red
@@ -901,22 +1044,7 @@ const renderBhartiyaGauravRatan = async (baseDoc, page, studentData, customDomai
   }
 
   // 3. Recipient Photo inside original rounded rectangular frame
-  // Exact reference: x: 244.21, y: 252.84, width: 109.27, height: 116.06, cornerRadius: 11.84 pt, border: 2.0 pt #754805
-  const targetW = 109.27;
-  const targetH = 116.06;
-  const pX = 244.21;
-  const pY = 252.84;
-  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#754805', 2.0, targetW, targetH, 11.84);
-  if (pImg) {
-    page.drawImage(pImg, {
-      x: pX,
-      y: pY,
-      width: targetW,
-      height: targetH
-    });
-  } else {
-    console.warn('Bhartiya Gaurav Ratan photo embedding: no photo image returned from embedPhotoWithShape');
-  }
+  await renderPhotoWithNativeClip(baseDoc, page, studentData, PHOTO_CONFIGS['bhartiya-gaurav-ratan-samman']);
 
   // 4. Recipient Name: Centered horizontally at pW / 2 = 298.61, y: 224.50
   // Font: Times-Bold, size: 21 pt (scaled down if longer than 280 pt), color: black (#000000)
@@ -1107,40 +1235,7 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           const rawBuf = await getPhotoBuffer(studentData.photoUrl || studentData.recipient_photo || studentData.photo || studentData.image);
           if (rawBuf) {
             const photo = await loadImage(rawBuf);
-            const pX = 244.21 * scaleX;
-            const pY = (843.920 - 252.84 - 116.06) * scaleY;
-            const pW = 109.27 * scaleX;
-            const pH = 116.06 * scaleY;
-            const radius = 11.84 * scaleX;
-            const bw = 2.0 * scaleX;
-
-            ctx.save();
-            drawRoundedRect(ctx, pX, pY, pW, pH, radius);
-            ctx.clip();
-
-            const imgAspect = (photo.width || 400) / (photo.height || 400);
-            const frameAspect = pW / pH;
-            let dW, dH, dX, dY;
-            if (imgAspect > frameAspect) {
-              dH = pH;
-              dW = dH * imgAspect;
-              dX = pX + (pW - dW) / 2;
-              dY = pY;
-            } else {
-              dW = pW;
-              dH = dW / imgAspect;
-              dX = pX;
-              dY = pY + (pH - dH) / 2;
-            }
-            ctx.drawImage(photo, dX, dY, dW, dH);
-            ctx.restore();
-
-            ctx.save();
-            drawRoundedRect(ctx, pX + bw / 2, pY + bw / 2, pW - bw, pH - bw, Math.max(0, radius - bw / 2));
-            ctx.lineWidth = bw;
-            ctx.strokeStyle = '#754805';
-            ctx.stroke();
-            ctx.restore();
+            renderPhotoOnCanvas(ctx, photo, PHOTO_CONFIGS['bhartiya-gaurav-ratan-samman'], scaleX, scaleY, 843.920, studentData.focalPoint);
           }
 
           // Recipient Name with controlled scaling
@@ -1203,40 +1298,7 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           const rawBuf = await getPhotoBuffer(studentData.photoUrl || studentData.recipient_photo || studentData.photo || studentData.image);
           if (rawBuf) {
             const photo = await loadImage(rawBuf);
-            const pX = 244.96 * scaleX;
-            const pY = (843.896 - 380.07 - 115.79) * scaleY;
-            const pW = 109.46 * scaleX;
-            const pH = 115.79 * scaleY;
-            const radius = 11.84 * scaleX;
-            const bw = 2.0 * scaleX;
-
-            ctx.save();
-            drawRoundedRect(ctx, pX, pY, pW, pH, radius);
-            ctx.clip();
-
-            const imgAspect = (photo.width || 400) / (photo.height || 400);
-            const frameAspect = pW / pH;
-            let dW, dH, dX, dY;
-            if (imgAspect > frameAspect) {
-              dH = pH;
-              dW = dH * imgAspect;
-              dX = pX + (pW - dW) / 2;
-              dY = pY;
-            } else {
-              dW = pW;
-              dH = dW / imgAspect;
-              dX = pX;
-              dY = pY + (pH - dH) / 2;
-            }
-            ctx.drawImage(photo, dX, dY, dW, dH);
-            ctx.restore();
-
-            ctx.save();
-            drawRoundedRect(ctx, pX + bw / 2, pY + bw / 2, pW - bw, pH - bw, Math.max(0, radius - bw / 2));
-            ctx.lineWidth = bw;
-            ctx.strokeStyle = '#754805';
-            ctx.stroke();
-            ctx.restore();
+            renderPhotoOnCanvas(ctx, photo, PHOTO_CONFIGS['rashtriya-padma-shree-samman'], scaleX, scaleY, 843.896, studentData.focalPoint);
           }
 
           // Recipient Name with controlled scaling
@@ -1291,40 +1353,7 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           const rawBuf = await getPhotoBuffer(studentData.photoUrl || studentData.recipient_photo || studentData.photo || studentData.image);
           if (rawBuf) {
             const photo = await loadImage(rawBuf);
-            const pX = 244.06 * scaleX;
-            const pY = (843.92 - 252.93 - 116.01) * scaleY;
-            const pW = 109.52 * scaleX;
-            const pH = 116.01 * scaleY;
-            const radius = 11.84 * scaleX;
-            const bw = 2.0 * scaleX;
-
-            ctx.save();
-            drawRoundedRect(ctx, pX, pY, pW, pH, radius);
-            ctx.clip();
-
-            const imgAspect = (photo.width || 400) / (photo.height || 400);
-            const frameAspect = pW / pH;
-            let dW, dH, dX, dY;
-            if (imgAspect > frameAspect) {
-              dH = pH;
-              dW = dH * imgAspect;
-              dX = pX + (pW - dW) / 2;
-              dY = pY;
-            } else {
-              dW = pW;
-              dH = dW / imgAspect;
-              dX = pX;
-              dY = pY + (pH - dH) / 2;
-            }
-            ctx.drawImage(photo, dX, dY, dW, dH);
-            ctx.restore();
-
-            ctx.save();
-            drawRoundedRect(ctx, pX + bw/2, pY + bw/2, pW - bw, pH - bw, Math.max(0, radius - bw/2));
-            ctx.lineWidth = bw;
-            ctx.strokeStyle = '#754805';
-            ctx.stroke();
-            ctx.restore();
+            renderPhotoOnCanvas(ctx, photo, PHOTO_CONFIGS['bhartiya-padma-bhushan-samman'], scaleX, scaleY, 843.92, studentData.focalPoint);
           }
 
           // Recipient Name with controlled scaling
@@ -1384,44 +1413,11 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           const qrImg = await loadImage(qrBuf);
           ctx.drawImage(qrImg, 464.94 * scaleX, (843.89 - 739.54 - 42.52) * scaleY, 42.52 * scaleX, 42.52 * scaleY);
 
-          // Recipient Photo inside frame: x: 255.52, y: 442.18, w: 86.01, h: 97.94
+          // Recipient Photo inside frame
           const rawBuf = await getPhotoBuffer(studentData.photoUrl || studentData.recipient_photo || studentData.photo || studentData.image);
           if (rawBuf) {
             const photo = await loadImage(rawBuf);
-            const pX = 255.52 * scaleX;
-            const pY = (843.89 - 442.18 - 97.94) * scaleY;
-            const pW = 86.01 * scaleX;
-            const pH = 97.94 * scaleY;
-            const radius = 6.87 * scaleX;
-            const bw = 0.57 * scaleX;
-
-            ctx.save();
-            drawRoundedRect(ctx, pX, pY, pW, pH, radius);
-            ctx.clip();
-
-            const imgAspect = (photo.width || 400) / (photo.height || 400);
-            const frameAspect = pW / pH;
-            let dW, dH, dX, dY;
-            if (imgAspect > frameAspect) {
-              dH = pH;
-              dW = dH * imgAspect;
-              dX = pX + (pW - dW) / 2;
-              dY = pY;
-            } else {
-              dW = pW;
-              dH = dW / imgAspect;
-              dX = pX;
-              dY = pY + (pH - dH) / 2;
-            }
-            ctx.drawImage(photo, dX, dY, dW, dH);
-            ctx.restore();
-
-            ctx.save();
-            drawRoundedRect(ctx, pX + bw/2, pY + bw/2, pW - bw, pH - bw, Math.max(0, radius - bw/2));
-            ctx.lineWidth = bw;
-            ctx.strokeStyle = '#000000';
-            ctx.stroke();
-            ctx.restore();
+            renderPhotoOnCanvas(ctx, photo, PHOTO_CONFIGS['arya-bhushan-samaj-seva-award'], scaleX, scaleY, 843.89, studentData.focalPoint);
           }
 
           // Recipient Name (Italic red over underline at center 337.46, y: 386.51)
@@ -1477,46 +1473,11 @@ export const generateCertificate = async (studentData, templateId, customDomain)
             ctx.fillText(line, 65, 55 + (i * 10));
           });
 
-          // Photo inside center frame: width: 88.01, height: 95.05, radius: 9.56
-          if (studentData.photoUrl) {
-            const rawBuf = await getPhotoBuffer(studentData.photoUrl);
-            if (rawBuf) {
-              const photo = await loadImage(rawBuf);
-              const picX = 253.66;
-              const picY = 369.06;
-              const picW = 88.01;
-              const picH = 95.05;
-              const radius = 9.56;
-              const bw = 1.5;
-
-              ctx.save();
-              drawRoundedRect(ctx, picX, picY, picW, picH, radius);
-              ctx.clip();
-
-              const imgAspect = (photo.width || 400) / (photo.height || 400);
-              const frameAspect = picW / picH;
-              let dW, dH, dX, dY;
-              if (imgAspect > frameAspect) {
-                dH = picH;
-                dW = dH * imgAspect;
-                dX = picX + (picW - dW) / 2;
-                dY = picY;
-              } else {
-                dW = picW;
-                dH = dW / imgAspect;
-                dX = picX;
-                dY = picY + (picH - dH) / 2;
-              }
-              ctx.drawImage(photo, dX, dY, dW, dH);
-              ctx.restore();
-
-              ctx.save();
-              drawRoundedRect(ctx, picX + bw / 2, picY + bw / 2, picW - bw, picH - bw, Math.max(0, radius - bw / 2));
-              ctx.strokeStyle = '#222222';
-              ctx.lineWidth = bw;
-              ctx.stroke();
-              ctx.restore();
-            }
+          // Photo inside center frame
+          const rawBuf = await getPhotoBuffer(studentData.photoUrl || studentData.recipient_photo || studentData.photo || studentData.image);
+          if (rawBuf) {
+            const photo = await loadImage(rawBuf);
+            renderPhotoOnCanvas(ctx, photo, PHOTO_CONFIGS['doctorate-ihreo'], 1, 1, 841.89, studentData.focalPoint);
           }
 
           // Recipient Name inside Name Capsule
@@ -1585,11 +1546,8 @@ export const generateIdCard = async (studentData, customDomain) => {
       console.warn('ID Card QR Code error:', qrErr.message);
     }
 
-    // 3. Recipient Photo inside left frame: width: 37.71, height: 41.59, cornerRadius: 4.06 pt
-    const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#333333', 1.0, 37.71, 41.59, 4.06);
-    if (pImg) {
-      page.drawImage(pImg, { x: 14.41, y: 38.12, width: 37.71, height: 41.59 });
-    }
+    // 3. Recipient Photo inside left frame
+    await renderPhotoWithNativeClip(baseDoc, page, studentData, PHOTO_CONFIGS['universal-id-card']);
 
     // 4. Dynamic Fields (Name, Designation, Nationality, Date)
     const dateFormatted = studentData.letterIssuedAt
@@ -1654,11 +1612,8 @@ export const generateMembershipCert = async (studentData, customDomain) => {
       page.drawImage(qrImg, { x: 442.63, y: 686.92, width: 56.90, height: 56.90 });
     } catch (qrErr) {}
 
-    // 3. Recipient Photo inside Center Slot: width: 88.06, height: 99.58, cornerRadius: 9.56 pt
-    const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#333333', 1.5, 88.06, 99.58, 9.56);
-    if (pImg) {
-      page.drawImage(pImg, { x: 254.63, y: 360.09, width: 88.06, height: 99.58 });
-    }
+    // 3. Recipient Photo inside Center Slot
+    await renderPhotoWithNativeClip(baseDoc, page, studentData, PHOTO_CONFIGS['universal-membership-certificate']);
 
     // 4. Recipient Name inside Bottom Capsule
     const rawName = studentData.fullName || studentData.name || 'Member Name';

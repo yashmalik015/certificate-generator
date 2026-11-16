@@ -253,6 +253,163 @@ const StudentForm = () => {
       ctx.closePath();
     };
 
+    const PHOTO_CONFIGS = {
+      'bhartiya-gaurav-ratan-samman': {
+        innerX: 244.4287,
+        innerY: 253.0951,
+        innerWidth: 106.8559,
+        innerHeight: 113.6576,
+        cornerRadius: 10.8388,
+        frameX: 243.4286,
+        frameY: 252.0950,
+        frameWidth: 108.8561,
+        frameHeight: 115.6578,
+        frameRadius: 11.8389,
+        borderWidth: 2.0001,
+        borderColor: '#754805'
+      },
+      'rashtriya-padma-shree-samman': {
+        innerX: 245.2087,
+        innerY: 380.3171,
+        innerWidth: 106.8559,
+        innerHeight: 113.6576,
+        cornerRadius: 10.8388,
+        frameX: 244.2086,
+        frameY: 379.3170,
+        frameWidth: 108.8561,
+        frameHeight: 115.6578,
+        frameRadius: 11.8389,
+        borderWidth: 2.0001,
+        borderColor: '#754805'
+      },
+      'bhartiya-padma-bhushan-samman': {
+        innerX: 244.4287,
+        innerY: 253.0951,
+        innerWidth: 106.8559,
+        innerHeight: 113.6576,
+        cornerRadius: 10.8388,
+        frameX: 243.4286,
+        frameY: 252.0950,
+        frameWidth: 108.8561,
+        frameHeight: 115.6578,
+        frameRadius: 11.8389,
+        borderWidth: 2.0001,
+        borderColor: '#754805'
+      },
+      'arya-bhushan-samaj-seva-award': {
+        innerX: 254.88,
+        innerY: 441.48,
+        innerWidth: 85.30,
+        innerHeight: 97.23,
+        cornerRadius: 6.59,
+        frameX: 254.59,
+        frameY: 441.20,
+        frameWidth: 85.87,
+        frameHeight: 97.80,
+        frameRadius: 6.87,
+        borderWidth: 0.5669,
+        borderColor: '#000000'
+      },
+      'doctorate-ihreo': {
+        innerX: 254.41,
+        innerY: 378.53,
+        innerWidth: 86.51,
+        innerHeight: 93.55,
+        cornerRadius: 8.81,
+        frameX: 253.66,
+        frameY: 377.78,
+        frameWidth: 88.01,
+        frameHeight: 95.05,
+        frameRadius: 9.56,
+        borderWidth: 1.5,
+        borderColor: '#222222'
+      },
+      'universal-id-card': {
+        innerX: 14.91,
+        innerY: 38.62,
+        innerWidth: 36.71,
+        innerHeight: 40.59,
+        cornerRadius: 3.56,
+        frameX: 14.41,
+        frameY: 38.12,
+        frameWidth: 37.71,
+        frameHeight: 41.59,
+        frameRadius: 4.06,
+        borderWidth: 1.0,
+        borderColor: '#333333'
+      },
+      'universal-membership-certificate': {
+        innerX: 255.38,
+        innerY: 360.84,
+        innerWidth: 86.56,
+        innerHeight: 98.08,
+        cornerRadius: 8.81,
+        frameX: 254.63,
+        frameY: 360.09,
+        frameWidth: 88.06,
+        frameHeight: 99.58,
+        frameRadius: 9.56,
+        borderWidth: 1.5,
+        borderColor: '#333333'
+      }
+    };
+
+    const renderPhotoOnCanvas = (ctx, photo, cfg, scaleX, scaleY, pageHeight, focalPoint) => {
+      if (!photo || !cfg) return;
+      const innerCanvasX = cfg.innerX * scaleX;
+      const innerCanvasY = (pageHeight - cfg.innerY - cfg.innerHeight) * scaleY;
+      const innerCanvasW = cfg.innerWidth * scaleX;
+      const innerCanvasH = cfg.innerHeight * scaleY;
+      const innerRadius = cfg.cornerRadius * scaleX;
+
+      const frameCanvasX = cfg.frameX * scaleX;
+      const frameCanvasY = (pageHeight - cfg.frameY - cfg.frameHeight) * scaleY;
+      const frameCanvasW = cfg.frameWidth * scaleX;
+      const frameCanvasH = cfg.frameHeight * scaleY;
+      const frameRadius = cfg.frameRadius * scaleX;
+      const frameBw = cfg.borderWidth * scaleX;
+
+      const fx = typeof focalPoint?.x === 'number' ? focalPoint.x : 0.5;
+      const fy = typeof focalPoint?.y === 'number' ? focalPoint.y : 0.5;
+
+      const imgW = photo.naturalWidth || photo.width || 400;
+      const imgH = photo.naturalHeight || photo.height || 400;
+      const imgAspect = imgW / imgH;
+      const frameAspect = innerCanvasW / innerCanvasH;
+
+      let dW, dH, dX, dY;
+      if (imgAspect > frameAspect) {
+        dH = innerCanvasH;
+        dW = dH * imgAspect;
+        const excessW = dW - innerCanvasW;
+        dX = innerCanvasX - excessW * fx;
+        dY = innerCanvasY;
+      } else {
+        dW = innerCanvasW;
+        dH = dW / imgAspect;
+        const excessH = dH - innerCanvasH;
+        dX = innerCanvasX;
+        dY = innerCanvasY - excessH * fy;
+      }
+
+      // 1. Clip to inner aperture
+      ctx.save();
+      drawRoundedRect(ctx, innerCanvasX, innerCanvasY, innerCanvasW, innerCanvasH, innerRadius);
+      ctx.clip();
+      ctx.drawImage(photo, dX, dY, dW, dH);
+      ctx.restore();
+
+      // 2. Stroke frame overlay
+      if (frameBw > 0 && cfg.borderColor) {
+        ctx.save();
+        drawRoundedRect(ctx, frameCanvasX, frameCanvasY, frameCanvasW, frameCanvasH, frameRadius);
+        ctx.lineWidth = frameBw;
+        ctx.strokeStyle = cfg.borderColor;
+        ctx.stroke();
+        ctx.restore();
+      }
+    };
+
     const drawCertificate = (img) => {
       canvas.width = img.width || 700;
       canvas.height = img.height || 1000;
@@ -305,40 +462,7 @@ const StudentForm = () => {
         if (formData.photoUrl) {
           const pImg = new Image();
           pImg.onload = () => {
-            const px = 244.21 * scaleX;
-            const py = (843.920 - 252.84 - 116.06) * scaleY;
-            const pw = 109.27 * scaleX;
-            const ph = 116.06 * scaleY;
-            const r = 11.84 * scaleX;
-            const bw = 2.0 * scaleX;
-
-            ctx.save();
-            drawRoundedRect(ctx, px, py, pw, ph, r);
-            ctx.clip();
-
-            const imgAspect = (pImg.width || 400) / (pImg.height || 400);
-            const frameAspect = pw / ph;
-            let dW, dH, dX, dY;
-            if (imgAspect > frameAspect) {
-              dH = ph;
-              dW = dH * imgAspect;
-              dX = px + (pw - dW) / 2;
-              dY = py;
-            } else {
-              dW = pw;
-              dH = dW / imgAspect;
-              dX = px;
-              dY = py + (ph - dH) / 2;
-            }
-            ctx.drawImage(pImg, dX, dY, dW, dH);
-            ctx.restore();
-
-            ctx.save();
-            drawRoundedRect(ctx, px + bw/2, py + bw/2, pw - bw, ph - bw, Math.max(0, r - bw/2));
-            ctx.lineWidth = bw;
-            ctx.strokeStyle = '#754805';
-            ctx.stroke();
-            ctx.restore();
+            renderPhotoOnCanvas(ctx, pImg, PHOTO_CONFIGS['bhartiya-gaurav-ratan-samman'], scaleX, scaleY, 843.920, formData.focalPoint);
           };
           pImg.src = formData.photoUrl;
         }
@@ -379,40 +503,7 @@ const StudentForm = () => {
         if (formData.photoUrl) {
           const pImg = new Image();
           pImg.onload = () => {
-            const px = 244.96 * scaleX;
-            const py = (843.896 - 380.07 - 115.79) * scaleY;
-            const pw = 109.46 * scaleX;
-            const ph = 115.79 * scaleY;
-            const r = 11.84 * scaleX;
-            const bw = 2.0 * scaleX;
-
-            ctx.save();
-            drawRoundedRect(ctx, px, py, pw, ph, r);
-            ctx.clip();
-
-            const imgAspect = (pImg.width || 400) / (pImg.height || 400);
-            const frameAspect = pw / ph;
-            let dW, dH, dX, dY;
-            if (imgAspect > frameAspect) {
-              dH = ph;
-              dW = dH * imgAspect;
-              dX = px + (pw - dW) / 2;
-              dY = py;
-            } else {
-              dW = pw;
-              dH = dW / imgAspect;
-              dX = px;
-              dY = py + (ph - dH) / 2;
-            }
-            ctx.drawImage(pImg, dX, dY, dW, dH);
-            ctx.restore();
-
-            ctx.save();
-            drawRoundedRect(ctx, px + bw/2, py + bw/2, pw - bw, ph - bw, Math.max(0, r - bw/2));
-            ctx.lineWidth = bw;
-            ctx.strokeStyle = '#754805';
-            ctx.stroke();
-            ctx.restore();
+            renderPhotoOnCanvas(ctx, pImg, PHOTO_CONFIGS['rashtriya-padma-shree-samman'], scaleX, scaleY, 843.896, formData.focalPoint);
           };
           pImg.src = formData.photoUrl;
         }
@@ -447,40 +538,7 @@ const StudentForm = () => {
         if (formData.photoUrl) {
           const pImg = new Image();
           pImg.onload = () => {
-            const px = 244.06 * scaleX;
-            const py = (843.92 - 252.93 - 116.01) * scaleY;
-            const pw = 109.52 * scaleX;
-            const ph = 116.01 * scaleY;
-            const r = 11.84 * scaleX;
-            const bw = 2.0 * scaleX;
-
-            ctx.save();
-            drawRoundedRect(ctx, px, py, pw, ph, r);
-            ctx.clip();
-
-            const imgAspect = (pImg.width || 400) / (pImg.height || 400);
-            const frameAspect = pw / ph;
-            let dW, dH, dX, dY;
-            if (imgAspect > frameAspect) {
-              dH = ph;
-              dW = dH * imgAspect;
-              dX = px + (pw - dW) / 2;
-              dY = py;
-            } else {
-              dW = pw;
-              dH = dW / imgAspect;
-              dX = px;
-              dY = py + (ph - dH) / 2;
-            }
-            ctx.drawImage(pImg, dX, dY, dW, dH);
-            ctx.restore();
-
-            ctx.save();
-            drawRoundedRect(ctx, px + bw/2, py + bw/2, pw - bw, ph - bw, Math.max(0, r - bw/2));
-            ctx.lineWidth = bw;
-            ctx.strokeStyle = '#754805';
-            ctx.stroke();
-            ctx.restore();
+            renderPhotoOnCanvas(ctx, pImg, PHOTO_CONFIGS['bhartiya-padma-bhushan-samman'], scaleX, scaleY, 843.92, formData.focalPoint);
           };
           pImg.src = formData.photoUrl;
         }
@@ -523,40 +581,7 @@ const StudentForm = () => {
         if (formData.photoUrl) {
           const pImg = new Image();
           pImg.onload = () => {
-            const px = 255.52 * scaleX;
-            const py = (843.89 - 442.18 - 97.94) * scaleY;
-            const pw = 86.01 * scaleX;
-            const ph = 97.94 * scaleY;
-            const r = 6.87 * scaleX;
-            const bw = 0.57 * scaleX;
-
-            ctx.save();
-            drawRoundedRect(ctx, px, py, pw, ph, r);
-            ctx.clip();
-
-            const imgAspect = (pImg.width || 400) / (pImg.height || 400);
-            const frameAspect = pw / ph;
-            let dW, dH, dX, dY;
-            if (imgAspect > frameAspect) {
-              dH = ph;
-              dW = dH * imgAspect;
-              dX = px + (pw - dW) / 2;
-              dY = py;
-            } else {
-              dW = pw;
-              dH = dW / imgAspect;
-              dX = px;
-              dY = py + (ph - dH) / 2;
-            }
-            ctx.drawImage(pImg, dX, dY, dW, dH);
-            ctx.restore();
-
-            ctx.save();
-            drawRoundedRect(ctx, px + bw/2, py + bw/2, pw - bw, ph - bw, Math.max(0, r - bw/2));
-            ctx.lineWidth = bw;
-            ctx.strokeStyle = '#000000';
-            ctx.stroke();
-            ctx.restore();
+            renderPhotoOnCanvas(ctx, pImg, PHOTO_CONFIGS['arya-bhushan-samaj-seva-award'], scaleX, scaleY, 843.89, formData.focalPoint);
           };
           pImg.src = formData.photoUrl;
         }
@@ -598,40 +623,7 @@ const StudentForm = () => {
         if (formData.photoUrl) {
           const pImg = new Image();
           pImg.onload = () => {
-            const px = 253.66 * scaleX;
-            const py = (841.89 - 377.78 - 95.05) * scaleY;
-            const pw = 88.01 * scaleX;
-            const ph = 95.05 * scaleY;
-            const r = 9.56 * scaleX;
-            const bw = 1.5 * scaleX;
-
-            ctx.save();
-            drawRoundedRect(ctx, px, py, pw, ph, r);
-            ctx.clip();
-
-            const imgAspect = (pImg.width || 400) / (pImg.height || 400);
-            const frameAspect = pw / ph;
-            let dW, dH, dX, dY;
-            if (imgAspect > frameAspect) {
-              dH = ph;
-              dW = dH * imgAspect;
-              dX = px + (pw - dW) / 2;
-              dY = py;
-            } else {
-              dW = pw;
-              dH = dW / imgAspect;
-              dX = px;
-              dY = py + (ph - dH) / 2;
-            }
-            ctx.drawImage(pImg, dX, dY, dW, dH);
-            ctx.restore();
-
-            ctx.save();
-            drawRoundedRect(ctx, px + bw/2, py + bw/2, pw - bw, ph - bw, Math.max(0, r - bw/2));
-            ctx.lineWidth = bw;
-            ctx.strokeStyle = '#222222';
-            ctx.stroke();
-            ctx.restore();
+            renderPhotoOnCanvas(ctx, pImg, PHOTO_CONFIGS['doctorate-ihreo'], scaleX, scaleY, 841.89, formData.focalPoint);
           };
           pImg.src = formData.photoUrl;
         }
@@ -655,40 +647,7 @@ const StudentForm = () => {
         if (formData.photoUrl) {
           const pImg = new Image();
           pImg.onload = () => {
-            const px = 254.63 * scaleX;
-            const py = (843.8899 - 360.09 - 99.58) * scaleY;
-            const pw = 88.06 * scaleX;
-            const ph = 99.58 * scaleY;
-            const r = 9.56 * scaleX;
-            const bw = 1.5 * scaleX;
-
-            ctx.save();
-            drawRoundedRect(ctx, px, py, pw, ph, r);
-            ctx.clip();
-
-            const imgAspect = (pImg.width || 400) / (pImg.height || 400);
-            const frameAspect = pw / ph;
-            let dW, dH, dX, dY;
-            if (imgAspect > frameAspect) {
-              dH = ph;
-              dW = dH * imgAspect;
-              dX = px + (pw - dW) / 2;
-              dY = py;
-            } else {
-              dW = pw;
-              dH = dW / imgAspect;
-              dX = px;
-              dY = py + (ph - dH) / 2;
-            }
-            ctx.drawImage(pImg, dX, dY, dW, dH);
-            ctx.restore();
-
-            ctx.save();
-            drawRoundedRect(ctx, px + bw/2, py + bw/2, pw - bw, ph - bw, Math.max(0, r - bw/2));
-            ctx.lineWidth = bw;
-            ctx.strokeStyle = '#333333';
-            ctx.stroke();
-            ctx.restore();
+            renderPhotoOnCanvas(ctx, pImg, PHOTO_CONFIGS['universal-membership-certificate'], scaleX, scaleY, 843.8899, formData.focalPoint);
           };
           pImg.src = formData.photoUrl;
         }
@@ -709,40 +668,7 @@ const StudentForm = () => {
         if (formData.photoUrl) {
           const pImg = new Image();
           pImg.onload = () => {
-            const px = 14.41 * scaleX;
-            const py = (144 - 38.12 - 41.59) * scaleY;
-            const pw = 37.71 * scaleX;
-            const ph = 41.59 * scaleY;
-            const r = 4.06 * scaleX;
-            const bw = 1.0 * scaleX;
-
-            ctx.save();
-            drawRoundedRect(ctx, px, py, pw, ph, r);
-            ctx.clip();
-
-            const imgAspect = (pImg.width || 400) / (pImg.height || 400);
-            const frameAspect = pw / ph;
-            let dW, dH, dX, dY;
-            if (imgAspect > frameAspect) {
-              dH = ph;
-              dW = dH * imgAspect;
-              dX = px + (pw - dW) / 2;
-              dY = py;
-            } else {
-              dW = pw;
-              dH = dW / imgAspect;
-              dX = px;
-              dY = py + (ph - dH) / 2;
-            }
-            ctx.drawImage(pImg, dX, dY, dW, dH);
-            ctx.restore();
-
-            ctx.save();
-            drawRoundedRect(ctx, px + bw/2, py + bw/2, pw - bw, ph - bw, Math.max(0, r - bw/2));
-            ctx.lineWidth = bw;
-            ctx.strokeStyle = '#333333';
-            ctx.stroke();
-            ctx.restore();
+            renderPhotoOnCanvas(ctx, pImg, PHOTO_CONFIGS['universal-id-card'], scaleX, scaleY, 144, formData.focalPoint);
           };
           pImg.src = formData.photoUrl;
         }

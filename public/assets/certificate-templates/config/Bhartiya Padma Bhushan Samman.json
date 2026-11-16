@@ -1,7 +1,7 @@
 {
   "fields": {
     "cin_no": {
-      "x": 66.0,
+      "x": 66,
       "y": 768.12,
       "fontSize": 10.86,
       "align": "left",
@@ -9,7 +9,7 @@
       "font": "regular"
     },
     "licence_no": {
-      "x": 66.0,
+      "x": 66,
       "y": 755.83,
       "fontSize": 10.86,
       "align": "left",
@@ -17,7 +17,7 @@
       "font": "regular"
     },
     "serial_no": {
-      "x": 66.0,
+      "x": 66,
       "y": 743.43,
       "fontSize": 10.86,
       "align": "left",
@@ -25,7 +25,7 @@
       "font": "regular"
     },
     "reg_no": {
-      "x": 66.0,
+      "x": 66,
       "y": 730.71,
       "fontSize": 10.86,
       "align": "left",
@@ -34,7 +34,7 @@
     },
     "fullName": {
       "x": 298.6,
-      "y": 228.00,
+      "y": 228,
       "fontSize": 20.5,
       "align": "center",
       "color": "#111827",
@@ -50,13 +50,23 @@
     }
   },
   "photo": {
-    "x": 244.06,
-    "y": 252.93,
-    "width": 109.52,
-    "height": 116.01,
-    "borderRadius": 11.84,
-    "borderWidth": 2.0,
-    "borderColor": "#754805"
+    "x": 243.4286,
+    "y": 252.095,
+    "width": 108.8561,
+    "height": 115.6578,
+    "borderRadius": 11.8389,
+    "borderWidth": 2.0001,
+    "borderColor": "#754805",
+    "innerX": 244.4287,
+    "innerY": 253.0951,
+    "innerWidth": 106.8559,
+    "innerHeight": 113.6576,
+    "cornerRadius": 10.8388,
+    "frameX": 243.4286,
+    "frameY": 252.095,
+    "frameWidth": 108.8561,
+    "frameHeight": 115.6578,
+    "frameRadius": 11.8389
   },
   "qrCode": {
     "x": 478.22,
@@ -64,4 +74,3 @@
     "size": 61.94
   }
 }
-

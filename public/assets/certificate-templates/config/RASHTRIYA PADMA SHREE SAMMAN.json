@@ -26,7 +26,7 @@
     },
     "reg_no": {
       "x": 46.51,
-      "y": 742.60,
+      "y": 742.6,
       "fontSize": 10.86,
       "align": "left",
       "color": "#111827",
@@ -42,17 +42,27 @@
     }
   },
   "photo": {
-    "x": 244.96,
-    "y": 380.07,
-    "width": 109.46,
-    "height": 115.79,
-    "borderRadius": 11.84,
-    "borderWidth": 2.0,
-    "borderColor": "#754805"
+    "x": 244.2086,
+    "y": 379.317,
+    "width": 108.8561,
+    "height": 115.6578,
+    "borderRadius": 11.8389,
+    "borderWidth": 2.0001,
+    "borderColor": "#754805",
+    "innerX": 245.2087,
+    "innerY": 380.3171,
+    "innerWidth": 106.8559,
+    "innerHeight": 113.6576,
+    "cornerRadius": 10.8388,
+    "frameX": 244.2086,
+    "frameY": 379.317,
+    "frameWidth": 108.8561,
+    "frameHeight": 115.6578,
+    "frameRadius": 11.8389
   },
   "qrCode": {
-    "x": 509.10,
-    "y": 663.20,
+    "x": 509.1,
+    "y": 663.2,
     "size": 54.24
   }
 }

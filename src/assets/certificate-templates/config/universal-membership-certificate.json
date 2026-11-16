@@ -24,7 +24,17 @@
     "height": 99.58,
     "borderRadius": 9.56,
     "borderWidth": 1.5,
-    "borderColor": "#333333"
+    "borderColor": "#333333",
+    "innerX": 255.38,
+    "innerY": 360.84,
+    "innerWidth": 86.56,
+    "innerHeight": 98.08,
+    "cornerRadius": 8.81,
+    "frameX": 254.63,
+    "frameY": 360.09,
+    "frameWidth": 88.06,
+    "frameHeight": 99.58,
+    "frameRadius": 9.56
   },
   "qrCode": {
     "x": 443,

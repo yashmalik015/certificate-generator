@@ -58,13 +58,23 @@
     }
   },
   "photo": {
-    "x": 255.52,
-    "y": 442.18,
-    "width": 86.01,
-    "height": 97.94,
+    "x": 254.59,
+    "y": 441.2,
+    "width": 85.87,
+    "height": 97.8,
     "borderRadius": 6.87,
-    "borderWidth": 0.57,
-    "borderColor": "#000000"
+    "borderWidth": 0.5669,
+    "borderColor": "#000000",
+    "innerX": 254.88,
+    "innerY": 441.48,
+    "innerWidth": 85.3,
+    "innerHeight": 97.23,
+    "cornerRadius": 6.59,
+    "frameX": 254.59,
+    "frameY": 441.2,
+    "frameWidth": 85.87,
+    "frameHeight": 97.8,
+    "frameRadius": 6.87
   },
   "qrCode": {
     "x": 464.94,
