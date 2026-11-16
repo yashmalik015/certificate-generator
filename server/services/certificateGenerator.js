@@ -279,17 +279,17 @@ const drawRoundedRect = (ctx, x, y, width, height, radius) => {
   ctx.closePath();
 };
 
-// ── Embed photo helper with shape masking (rect / circle) ───────────────────
+// ── Embed photo helper with shape masking (rect / circle) and CSS object-fit: cover ──
 const embedPhotoWithShape = async (
   pdfDoc,
   studentData,
   shape = 'rect',
-  borderColor = '#222222',
-  borderWidth = 1.5,
-  targetWidth = 300,
-  targetHeight = 300,
-  cornerRadiusPt = 9.56,
-  frameWidthPt = 88.01
+  borderColor = '#754805',
+  borderWidthPt = 2.0,
+  targetWidthPt = 109.52,
+  targetHeightPt = 116.01,
+  cornerRadiusPt = 11.84,
+  focalPoint = null
 ) => {
   const photoUrl = studentData.photoUrl || studentData.recipient_photo || studentData.photo || studentData.image;
   if (!photoUrl) return null;
@@ -300,79 +300,89 @@ const embedPhotoWithShape = async (
     try {
       const { createCanvas, loadImage } = await import('canvas');
       const img = await loadImage(rawBuf);
-      const w = img.width || 400;
-      const h = img.height || 400;
-      const canvas = createCanvas(targetWidth, targetHeight);
+      const imgW = img.naturalWidth || img.width || 400;
+      const imgH = img.naturalHeight || img.height || 400;
+
+      // CSS object-fit: cover implementation
+      // Scale source image uniformly to cover entire frame without distortion
+      const frameAspect = targetWidthPt / targetHeightPt;
+      const imgAspect = imgW / imgH;
+
+      let sW, sH, sX, sY;
+      const fx = typeof focalPoint?.x === 'number' ? focalPoint.x : (typeof studentData.focalPoint?.x === 'number' ? studentData.focalPoint.x : 0.5);
+      const fy = typeof focalPoint?.y === 'number' ? focalPoint.y : (typeof studentData.focalPoint?.y === 'number' ? studentData.focalPoint.y : 0.5);
+
+      if (imgAspect > frameAspect) {
+        // Source image is wider than target frame (e.g. landscape photo into portrait frame)
+        sH = imgH;
+        sW = imgH * frameAspect;
+        const excessW = imgW - sW;
+        sX = Math.max(0, Math.min(imgW - sW, excessW * fx));
+        sY = 0;
+      } else {
+        // Source image is taller than target frame (or equal)
+        sW = imgW;
+        sH = imgW / frameAspect;
+        const excessH = imgH - sH;
+        sX = 0;
+        sY = Math.max(0, Math.min(imgH - sH, excessH * fy));
+      }
+
+      // High-resolution canvas rendering (~350-400 DPI equivalent for professional A4 print)
+      const dpiScale = 400 / 72; // ~5.55 pixels per point
+      const canvasW = Math.round(targetWidthPt * dpiScale);
+      const canvasH = Math.round(targetHeightPt * dpiScale);
+      const canvasRadius = (cornerRadiusPt || 0) * dpiScale;
+      const canvasBw = (borderWidthPt > 0 ? borderWidthPt : 0) * dpiScale;
+
+      const canvas = createCanvas(canvasW, canvasH);
       const ctx = canvas.getContext('2d');
 
-      const scaleFactor = targetWidth / (frameWidthPt || targetWidth);
-      const canvasBw = borderWidth > 0 ? Math.max(1, borderWidth * scaleFactor) : 0;
+      // Clear to 100% transparent background so corners do not cover template background artwork
+      ctx.clearRect(0, 0, canvasW, canvasH);
 
       if (shape === 'circle') {
-        const radius = Math.min(targetWidth, targetHeight) / 2 - canvasBw;
-        const cx = targetWidth / 2;
-        const cy = targetHeight / 2;
-
-        ctx.beginPath();
-        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-        ctx.closePath();
+        const radius = Math.min(canvasW, canvasH) / 2 - canvasBw / 2;
         ctx.save();
+        ctx.beginPath();
+        ctx.arc(canvasW / 2, canvasH / 2, radius, 0, Math.PI * 2);
+        ctx.closePath();
         ctx.clip();
-
-        // Fit photo inside circle
-        const minDim = Math.min(w, h);
-        const sx = (w - minDim) / 2;
-        const sy = (h - minDim) / 2;
-        ctx.drawImage(img, sx, sy, minDim, minDim, canvasBw, canvasBw, targetWidth - canvasBw * 2, targetHeight - canvasBw * 2);
+        ctx.drawImage(img, sX, sY, sW, sH, 0, 0, canvasW, canvasH);
         ctx.restore();
 
         if (canvasBw > 0) {
-          ctx.lineWidth = canvasBw * 2;
-          ctx.strokeStyle = borderColor;
+          ctx.save();
           ctx.beginPath();
-          ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+          ctx.arc(canvasW / 2, canvasH / 2, radius, 0, Math.PI * 2);
+          ctx.lineWidth = canvasBw;
+          ctx.strokeStyle = borderColor;
           ctx.stroke();
+          ctx.restore();
         }
       } else {
-        // Calculate canvas corner radius matching the exact physical PDF points corner radius
-        const canvasRadius = (cornerRadiusPt || 9.56) * scaleFactor;
-
-        // Clip photo with exact rounded rectangle clipping mask
-        drawRoundedRect(ctx, 0, 0, targetWidth, targetHeight, canvasRadius);
+        // 1. Clip photo with exact rounded rectangle clipping mask matching frame curvature
         ctx.save();
+        drawRoundedRect(ctx, 0, 0, canvasW, canvasH, canvasRadius);
         ctx.clip();
-
-        // Cover fit (object-fit: cover) inside photo frame to preserve aspect ratio and avoid distortion
-        const imgAspect = w / h;
-        const targetAspect = targetWidth / targetHeight;
-        let drawW, drawH, drawX, drawY;
-        if (imgAspect > targetAspect) {
-          drawH = targetHeight;
-          drawW = drawH * imgAspect;
-          drawX = (targetWidth - drawW) / 2;
-          drawY = 0;
-        } else {
-          drawW = targetWidth;
-          drawH = drawW / imgAspect;
-          drawX = 0;
-          drawY = (targetHeight - drawH) / 2;
-        }
-        ctx.drawImage(img, drawX, drawY, drawW, drawH);
+        ctx.drawImage(img, sX, sY, sW, sH, 0, 0, canvasW, canvasH);
         ctx.restore();
 
-        // Stroke rounded border if requested
+        // 2. Stroke exact border on top to guarantee frame visibility without clipping
         if (canvasBw > 0) {
+          ctx.save();
           drawRoundedRect(
             ctx,
             canvasBw / 2,
             canvasBw / 2,
-            targetWidth - canvasBw,
-            targetHeight - canvasBw,
+            canvasW - canvasBw,
+            canvasH - canvasBw,
             Math.max(0, canvasRadius - canvasBw / 2)
           );
           ctx.lineWidth = canvasBw;
           ctx.strokeStyle = borderColor;
           ctx.stroke();
+          ctx.restore();
         }
       }
 
@@ -475,7 +485,7 @@ const renderDoctorateAward = async (baseDoc, page, studentData, customDomain) =>
 
   // Recipient Photo inside Center Slot between Graduation Caps
   // Frame bounds: width: 88.01, height: 95.05, x: 253.66, y: 377.78, cornerRadius: 9.56 pt
-  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#222222', 1.5, 300, 324, 9.56, 88.01);
+  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#222222', 1.5, 88.01, 95.05, 9.56);
   if (pImg) {
     page.drawImage(pImg, {
       x: 253.66,
@@ -609,14 +619,16 @@ const renderPadmaBhushan = async (baseDoc, page, studentData, customDomain) => {
   }
 
   // 3. Recipient Photo inside original rounded rectangular gold frame
-  // Frame bounds: width: 109.52, height: 116.01, x: 243.06, y: 251.93, cornerRadius: 11.84 pt
+  // Exact reference: x: 244.06, y: 252.93, width: 109.52, height: 116.01, cornerRadius: 11.84 pt, border: 2.0 pt #754805
   const targetW = 109.52;
   const targetH = 116.01;
-  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#754805', 1.8, 300, 318, 11.84, targetW);
+  const pX = 244.06;
+  const pY = 252.93;
+  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#754805', 2.0, targetW, targetH, 11.84);
   if (pImg) {
     page.drawImage(pImg, {
-      x: 243.06,
-      y: 251.93,
+      x: pX,
+      y: pY,
       width: targetW,
       height: targetH
     });
@@ -696,14 +708,16 @@ const renderAryaBhushan = async (baseDoc, page, studentData, customDomain) => {
   }
 
   // 3. Recipient Photo inside original rounded rectangular frame
-  // Frame bounds: x: 254.52, y: 441.18, width: 86.01, height: 97.94, radius: 6.87 pt, border: 0.57pt black
+  // Exact reference: x: 255.52, y: 442.18, width: 86.01, height: 97.94, radius: 6.87 pt, border: 0.57pt black
   const targetW = 86.01;
   const targetH = 97.94;
-  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#000000', 0.57, 300, 342, 6.87, targetW);
+  const pX = 255.52;
+  const pY = 442.18;
+  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#000000', 0.57, targetW, targetH, 6.87);
   if (pImg) {
     page.drawImage(pImg, {
-      x: 254.52,
-      y: 441.18,
+      x: pX,
+      y: pY,
       width: targetW,
       height: targetH
     });
@@ -804,14 +818,16 @@ const renderRashtriyaPadmaShree = async (baseDoc, page, studentData, customDomai
   }
 
   // 3. Recipient Photo inside original rounded rectangular gold frame
-  // Frame bounds: width: 109.46, height: 115.79, x: 243.96, y: 379.06, cornerRadius: 11.84 pt
+  // Exact reference: x: 244.96, y: 380.07, width: 109.46, height: 115.79, cornerRadius: 11.84 pt, border: 2.0 pt #754805
   const targetW = 109.46;
   const targetH = 115.79;
-  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#754805', 1.8, 300, 318, 11.84, targetW);
+  const pX = 244.96;
+  const pY = 380.07;
+  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#754805', 2.0, targetW, targetH, 11.84);
   if (pImg) {
     page.drawImage(pImg, {
-      x: 243.96,
-      y: 379.06,
+      x: pX,
+      y: pY,
       width: targetW,
       height: targetH
     });
@@ -885,14 +901,16 @@ const renderBhartiyaGauravRatan = async (baseDoc, page, studentData, customDomai
   }
 
   // 3. Recipient Photo inside original rounded rectangular frame
-  // Frame bounds: x: 243.21, y: 251.85, width: 109.27, height: 116.06, cornerRadius: 11.84 pt, border: 2.0 pt #754805
+  // Exact reference: x: 244.21, y: 252.84, width: 109.27, height: 116.06, cornerRadius: 11.84 pt, border: 2.0 pt #754805
   const targetW = 109.27;
   const targetH = 116.06;
-  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#754805', 2.0, 300, 319, 11.84, targetW);
+  const pX = 244.21;
+  const pY = 252.84;
+  const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#754805', 2.0, targetW, targetH, 11.84);
   if (pImg) {
     page.drawImage(pImg, {
-      x: 243.21,
-      y: 251.85,
+      x: pX,
+      y: pY,
       width: targetW,
       height: targetH
     });
@@ -1089,8 +1107,8 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           const rawBuf = await getPhotoBuffer(studentData.photoUrl || studentData.recipient_photo || studentData.photo || studentData.image);
           if (rawBuf) {
             const photo = await loadImage(rawBuf);
-            const pX = 243.21 * scaleX;
-            const pY = (843.920 - 251.85 - 116.06) * scaleY;
+            const pX = 244.21 * scaleX;
+            const pY = (843.920 - 252.84 - 116.06) * scaleY;
             const pW = 109.27 * scaleX;
             const pH = 116.06 * scaleY;
             const radius = 11.84 * scaleX;
@@ -1185,8 +1203,8 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           const rawBuf = await getPhotoBuffer(studentData.photoUrl || studentData.recipient_photo || studentData.photo || studentData.image);
           if (rawBuf) {
             const photo = await loadImage(rawBuf);
-            const pX = 243.96 * scaleX;
-            const pY = (843.896 - 379.06 - 115.79) * scaleY;
+            const pX = 244.96 * scaleX;
+            const pY = (843.896 - 380.07 - 115.79) * scaleY;
             const pW = 109.46 * scaleX;
             const pH = 115.79 * scaleY;
             const radius = 11.84 * scaleX;
@@ -1273,10 +1291,10 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           const rawBuf = await getPhotoBuffer(studentData.photoUrl || studentData.recipient_photo || studentData.photo || studentData.image);
           if (rawBuf) {
             const photo = await loadImage(rawBuf);
-            const pX = 243.42 * scaleX;
-            const pY = (843.92 - 252.10 - 115.66) * scaleY;
-            const pW = 108.86 * scaleX;
-            const pH = 115.66 * scaleY;
+            const pX = 244.06 * scaleX;
+            const pY = (843.92 - 252.93 - 116.01) * scaleY;
+            const pW = 109.52 * scaleX;
+            const pH = 116.01 * scaleY;
             const radius = 11.84 * scaleX;
             const bw = 2.0 * scaleX;
 
@@ -1366,12 +1384,12 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           const qrImg = await loadImage(qrBuf);
           ctx.drawImage(qrImg, 464.94 * scaleX, (843.89 - 739.54 - 42.52) * scaleY, 42.52 * scaleX, 42.52 * scaleY);
 
-          // Recipient Photo inside frame: x: 254.52, y: 441.18, w: 86.01, h: 97.94
+          // Recipient Photo inside frame: x: 255.52, y: 442.18, w: 86.01, h: 97.94
           const rawBuf = await getPhotoBuffer(studentData.photoUrl || studentData.recipient_photo || studentData.photo || studentData.image);
           if (rawBuf) {
             const photo = await loadImage(rawBuf);
-            const pX = 254.52 * scaleX;
-            const pY = (843.89 - 441.18 - 97.94) * scaleY;
+            const pX = 255.52 * scaleX;
+            const pY = (843.89 - 442.18 - 97.94) * scaleY;
             const pW = 86.01 * scaleX;
             const pH = 97.94 * scaleY;
             const radius = 6.87 * scaleX;
@@ -1459,15 +1477,15 @@ export const generateCertificate = async (studentData, templateId, customDomain)
             ctx.fillText(line, 65, 55 + (i * 10));
           });
 
-          // Photo inside center frame: width: 88, height: 95, radius: 9.56
+          // Photo inside center frame: width: 88.01, height: 95.05, radius: 9.56
           if (studentData.photoUrl) {
             const rawBuf = await getPhotoBuffer(studentData.photoUrl);
             if (rawBuf) {
               const photo = await loadImage(rawBuf);
-              const picX = 254;
-              const picY = 369;
-              const picW = 88;
-              const picH = 95;
+              const picX = 253.66;
+              const picY = 369.06;
+              const picW = 88.01;
+              const picH = 95.05;
               const radius = 9.56;
               const bw = 1.5;
 
@@ -1568,7 +1586,7 @@ export const generateIdCard = async (studentData, customDomain) => {
     }
 
     // 3. Recipient Photo inside left frame: width: 37.71, height: 41.59, cornerRadius: 4.06 pt
-    const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#333333', 1.0, 200, 221, 4.06, 37.71);
+    const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#333333', 1.0, 37.71, 41.59, 4.06);
     if (pImg) {
       page.drawImage(pImg, { x: 14.41, y: 38.12, width: 37.71, height: 41.59 });
     }
@@ -1637,7 +1655,7 @@ export const generateMembershipCert = async (studentData, customDomain) => {
     } catch (qrErr) {}
 
     // 3. Recipient Photo inside Center Slot: width: 88.06, height: 99.58, cornerRadius: 9.56 pt
-    const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#333333', 1.5, 300, 339, 9.56, 88.06);
+    const pImg = await embedPhotoWithShape(baseDoc, studentData, 'rect', '#333333', 1.5, 88.06, 99.58, 9.56);
     if (pImg) {
       page.drawImage(pImg, { x: 254.63, y: 360.09, width: 88.06, height: 99.58 });
     }

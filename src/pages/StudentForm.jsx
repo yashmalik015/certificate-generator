@@ -177,10 +177,10 @@ const StudentForm = () => {
     const reader = new FileReader();
     reader.onload = () => {
       const rawBase64 = reader.result;
-      // Client-side image resize to max 900x900 for fast upload and zero-lag rendering
+      // Preserve high resolution for crisp print-quality output (downscale only if exceeding 2400px)
       const img = new Image();
       img.onload = () => {
-        const maxDim = 900;
+        const maxDim = 2400;
         let w = img.width;
         let h = img.height;
         if (w > maxDim || h > maxDim) {
@@ -191,14 +191,16 @@ const StudentForm = () => {
             w = Math.round((w * maxDim) / h);
             h = maxDim;
           }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.95);
+          setFormData((prev) => ({ ...prev, photoUrl: optimizedBase64 }));
+        } else {
+          setFormData((prev) => ({ ...prev, photoUrl: rawBase64 }));
         }
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, w, h);
-        const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.88);
-        setFormData((prev) => ({ ...prev, photoUrl: optimizedBase64 }));
         setUploadingPhoto(false);
       };
       img.onerror = () => {
@@ -303,8 +305,8 @@ const StudentForm = () => {
         if (formData.photoUrl) {
           const pImg = new Image();
           pImg.onload = () => {
-            const px = 243.21 * scaleX;
-            const py = (843.920 - 251.85 - 116.06) * scaleY;
+            const px = 244.21 * scaleX;
+            const py = (843.920 - 252.84 - 116.06) * scaleY;
             const pw = 109.27 * scaleX;
             const ph = 116.06 * scaleY;
             const r = 11.84 * scaleX;
@@ -356,7 +358,7 @@ const StudentForm = () => {
         ctx.textAlign = 'center';
         ctx.font = `${Math.round(10.75 * scaleX)}px Arial, Helvetica, sans-serif`;
         ctx.fillStyle = '#111827';
-        ctx.fillText(`Date of Issue : ${issuedDateFormatted}`, 286.36 * scaleX, (843.920 - 130.00) * scaleY);
+        ctx.fillText(`Date of Issue : ${dateFormatted}`, 286.36 * scaleX, (843.920 - 130.00) * scaleY);
       } else if (lowerId.includes('shree') || (lowerId.includes('rashtriya') && lowerId.includes('padma'))) {
         const scaleX = pW / 597.2954;
         const scaleY = pH / 843.896;
@@ -377,8 +379,8 @@ const StudentForm = () => {
         if (formData.photoUrl) {
           const pImg = new Image();
           pImg.onload = () => {
-            const px = 243.96 * scaleX;
-            const py = (843.896 - 379.06 - 115.79) * scaleY;
+            const px = 244.96 * scaleX;
+            const py = (843.896 - 380.07 - 115.79) * scaleY;
             const pw = 109.46 * scaleX;
             const ph = 115.79 * scaleY;
             const r = 11.84 * scaleX;
@@ -445,10 +447,10 @@ const StudentForm = () => {
         if (formData.photoUrl) {
           const pImg = new Image();
           pImg.onload = () => {
-            const px = 243.42 * scaleX;
-            const py = (843.92 - 252.10 - 115.66) * scaleY;
-            const pw = 108.86 * scaleX;
-            const ph = 115.66 * scaleY;
+            const px = 244.06 * scaleX;
+            const py = (843.92 - 252.93 - 116.01) * scaleY;
+            const pw = 109.52 * scaleX;
+            const ph = 116.01 * scaleY;
             const r = 11.84 * scaleX;
             const bw = 2.0 * scaleX;
 
@@ -521,8 +523,8 @@ const StudentForm = () => {
         if (formData.photoUrl) {
           const pImg = new Image();
           pImg.onload = () => {
-            const px = 254.52 * scaleX;
-            const py = (843.89 - 441.18 - 97.94) * scaleY;
+            const px = 255.52 * scaleX;
+            const py = (843.89 - 442.18 - 97.94) * scaleY;
             const pw = 86.01 * scaleX;
             const ph = 97.94 * scaleY;
             const r = 6.87 * scaleX;

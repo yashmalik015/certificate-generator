@@ -58,11 +58,11 @@
     }
   },
   "photo": {
-    "x": 254.52,
-    "y": 441.18,
+    "x": 255.52,
+    "y": 442.18,
     "width": 86.01,
     "height": 97.94,
-    "borderRadius": 3.5,
+    "borderRadius": 6.87,
     "borderWidth": 0.57,
     "borderColor": "#000000"
   },

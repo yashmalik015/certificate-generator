@@ -42,12 +42,12 @@
     }
   },
   "photo": {
-    "x": 243.96,
-    "y": 379.06,
+    "x": 244.96,
+    "y": 380.07,
     "width": 109.46,
     "height": 115.79,
     "borderRadius": 11.84,
-    "borderWidth": 1.8,
+    "borderWidth": 2.0,
     "borderColor": "#754805"
   },
   "qrCode": {
