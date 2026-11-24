@@ -254,6 +254,20 @@ const StudentForm = () => {
     };
 
     const PHOTO_CONFIGS = {
+      'international-business-excellence-award': {
+        innerX: 254.91,
+        innerY: 438.94,
+        innerWidth: 85.45,
+        innerHeight: 96.72,
+        cornerRadius: 6.0,
+        frameX: 254.91,
+        frameY: 438.94,
+        frameWidth: 85.45,
+        frameHeight: 96.72,
+        frameRadius: 6.0,
+        borderWidth: 0,
+        borderColor: null
+      },
       'rashtriya-gaurav-ratan-samman': {
         innerX: 244.20,
         innerY: 415.89,
@@ -454,6 +468,79 @@ const StudentForm = () => {
         }
         ctx.fillStyle = '#111827';
         ctx.fillText(rawName, 430.42 * scaleX, (595.2756 - 327.13) * scaleY);
+      } else if (lowerId.includes('international') || (lowerId.includes('business') && lowerId.includes('excellence'))) {
+        const scaleX = pW / 595.28;
+        const scaleY = pH / 841.89;
+
+        const cinNo = formData.cin_no || 'U85499DL2025NPL459383';
+        const licenceNo = formData.licence_no || '176566';
+        const slNo = formData.serial_no || (formData.refno ? (formData.refno.includes('459383') ? formData.refno : `459383/${formData.refno.replace(/^IHREO\/?/, 'IHREO')}`) : '459383/IHREO028');
+        const regNo = formData.reg_no || '459383';
+
+        // 1. Top Left 4 Lines
+        ctx.fillStyle = '#111827';
+        const fontSizePx = Math.round(8.5 * scaleX);
+        ctx.font = `${fontSizePx}px Arial, Helvetica, sans-serif`;
+        ctx.textAlign = 'left';
+        ctx.fillText(`CIN NO:- ${cinNo}`, 39.50 * scaleX, (841.89 - 746.00) * scaleY);
+        ctx.fillText(`Licence No:- ${licenceNo}`, 39.50 * scaleX, (841.89 - 736.00) * scaleY);
+        ctx.font = `bold ${fontSizePx}px Arial, Helvetica, sans-serif`;
+        ctx.fillText(`Sl. No. ${slNo}`, 39.50 * scaleX, (841.89 - 726.00) * scaleY);
+        ctx.fillText(`Reg No. ${regNo}`, 39.50 * scaleX, (841.89 - 716.00) * scaleY);
+
+        // 2. Photo inside original rounded frame
+        if (formData.photoUrl) {
+          const pImg = new Image();
+          pImg.onload = () => {
+            renderPhotoOnCanvas(ctx, pImg, PHOTO_CONFIGS['international-business-excellence-award'], scaleX, scaleY, 841.89, formData.focalPoint);
+          };
+          pImg.src = formData.photoUrl;
+        }
+
+        // 3. Recipient Name: Italic serif, dark brown (#4d220e)
+        const rawName = formData.fullName || 'Recipient Full Name';
+        let namePx = Math.round(23.0 * scaleX);
+        ctx.font = `italic bold ${namePx}px "Times New Roman", serif`;
+        const maxNamePx = 260 * scaleX;
+        while (namePx > Math.round(10 * scaleX) && ctx.measureText(rawName).width > maxNamePx) {
+          namePx -= 1;
+          ctx.font = `italic bold ${namePx}px "Times New Roman", serif`;
+        }
+        const nameW = ctx.measureText(rawName).width;
+        let nameLeftPx = (297.64 * scaleX) - (nameW / 2);
+        if (nameLeftPx < 185 * scaleX) {
+          nameLeftPx = 185 * scaleX;
+        }
+        if (nameLeftPx + nameW > 485 * scaleX) {
+          nameLeftPx = (485 * scaleX) - nameW;
+        }
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#4d220e';
+        ctx.fillText(rawName, nameLeftPx, (841.89 - 388.50) * scaleY);
+
+        // 4. Dynamic Category / Award Subject
+        let rawCat = formData.category || formData.awardSubject || formData.subject || 'International Business & Entrepreneurship';
+        let cleanCat = String(rawCat).trim();
+        cleanCat = cleanCat.replace(/^[(\s]+/, '').replace(/[).\s]+$/, '').trim();
+        if (!cleanCat) cleanCat = 'International Business & Entrepreneurship';
+        const catDisplay = cleanCat.endsWith(',') ? cleanCat : `${cleanCat},`;
+
+        let catPx = Math.round(16.0 * scaleX);
+        ctx.font = `bold ${catPx}px "Times New Roman", serif`;
+        const maxCatPx = 420 * scaleX;
+        while (catPx > Math.round(9 * scaleX) && ctx.measureText(catDisplay).width > maxCatPx) {
+          catPx -= 1;
+          ctx.font = `bold ${catPx}px "Times New Roman", serif`;
+        }
+        ctx.fillText(catDisplay, pW / 2, (841.89 - 251.50) * scaleY);
+
+        // 5. Date of Issue: "Date of Issue : DD/MM/YY"
+        const rawDate = formData.letterIssuedAt || formData.issue_date || new Date();
+        const dateFormattedInt = typeof rawDate === 'string' && rawDate.includes('-')
+          ? rawDate.split('-').reverse().map((p, idx) => idx === 2 ? p.slice(-2) : p).join('/')
+          : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
+        ctx.font = `bold ${Math.round(9.5 * scaleX)}px "Times New Roman", serif`;
+        ctx.fillText(`Date of Issue : ${dateFormattedInt}`, pW / 2, (841.89 - 125.00) * scaleY);
       } else if (lowerId.includes('rashtriya') && (lowerId.includes('gaurav') || lowerId.includes('ratan'))) {
         const scaleX = pW / 595.28;
         const scaleY = pH / 841.89;
