@@ -1132,15 +1132,18 @@ const renderRashtriyaGauravRatan = async (baseDoc, page, studentData, customDoma
   });
 
   // 5. Dynamic Category / Award Subject
-  // Formatted as: `(${cleanCategory}).`
+  // Formatted as: `(in ${cleanCategory}).`
   // Centered horizontally at pW / 2 = 297.64, baseline y: 265.60
   // Color: dark brown (#4d220e / rgb(0.30, 0.13, 0.05))
   // Font: Times-Bold, size: 13.5 pt (auto-scale down for long names)
   let rawCat = studentData.category || studentData.awardSubject || studentData.award_subject || studentData.subject || 'Social Work';
   let cleanCat = String(rawCat).trim();
   cleanCat = cleanCat.replace(/^\(+/, '').replace(/\)+$/, '').replace(/\.+$/, '').trim();
+  if (cleanCat.toLowerCase().startsWith('in ')) {
+    cleanCat = cleanCat.slice(3).trim();
+  }
   if (!cleanCat) cleanCat = 'Social Work';
-  const catStr = `(${cleanCat}).`;
+  const catStr = `(in ${cleanCat}).`;
 
   let catSize = 13.5;
   while (catSize > 8.0 && fontTimesBold.widthOfTextAtSize(catStr, catSize) > 320) {
@@ -1632,8 +1635,11 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           let rawCat = studentData.category || studentData.awardSubject || studentData.award_subject || studentData.subject || 'Social Work';
           let cleanCat = String(rawCat).trim();
           cleanCat = cleanCat.replace(/^\(+/, '').replace(/\)+$/, '').replace(/\.+$/, '').trim();
+          if (cleanCat.toLowerCase().startsWith('in ')) {
+            cleanCat = cleanCat.slice(3).trim();
+          }
           if (!cleanCat) cleanCat = 'Social Work';
-          const catStr = `(${cleanCat}).`;
+          const catStr = `(in ${cleanCat}).`;
 
           ctx.textAlign = 'center';
           let catPx = Math.round(13.5 * scaleX);

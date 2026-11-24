@@ -597,8 +597,11 @@ const StudentForm = () => {
         let rawCat = formData.category || formData.awardSubject || formData.subject || 'Social Work';
         let cleanCat = String(rawCat).trim();
         cleanCat = cleanCat.replace(/^\(+/, '').replace(/\)+$/, '').replace(/\.+$/, '').trim();
+        if (cleanCat.toLowerCase().startsWith('in ')) {
+          cleanCat = cleanCat.slice(3).trim();
+        }
         if (!cleanCat) cleanCat = 'Social Work';
-        const catStr = `(${cleanCat}).`;
+        const catStr = `(in ${cleanCat}).`;
 
         ctx.textAlign = 'center';
         let catPx = Math.round(13.5 * scaleX);
