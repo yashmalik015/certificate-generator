@@ -492,6 +492,23 @@ const StudentForm = () => {
         ctx.fillStyle = '#ffffff';
         ctx.fillText(rawName, pW / 2, (841.89 - 390.70) * scaleY);
 
+        // Dynamic Category / Award Subject
+        let rawCat = formData.category || formData.awardSubject || formData.subject || 'Social Work';
+        let cleanCat = String(rawCat).trim();
+        cleanCat = cleanCat.replace(/^\(+/, '').replace(/\)+$/, '').replace(/\.+$/, '').trim();
+        if (!cleanCat) cleanCat = 'Social Work';
+        const catStr = `(${cleanCat}).`;
+
+        ctx.textAlign = 'center';
+        let catPx = Math.round(13.5 * scaleX);
+        ctx.font = `bold ${catPx}px Georgia, "Times New Roman", serif`;
+        while (catPx > Math.round(8.0 * scaleX) && ctx.measureText(catStr).width > 320 * scaleX) {
+          catPx -= 1;
+          ctx.font = `bold ${catPx}px Georgia, "Times New Roman", serif`;
+        }
+        ctx.fillStyle = '#4d220e';
+        ctx.fillText(catStr, pW / 2, (841.89 - 265.60) * scaleY);
+
         // Date of Issue
         ctx.textAlign = 'center';
         ctx.font = `bold ${Math.round(12.0 * scaleX)}px "Times New Roman", serif`;

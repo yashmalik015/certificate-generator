@@ -40,6 +40,14 @@
       "color": "#ffffff",
       "font": "bold"
     },
+    "category": {
+      "x": 297.64,
+      "y": 265.60,
+      "fontSize": 13.5,
+      "align": "center",
+      "color": "#4d220e",
+      "font": "bold"
+    },
     "issue_date": {
       "x": 297.64,
       "y": 181.50,

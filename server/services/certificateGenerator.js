@@ -1085,7 +1085,31 @@ const renderRashtriyaGauravRatan = async (baseDoc, page, studentData, customDoma
     color: rgb(1, 1, 1)
   });
 
-  // 5. Date of Issue: "Date of Issue : DD-MM-YYYY"
+  // 5. Dynamic Category / Award Subject
+  // Formatted as: `(${cleanCategory}).`
+  // Centered horizontally at pW / 2 = 297.64, baseline y: 265.60
+  // Color: dark brown (#4d220e / rgb(0.30, 0.13, 0.05))
+  // Font: Times-Bold, size: 13.5 pt (auto-scale down for long names)
+  let rawCat = studentData.category || studentData.awardSubject || studentData.award_subject || studentData.subject || 'Social Work';
+  let cleanCat = String(rawCat).trim();
+  cleanCat = cleanCat.replace(/^\(+/, '').replace(/\)+$/, '').replace(/\.+$/, '').trim();
+  if (!cleanCat) cleanCat = 'Social Work';
+  const catStr = `(${cleanCat}).`;
+
+  let catSize = 13.5;
+  while (catSize > 8.0 && fontTimesBold.widthOfTextAtSize(catStr, catSize) > 320) {
+    catSize -= 0.25;
+  }
+  const catW = fontTimesBold.widthOfTextAtSize(catStr, catSize);
+  page.drawText(catStr, {
+    x: (pW - catW) / 2,
+    y: 265.60,
+    size: catSize,
+    font: fontTimesBold,
+    color: rgb(0.30, 0.13, 0.05)
+  });
+
+  // 6. Date of Issue: "Date of Issue : DD-MM-YYYY"
   // Font: Times-Bold, size: 12 pt, centered horizontally at pW / 2, baseline y = 181.50
   const rawDate = studentData.letterIssuedAt || studentData.issue_date || new Date();
   const dateFormatted = formatIssueDate(rawDate, 'DD-MM-YYYY');
@@ -1355,6 +1379,23 @@ export const generateCertificate = async (studentData, templateId, customDomain)
           }
           ctx.fillStyle = '#ffffff';
           ctx.fillText(nameStr, (595.28 / 2) * scaleX, (841.89 - 390.70) * scaleY);
+
+          // Dynamic Category / Award Subject
+          let rawCat = studentData.category || studentData.awardSubject || studentData.award_subject || studentData.subject || 'Social Work';
+          let cleanCat = String(rawCat).trim();
+          cleanCat = cleanCat.replace(/^\(+/, '').replace(/\)+$/, '').replace(/\.+$/, '').trim();
+          if (!cleanCat) cleanCat = 'Social Work';
+          const catStr = `(${cleanCat}).`;
+
+          ctx.textAlign = 'center';
+          let catPx = Math.round(13.5 * scaleX);
+          ctx.font = `bold ${catPx}px Georgia, "Times New Roman", serif`;
+          while (catPx > Math.round(8.0 * scaleX) && ctx.measureText(catStr).width > 320 * scaleX) {
+            catPx -= 1;
+            ctx.font = `bold ${catPx}px Georgia, "Times New Roman", serif`;
+          }
+          ctx.fillStyle = '#4d220e';
+          ctx.fillText(catStr, (595.28 / 2) * scaleX, (841.89 - 265.60) * scaleY);
 
           // Date of Issue
           const rawDate = studentData.letterIssuedAt || studentData.issue_date || new Date();
