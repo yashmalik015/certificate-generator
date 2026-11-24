@@ -1,36 +1,36 @@
 {
   "fields": {
     "cin_no": {
-      "x": 39.5,
-      "y": 746,
-      "fontSize": 8.5,
+      "x": 82,
+      "y": 747,
+      "fontSize": 8.25,
       "align": "left",
       "color": "#111827",
       "font": "regular"
     },
     "licence_no": {
-      "x": 39.5,
-      "y": 736,
-      "fontSize": 8.5,
+      "x": 82,
+      "y": 737,
+      "fontSize": 8.25,
       "align": "left",
       "color": "#111827",
       "font": "regular"
     },
     "serial_no": {
-      "x": 39.5,
-      "y": 726,
-      "fontSize": 8.5,
+      "x": 82,
+      "y": 727,
+      "fontSize": 8.25,
       "align": "left",
       "color": "#111827",
-      "font": "bold"
+      "font": "regular"
     },
     "reg_no": {
-      "x": 39.5,
-      "y": 716,
-      "fontSize": 8.5,
+      "x": 82,
+      "y": 717,
+      "fontSize": 8.25,
       "align": "left",
       "color": "#111827",
-      "font": "bold"
+      "font": "regular"
     },
     "fullName": {
       "x": 288.16,

@@ -479,14 +479,13 @@ const StudentForm = () => {
 
         // 1. Top Left 4 Lines
         ctx.fillStyle = '#111827';
-        const fontSizePx = Math.round(8.5 * scaleX);
+        const fontSizePx = Math.round(8.25 * scaleX);
         ctx.font = `${fontSizePx}px Arial, Helvetica, sans-serif`;
         ctx.textAlign = 'left';
-        ctx.fillText(`CIN NO:- ${cinNo}`, 39.50 * scaleX, (841.89 - 746.00) * scaleY);
-        ctx.fillText(`Licence No:- ${licenceNo}`, 39.50 * scaleX, (841.89 - 736.00) * scaleY);
-        ctx.font = `bold ${fontSizePx}px Arial, Helvetica, sans-serif`;
-        ctx.fillText(`Sl. No. ${slNo}`, 39.50 * scaleX, (841.89 - 726.00) * scaleY);
-        ctx.fillText(`Reg No. ${regNo}`, 39.50 * scaleX, (841.89 - 716.00) * scaleY);
+        ctx.fillText(`CIN NO:- ${cinNo}`, 82.00 * scaleX, (841.89 - 747.00) * scaleY);
+        ctx.fillText(`Licence No:- ${licenceNo}`, 82.00 * scaleX, (841.89 - 737.00) * scaleY);
+        ctx.fillText(`Sl. No. ${slNo}`, 82.00 * scaleX, (841.89 - 727.00) * scaleY);
+        ctx.fillText(`Reg No. ${regNo}`, 82.00 * scaleX, (841.89 - 717.00) * scaleY);
 
         // 2. Photo inside original rounded frame
         if (formData.photoUrl) {

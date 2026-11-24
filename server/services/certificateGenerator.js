@@ -1171,13 +1171,14 @@ const renderInternationalBusinessExcellence = async (baseDoc, page, studentData,
   const cleanCertNo = String(studentData.certificateNumber || formattedSlNo.replace('IHREO/', 'IHREO/CERT/') || 'IHREO/CERT/2026/0028').replace(/WCAEO/gi, 'IHREO');
 
   // 1. Top Left 4 Lines (exact vector coordinates from reference PDF)
-  const fontSize = 8.5;
-  const textColor = rgb(0.08, 0.08, 0.08);
+  const fontSize = 8.25;
+  const textColor = rgb(0.12, 0.12, 0.12);
+  const leftX = 82.00;
 
-  page.drawText(`CIN NO:- ${cinNo}`, { x: 39.50, y: 746.00, size: fontSize, font: fontHelv, color: textColor });
-  page.drawText(`Licence No:- ${licenceNo}`, { x: 39.50, y: 736.00, size: fontSize, font: fontHelv, color: textColor });
-  page.drawText(`Sl. No. ${formattedSlNo}`, { x: 39.50, y: 726.00, size: fontSize, font: fontHelvBold, color: textColor });
-  page.drawText(`Reg No. ${regNo}`, { x: 39.50, y: 716.00, size: fontSize, font: fontHelvBold, color: textColor });
+  page.drawText(`CIN NO:- ${cinNo}`, { x: leftX, y: 747.00, size: fontSize, font: fontHelv, color: textColor });
+  page.drawText(`Licence No:- ${licenceNo}`, { x: leftX, y: 737.00, size: fontSize, font: fontHelv, color: textColor });
+  page.drawText(`Sl. No. ${formattedSlNo}`, { x: leftX, y: 727.00, size: fontSize, font: fontHelv, color: textColor });
+  page.drawText(`Reg No. ${regNo}`, { x: leftX, y: 717.00, size: fontSize, font: fontHelv, color: textColor });
 
   // 2. Right-side Dynamic QR Code (x: 462.21, y: 706.00, width: 54.00, height: 54.00)
   try {
@@ -1483,14 +1484,13 @@ export const generateCertificate = async (studentData, templateId, customDomain)
 
           // 1. Top Left 4 Lines
           ctx.fillStyle = '#111827';
-          const fontSizePx = Math.round(8.5 * scaleX);
+          const fontSizePx = Math.round(8.25 * scaleX);
           ctx.font = `${fontSizePx}px Arial, Helvetica, sans-serif`;
           ctx.textAlign = 'left';
-          ctx.fillText(`CIN NO:- ${cinNo}`, 39.50 * scaleX, (841.89 - 746.00) * scaleY);
-          ctx.fillText(`Licence No:- ${licNo}`, 39.50 * scaleX, (841.89 - 736.00) * scaleY);
-          ctx.font = `bold ${fontSizePx}px Arial, Helvetica, sans-serif`;
-          ctx.fillText(`Sl. No. ${formattedSlNo}`, 39.50 * scaleX, (841.89 - 726.00) * scaleY);
-          ctx.fillText(`Reg No. ${regNo}`, 39.50 * scaleX, (841.89 - 716.00) * scaleY);
+          ctx.fillText(`CIN NO:- ${cinNo}`, 82.00 * scaleX, (841.89 - 747.00) * scaleY);
+          ctx.fillText(`Licence No:- ${licNo}`, 82.00 * scaleX, (841.89 - 737.00) * scaleY);
+          ctx.fillText(`Sl. No. ${formattedSlNo}`, 82.00 * scaleX, (841.89 - 727.00) * scaleY);
+          ctx.fillText(`Reg No. ${regNo}`, 82.00 * scaleX, (841.89 - 717.00) * scaleY);
 
           // 2. Right-side Dynamic QR Code
           const cleanCertNo = String(studentData.certificateNumber || formattedSlNo.replace('IHREO/', 'IHREO/CERT/') || 'IHREO/CERT/2026/0028').replace(/WCAEO/gi, 'IHREO');
