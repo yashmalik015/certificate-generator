@@ -644,6 +644,7 @@ const embedPhotoWithShape = async (
 
 // ── Find Template File Helper ────────────────────────────────────────────────
 const findTemplateFile = (baseName, extensions = ['.pdf', '.png', '.jpg']) => {
+  if (!baseName) return null;
   const tDir = getTemplatesDir();
   const searchDirs = [
     tDir,
@@ -653,6 +654,8 @@ const findTemplateFile = (baseName, extensions = ['.pdf', '.png', '.jpg']) => {
     path.join(process.cwd(), 'src/assets/certificate-templates'),
     path.join(process.cwd(), 'public/assets/certificate-templates')
   ];
+
+  // 1. Exact match check
   for (const dir of searchDirs) {
     if (!fs.existsSync(dir)) continue;
     for (const ext of extensions) {
@@ -660,6 +663,25 @@ const findTemplateFile = (baseName, extensions = ['.pdf', '.png', '.jpg']) => {
       if (fs.existsSync(p)) return p;
     }
   }
+
+  // 2. Case-insensitive / punctuation-tolerant directory scan
+  const cleanTarget = String(baseName).toLowerCase().replace(/[-_\s]+/g, '');
+  for (const dir of searchDirs) {
+    if (!fs.existsSync(dir)) continue;
+    try {
+      const files = fs.readdirSync(dir);
+      for (const file of files) {
+        const ext = path.extname(file).toLowerCase();
+        if (!extensions.includes(ext)) continue;
+        const nameWithoutExt = path.parse(file).name;
+        const cleanFile = nameWithoutExt.toLowerCase().replace(/[-_\s]+/g, '');
+        if (cleanFile === cleanTarget) {
+          return path.join(dir, file);
+        }
+      }
+    } catch (e) {}
+  }
+
   return null;
 };
 

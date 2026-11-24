@@ -3,6 +3,19 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Upload, Check, AlertCircle, Eye, Search, Sparkles, X, CheckSquare, Square } from 'lucide-react';
 import api from '../api/axiosClient';
 
+const DEFAULT_CERTIFICATE_TEMPLATES = [
+  { id: 'Certificate of Appreciation', label: 'Certificate of Appreciation', category: 'Appreciation', previewUrl: '/assets/certificate-templates/Certificate%20of%20Appreciation.png' },
+  { id: 'INTERNATIONAL BUSINESS EXCELLENCE AWARD', label: 'International Business Excellence Award', category: 'Honorary Awards', previewUrl: '/assets/certificate-templates/INTERNATIONAL%20BUSINESS%20EXCELLENCE%20AWARD.png' },
+  { id: 'BHARTIYA GAURAV RATAN SAMMAN', label: 'Bhartiya Gaurav Ratan Samman', category: 'Honorary Awards', previewUrl: '/assets/certificate-templates/BHARTIYA%20GAURAV%20RATAN%20SAMMAN.png' },
+  { id: 'RASHTRIYA GAURAV RATAN SAMMAN', label: 'Rashtriya Gaurav Ratan Samman', category: 'Honorary Awards', previewUrl: '/assets/certificate-templates/RASHTRIYA%20GAURAV%20RATAN%20SAMMAN.png' },
+  { id: 'RASHTRIYA PADMA SHREE SAMMAN', label: 'Rashtriya Padma Shree Samman', category: 'Honorary Awards', previewUrl: '/assets/certificate-templates/RASHTRIYA%20PADMA%20SHREE%20SAMMAN.png' },
+  { id: 'Bhartiya Padma Bhushan Samman', label: 'Bhartiya Padma Bhushan Samman', category: 'Honorary Awards', previewUrl: '/assets/certificate-templates/Bhartiya%20Padma%20Bhushan%20Samman.png' },
+  { id: 'ARYA BHUSHAN SAMAJ SEVA AWARD', label: 'Arya Bhushan Samaj Seva Award', category: 'Honorary Awards', previewUrl: '/assets/certificate-templates/ARYA%20BHUSHAN%20SAMAJ%20SEVA%20AWARD.png' },
+  { id: 'Doctorate IHREO', label: 'Honorary Doctorate Award', category: 'Academic & Honorary', previewUrl: '/assets/certificate-templates/Doctorate%20IHREO.png' },
+  { id: 'universal-membership-certificate', label: 'Certificate of Lifetime Membership', category: 'Membership', previewUrl: '/assets/certificate-templates/universal-membership-certificate.png' },
+  { id: 'universal-id-card', label: 'Universal ID Card', category: 'Identity Card', previewUrl: '/assets/certificate-templates/universal-id-card.png' }
+];
+
 const StudentForm = () => {
   const { id } = useParams();
   const isEdit = Boolean(id);
@@ -35,7 +48,7 @@ const StudentForm = () => {
 
   const [events, setEvents] = useState([]);
   const [subjects, setSubjects] = useState([]);
-  const [templates, setTemplates] = useState([]);
+  const [templates, setTemplates] = useState(DEFAULT_CERTIFICATE_TEMPLATES);
   const [designations, setDesignations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -73,7 +86,9 @@ const StudentForm = () => {
 
       const eventsData = eventsRes.status === 'fulfilled' && Array.isArray(eventsRes.value?.data) ? eventsRes.value.data : [];
       const subjectsData = subjectsRes.status === 'fulfilled' && Array.isArray(subjectsRes.value?.data) ? subjectsRes.value.data : [];
-      const templatesData = templatesRes.status === 'fulfilled' && Array.isArray(templatesRes.value?.data) ? templatesRes.value.data : [];
+      const templatesData = templatesRes.status === 'fulfilled' && Array.isArray(templatesRes.value?.data) && templatesRes.value.data.length > 0
+        ? templatesRes.value.data
+        : DEFAULT_CERTIFICATE_TEMPLATES;
       const designationsData = designationsRes.status === 'fulfilled' && Array.isArray(designationsRes.value?.data) ? designationsRes.value.data : [];
 
       setEvents(eventsData);
@@ -963,7 +978,10 @@ const StudentForm = () => {
   // Filter templates based on category tab & search query safely
   const filteredTemplates = Array.isArray(templates) ? templates.filter((tpl) => {
     if (!tpl) return false;
-    const matchesCategory = selectedCategoryTab === 'All' || tpl.category === selectedCategoryTab;
+    const matchesCategory =
+      selectedCategoryTab === 'All' ||
+      tpl.category === selectedCategoryTab ||
+      (selectedCategoryTab === 'Academic & Honorary' && (tpl.category === 'Honorary Awards' || tpl.category === 'Academic & Honorary'));
     const label = String(tpl.label || tpl.id || '').toLowerCase();
     const tid = String(tpl.id || '').toLowerCase();
     const q = String(templateSearch || '').toLowerCase();

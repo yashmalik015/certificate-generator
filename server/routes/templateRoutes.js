@@ -28,7 +28,20 @@ router.get('/', authMiddleware, (req, res) => {
 router.get('/:id/config', authMiddleware, (req, res) => {
   try {
     const templateId = decodeURIComponent(req.params.id);
-    const configPath = path.join(configDir, `${templateId}.json`);
+    let configPath = path.join(configDir, `${templateId}.json`);
+    if (!fs.existsSync(configPath) && fs.existsSync(configDir)) {
+      const cleanTarget = String(templateId).toLowerCase().replace(/[-_\s]+/g, '');
+      const files = fs.readdirSync(configDir);
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          const cleanFile = path.parse(file).name.toLowerCase().replace(/[-_\s]+/g, '');
+          if (cleanFile === cleanTarget) {
+            configPath = path.join(configDir, file);
+            break;
+          }
+        }
+      }
+    }
     if (fs.existsSync(configPath)) {
       const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
       return res.json({ exists: true, config });
@@ -63,18 +76,47 @@ router.put('/:id/config', authMiddleware, (req, res) => {
 router.get('/:id/preview', (req, res) => {
   try {
     const templateId = decodeURIComponent(req.params.id);
-    const possiblePaths = [
-      path.resolve(__dirname, '../../public/assets/certificate-templates', `${templateId}.png`),
-      path.resolve(__dirname, '../../src/assets/certificate-templates', `${templateId}.png`),
-      path.resolve(__dirname, '../../src/assets', `${templateId}.png`),
-      path.join(process.cwd(), 'public/assets/certificate-templates', `${templateId}.png`),
-      path.join(process.cwd(), 'src/assets/certificate-templates', `${templateId}.png`),
-      path.join(process.cwd(), 'src/assets', `${templateId}.png`)
+    const searchDirs = [
+      path.resolve(__dirname, '../../public/assets/certificate-templates'),
+      path.resolve(__dirname, '../../src/assets/certificate-templates'),
+      path.resolve(__dirname, '../../src/assets'),
+      path.join(process.cwd(), 'public/assets/certificate-templates'),
+      path.join(process.cwd(), 'src/assets/certificate-templates'),
+      path.join(process.cwd(), 'src/assets')
     ];
 
-    const foundPath = possiblePaths.find((p) => fs.existsSync(p));
+    let foundPath = null;
+    for (const dir of searchDirs) {
+      if (!fs.existsSync(dir)) continue;
+      const direct = path.join(dir, `${templateId}.png`);
+      if (fs.existsSync(direct)) {
+        foundPath = direct;
+        break;
+      }
+    }
+
+    if (!foundPath) {
+      const cleanTarget = String(templateId).toLowerCase().replace(/[-_\s]+/g, '');
+      for (const dir of searchDirs) {
+        if (!fs.existsSync(dir)) continue;
+        try {
+          const files = fs.readdirSync(dir);
+          for (const file of files) {
+            if (file.toLowerCase().endsWith('.png') || file.toLowerCase().endsWith('.jpg')) {
+              const cleanFile = path.parse(file).name.toLowerCase().replace(/[-_\s]+/g, '');
+              if (cleanFile === cleanTarget) {
+                foundPath = path.join(dir, file);
+                break;
+              }
+            }
+          }
+          if (foundPath) break;
+        } catch (e) {}
+      }
+    }
+
     if (foundPath) {
-      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Content-Type', foundPath.endsWith('.jpg') ? 'image/jpeg' : 'image/png');
       res.setHeader('Cache-Control', 'public, max-age=86400');
       return res.sendFile(foundPath);
     }

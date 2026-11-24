@@ -1,0 +1,83 @@
+{
+  "fields": {
+    "cin_no": {
+      "x": 72.34,
+      "y": 761.23,
+      "fontSize": 9.0,
+      "align": "left",
+      "color": "#111827",
+      "font": "regular"
+    },
+    "licence_no": {
+      "x": 72.34,
+      "y": 748.63,
+      "fontSize": 9.0,
+      "align": "left",
+      "color": "#111827",
+      "font": "regular"
+    },
+    "serial_no": {
+      "x": 72.34,
+      "y": 736.02,
+      "fontSize": 9.0,
+      "align": "left",
+      "color": "#111827",
+      "font": "bold"
+    },
+    "reg_no": {
+      "x": 72.34,
+      "y": 723.42,
+      "fontSize": 9.0,
+      "align": "left",
+      "color": "#111827",
+      "font": "bold"
+    },
+    "fullName": {
+      "x": 297.64,
+      "y": 390.70,
+      "fontSize": 20.0,
+      "align": "center",
+      "color": "#ffffff",
+      "font": "bold"
+    },
+    "category": {
+      "x": 297.64,
+      "y": 265.60,
+      "fontSize": 13.5,
+      "align": "center",
+      "color": "#4d220e",
+      "font": "bold"
+    },
+    "issue_date": {
+      "x": 297.64,
+      "y": 181.50,
+      "fontSize": 12.0,
+      "align": "center",
+      "color": "#181d32",
+      "font": "bold"
+    }
+  },
+  "photo": {
+    "x": 244.20,
+    "y": 415.89,
+    "width": 106.86,
+    "height": 110.50,
+    "borderRadius": 10.84,
+    "borderWidth": 0,
+    "innerX": 244.20,
+    "innerY": 415.89,
+    "innerWidth": 106.86,
+    "innerHeight": 110.50,
+    "cornerRadius": 10.84,
+    "frameX": 244.20,
+    "frameY": 415.89,
+    "frameWidth": 106.86,
+    "frameHeight": 110.50,
+    "frameRadius": 10.84
+  },
+  "qrCode": {
+    "x": 465.71,
+    "y": 714.06,
+    "size": 57.25
+  }
+}
