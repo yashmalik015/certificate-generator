@@ -254,6 +254,20 @@ const StudentForm = () => {
     };
 
     const PHOTO_CONFIGS = {
+      'rashtriya-gaurav-ratan-samman': {
+        innerX: 244.20,
+        innerY: 415.89,
+        innerWidth: 106.86,
+        innerHeight: 110.50,
+        cornerRadius: 10.84,
+        frameX: 244.20,
+        frameY: 415.89,
+        frameWidth: 106.86,
+        frameHeight: 110.50,
+        frameRadius: 10.84,
+        borderWidth: 0,
+        borderColor: null
+      },
       'bhartiya-gaurav-ratan-samman': {
         innerX: 244.4287,
         innerY: 253.0951,
@@ -440,6 +454,49 @@ const StudentForm = () => {
         }
         ctx.fillStyle = '#111827';
         ctx.fillText(rawName, 430.42 * scaleX, (595.2756 - 327.13) * scaleY);
+      } else if (lowerId.includes('rashtriya') && (lowerId.includes('gaurav') || lowerId.includes('ratan'))) {
+        const scaleX = pW / 595.28;
+        const scaleY = pH / 841.89;
+
+        const cinNo = formData.cin_no || 'U85499DL2025NPL459383';
+        const licNo = formData.licence_no || '176566';
+        const slNo = formData.serial_no || (formData.refno ? (formData.refno.includes('459383') ? formData.refno : `459383/${formData.refno.replace(/^IHREO\/?/, 'IHREO')}`) : '459383/IHREO0223');
+        const regNo = formData.reg_no || '459383';
+
+        ctx.fillStyle = '#111827';
+        const fontSizePx = Math.round(9.0 * scaleX);
+        ctx.font = `${fontSizePx}px Arial, Helvetica, sans-serif`;
+        ctx.textAlign = 'left';
+        ctx.fillText(`CIN No. - ${cinNo}`, 72.34 * scaleX, (841.89 - 761.23) * scaleY);
+        ctx.fillText(`License No. - ${licNo}`, 72.34 * scaleX, (841.89 - 748.63) * scaleY);
+        ctx.font = `bold ${fontSizePx}px Arial, Helvetica, sans-serif`;
+        ctx.fillText(`Sl. No. - ${slNo}`, 72.34 * scaleX, (841.89 - 736.02) * scaleY);
+        ctx.fillText(`Reg No. ${regNo}`, 72.34 * scaleX, (841.89 - 723.42) * scaleY);
+
+        if (formData.photoUrl) {
+          const pImg = new Image();
+          pImg.onload = () => {
+            renderPhotoOnCanvas(ctx, pImg, PHOTO_CONFIGS['rashtriya-gaurav-ratan-samman'], scaleX, scaleY, 841.89, formData.focalPoint);
+          };
+          pImg.src = formData.photoUrl;
+        }
+
+        const rawName = formData.fullName || 'Recipient Full Name';
+        ctx.textAlign = 'center';
+        let namePx = Math.round(20.0 * scaleX);
+        ctx.font = `bold ${namePx}px "Times New Roman", serif`;
+        while (namePx > Math.round(10 * scaleX) && ctx.measureText(rawName).width > 300 * scaleX) {
+          namePx -= 1;
+          ctx.font = `bold ${namePx}px "Times New Roman", serif`;
+        }
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(rawName, pW / 2, (841.89 - 390.70) * scaleY);
+
+        // Date of Issue
+        ctx.textAlign = 'center';
+        ctx.font = `bold ${Math.round(12.0 * scaleX)}px "Times New Roman", serif`;
+        ctx.fillStyle = '#181d32';
+        ctx.fillText(`Date of Issue : ${dateFormatted}`, pW / 2, (841.89 - 181.50) * scaleY);
       } else if (lowerId.includes('gaurav') || lowerId.includes('ratan')) {
         const scaleX = pW / 597.224;
         const scaleY = pH / 843.920;
